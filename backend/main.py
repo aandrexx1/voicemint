@@ -8,6 +8,9 @@ from models import create_tables, get_db, User, Conversion
 from auth import hash_password, verify_password, create_token, get_current_user
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from processors.nlp_parser import parse_transcription
+from processors.document_gen import generate_ppt, generate_pdf, generate_html
+from fastapi.responses import FileResponse
 
 load_dotenv()
 
@@ -108,3 +111,45 @@ def get_me(current_user: User = Depends(get_current_user)):
         "tier": current_user.tier,
         "monthly_usage": current_user.monthly_usage
     }
+
+# --- Genera documento da testo ---
+@app.post("/generate")
+def generate(
+    transcription: str,
+    output_type: str = "ppt",  # "ppt", "pdf", "html"
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Controlla limite utenti free
+    if current_user.tier == "free" and current_user.monthly_usage >= 180:
+        raise HTTPException(status_code=403, detail="Limite mensile raggiunto. Passa a Pro!")
+    
+    # Struttura il testo con GPT-4o
+    data = parse_transcription(transcription)
+    
+    # Genera il file richiesto
+    if output_type == "ppt":
+        file_path = generate_ppt(data)
+    elif output_type == "pdf":
+        file_path = generate_pdf(data)
+    elif output_type == "html":
+        file_path = generate_html(data)
+    else:
+        raise HTTPException(status_code=400, detail="Tipo non valido. Usa: ppt, pdf, html")
+    
+    # Salva la conversione nel database
+    conversion = Conversion(
+        user_id=current_user.id,
+        transcription=transcription,
+        title=data["title"],
+        output_type=output_type,
+        file_path=file_path,
+    )
+    db.add(conversion)
+    db.commit()
+    
+    return FileResponse(
+        file_path,
+        filename=f"voicemint_{data['title'][:20]}.{output_type}",
+        media_type="application/octet-stream"
+    )
