@@ -3,7 +3,7 @@ import { Mic, Download, LogOut, FileText, Globe } from "lucide-react"
 import { motion } from "framer-motion"
 import axios from "axios"
 
-const API = "http://127.0.0.1:8000"
+const API = "https://voicemint-production.up.railway.app"
 
 export default function Dashboard({ token, user, onLogout }) {
   const [recording, setRecording] = useState(false)

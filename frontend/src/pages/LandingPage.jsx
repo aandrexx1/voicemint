@@ -60,7 +60,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
               <button
                 onClick={async () => {
                   try {
-                    await axios.post("http://127.0.0.1:8000/waitlist", { email })
+                    await axios.post("https://voicemint-production.up.railway.app/waitlist", { email })
                     setJoined(true)
                   } catch (err) {
                     setError(err.response?.data?.detail || "Errore, riprova")

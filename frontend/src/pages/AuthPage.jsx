@@ -3,7 +3,7 @@ import axios from "axios"
 import { Mic } from "lucide-react"
 import { motion } from "framer-motion"
 
-const API = "http://127.0.0.1:8000"
+const API = "https://voicemint-production.up.railway.app"
 
 export default function AuthPage({ setToken, setUser, onBack, defaultLogin }) {
   const [isLogin, setIsLogin] = useState(defaultLogin ?? false)
