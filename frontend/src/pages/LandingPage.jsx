@@ -1,6 +1,5 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Mic } from "lucide-react"
 import axios from "axios"
 
 export default function LandingPage({ onGetStarted, onLogin }) {
@@ -13,9 +12,8 @@ export default function LandingPage({ onGetStarted, onLogin }) {
 
       {/* Navbar */}
       <nav className="flex items-center justify-between px-8 py-6 max-w-6xl mx-auto border-b border-white/5">
-        <div className="flex items-center gap-2">
-          <Mic className="w-4 h-4 text-white" />
-          <span className="font-semibold text-base tracking-tight">VoiceMint</span>
+        <div className="flex items-center">
+          <img src="/text_logo.png" alt="VoiceMint" className="h-14 object-contain" />
         </div>
         <div className="flex items-center gap-8">
           <span
@@ -206,8 +204,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
       <footer className="border-t border-white/5 py-8">
         <div className="max-w-6xl mx-auto px-8 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Mic className="w-4 h-4 text-white/20" />
-            <span className="text-white/20 text-sm">VoiceMint</span>
+            <img src="/logo.png" alt="VoiceMint" className="h-8" />
           </div>
           <p className="text-white/20 text-sm">© 2026 VoiceMint</p>
         </div>
