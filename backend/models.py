@@ -32,6 +32,13 @@ class Conversion(Base):
     duration_seconds = Column(Float)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+class Waitlist(Base):
+    __tablename__ = "waitlist"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 def create_tables():
     Base.metadata.create_all(bind=engine)
 

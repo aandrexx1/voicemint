@@ -1,7 +1,13 @@
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { Mic } from "lucide-react"
+import axios from "axios"
 
 export default function LandingPage({ onGetStarted, onLogin }) {
+  const [email, setEmail] = useState("")
+  const [joined, setJoined] = useState(false)
+  const [error, setError] = useState("")
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
 
@@ -12,10 +18,9 @@ export default function LandingPage({ onGetStarted, onLogin }) {
           <span className="font-semibold text-base tracking-tight">VoiceMint</span>
         </div>
         <div className="flex items-center gap-8">
-
           <span
             onClick={() => document.getElementById("prodotto").scrollIntoView({ behavior: "smooth" })}
-            className="text-white/40 text-sm cursor-pointer hover:text-white transition-all"  
+            className="text-white/40 text-sm cursor-pointer hover:text-white transition-all"
           >
             Prodotto
           </span>
@@ -25,23 +30,11 @@ export default function LandingPage({ onGetStarted, onLogin }) {
           >
             Prezzi
           </span>
-        <button
-            onClick={onLogin}
-            className="text-sm text-white bg-white/10 hover:bg-white/15 px-5 py-2 rounded-full transition-all"
-        >
-            Accedi
-        </button>
-          <button
-            onClick={onGetStarted}
-            className="text-sm text-black bg-white font-semibold hover:bg-white/90 px-5 py-2 rounded-full transition-all"
-          >
-            Inizia gratis
-          </button>
         </div>
       </nav>
 
       {/* Hero */}
-      <section className="max-w-6xl mx-auto px-8 pt-28 pb-24">
+      <section className="max-w-6xl mx-auto px-8 pt-12 pb-24">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -54,14 +47,39 @@ export default function LandingPage({ onGetStarted, onLogin }) {
           <p className="text-white/40 text-lg max-w-xl leading-relaxed mb-10">
             Parla liberamente. VoiceMint genera presentazioni PPT, PDF professionali e siti web completi in pochi secondi, grazie all'AI.
           </p>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onGetStarted}
-              className="bg-white text-black font-semibold px-7 py-3 rounded-full text-sm hover:bg-white/90 transition-all"
-            >
-              Inizia gratis
-            </button>
-            <span className="text-white/30 text-sm">Nessuna carta richiesta</span>
+
+          {!joined ? (
+            <div className="flex items-center gap-3 max-w-md">
+              <input
+                type="email"
+                placeholder="La tua email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1 bg-transparent border border-white/10 text-white rounded-full px-5 py-3 text-sm outline-none placeholder-white/20 focus:border-white/30 transition-all"
+              />
+              <button
+                onClick={async () => {
+                  try {
+                    await axios.post("http://127.0.0.1:8000/waitlist", { email })
+                    setJoined(true)
+                  } catch (err) {
+                    setError(err.response?.data?.detail || "Errore, riprova")
+                  }
+                }}
+                className="shrink-0 bg-white text-black font-semibold px-6 py-3 rounded-full text-sm hover:bg-white/90 transition-all"
+              >
+                Unisciti alla waitlist
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-white rounded-full" />
+              <p className="text-white/60 text-sm">Sei nella lista — ti avviseremo al lancio!</p>
+            </div>
+          )}
+          {error && <p className="text-red-400 text-xs mt-3">{error}</p>}
+          <div className="max-w-md">
+          <p className="text-white/20 text-xs mt-4 max-w-md">Nessuna carta richiesta. Accesso anticipato gratuito.</p>
           </div>
         </motion.div>
       </section>
@@ -140,12 +158,6 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                 <li>PDF e PPT base</li>
                 <li>1 sito web generato</li>
               </ul>
-              <button
-                onClick={onGetStarted}
-                className="w-full border border-white/10 hover:border-white/30 text-white py-3 rounded-full transition-all text-sm"
-              >
-                Inizia gratis
-              </button>
             </div>
             <div className="border border-white/20 bg-white/5 rounded-2xl p-8">
               <div className="flex items-center justify-between mb-4">
@@ -161,10 +173,10 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                 <li>Supporto dedicato</li>
               </ul>
               <button
-                onClick={onGetStarted}
+                onClick={onLogin}
                 className="w-full bg-white text-black font-semibold py-3 rounded-full transition-all text-sm hover:bg-white/90"
               >
-                Passa a Pro
+                Unisciti alla waitlist
               </button>
             </div>
           </div>

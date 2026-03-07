@@ -4,15 +4,18 @@ from dotenv import load_dotenv
 import openai
 import os
 import tempfile
-from models import create_tables, get_db, User, Conversion
 from auth import hash_password, verify_password, create_token, get_current_user
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from processors.nlp_parser import parse_transcription
 from processors.document_gen import generate_ppt, generate_pdf, generate_html
 from fastapi.responses import FileResponse
+from models import create_tables, get_db, User, Conversion, Waitlist
+import resend
 
 load_dotenv()
+resend.api_key = os.getenv("RESEND_API_KEY")
+
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -153,3 +156,38 @@ def generate(
         filename=f"voicemint_{data['title'][:20]}.{output_type}",
         media_type="application/octet-stream"
     )
+
+class WaitlistRequest(BaseModel):
+    email: str
+
+@app.post("/waitlist")
+def join_waitlist(data: WaitlistRequest, db: Session = Depends(get_db)):
+    existing = db.query(Waitlist).filter(Waitlist.email == data.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email già registrata alla waitlist")
+    
+    entry = Waitlist(email=data.email)
+    db.add(entry)
+    db.commit()
+
+    # Manda email di conferma
+    try:
+        resend.Emails.send({
+            "from": "VoiceMint <noreply@voicemint.it>",
+            "to": data.email,
+            "subject": "Sei nella lista — VoiceMint",
+            "html": """
+                <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 40px; background: #0a0a0a; color: #ffffff;">
+                    <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 16px;">Grazie per esserti iscritto.</h1>
+                    <p style="color: #888; line-height: 1.6; margin-bottom: 24px;">
+                        Sei nella waitlist di VoiceMint. Ti avviseremo non appena il prodotto sarà disponibile.
+                    </p>
+                    <hr style="border: none; border-top: 1px solid #222; margin: 32px 0;">
+                    <p style="color: #444; font-size: 12px;">VoiceMint — Dalla voce al documento in 30 secondi.</p>
+                </div>
+            """
+        })
+    except Exception as e:
+        print(f"Errore invio email: {e}")
+
+    return {"message": "Iscrizione avvenuta con successo!"}
