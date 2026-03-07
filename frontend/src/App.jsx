@@ -1,21 +1,27 @@
 import { useState } from "react"
+import LandingPage from "./pages/LandingPage"
 import AuthPage from "./pages/AuthPage"
 import Dashboard from "./pages/Dashboard"
 
-
 function App() {
+  const [page, setPage] = useState("landing")
   const [token, setToken] = useState(null)
   const [user, setUser] = useState(null)
 
-  return (
-    <div className="min-h-screen bg-[#0f0f1a] text-white">
-      {!token ? (
-        <AuthPage setToken={setToken} setUser={setUser} />
-      ) : (
-        <Dashboard token={token} user={user} onLogout={() => { setToken(null); setUser(null) }} />
-      )}
-    </div>
-  )
+if (page === "landing") return <LandingPage 
+  onGetStarted={() => setPage("auth")} 
+  onLogin={() => setPage("auth-login")}
+/>
+
+if (page === "auth" || page === "auth-login") return (
+  <AuthPage
+    setToken={(t) => { setToken(t); setPage("dashboard") }}
+    setUser={setUser}
+    onBack={() => setPage("landing")}
+    defaultLogin={page === "auth-login"}
+  />
+)
+  return <Dashboard token={token} user={user} onLogout={() => { setToken(null); setPage("landing") }} />
 }
 
 export default App
