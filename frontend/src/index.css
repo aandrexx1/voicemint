@@ -1,1 +1,30 @@
 @import "tailwindcss";
+
+.slot-wrapper {
+  display: inline-block;
+  overflow: hidden;
+  height: 1.2em;
+  vertical-align: bottom;
+  min-width: 20rem;
+  text-align: center;
+}
+
+.slot-enter {
+  display: block;
+  animation: enterDown 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.slot-exit {
+  display: block;
+  animation: exitDown 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes enterDown {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(0%); }
+}
+
+@keyframes exitDown {
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(100%); }
+}

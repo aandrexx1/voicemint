@@ -1,11 +1,25 @@
-import { useState } from "react"
 import { motion } from "framer-motion"
 import axios from "axios"
+import { useState, useEffect } from "react"
 
 export default function LandingPage({ onGetStarted, onLogin }) {
   const [email, setEmail] = useState("")
   const [joined, setJoined] = useState(false)
   const [error, setError] = useState("")
+  const words = ["PowerPoint", "PDF", "Siti Web"]
+  const [wordIndex, setWordIndex] = useState(0)
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsAnimating(true)
+      setTimeout(() => {
+        setWordIndex((i) => (i + 1) % words.length)
+        setIsAnimating(false)
+      }, 400)
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -40,7 +54,14 @@ export default function LandingPage({ onGetStarted, onLogin }) {
         >
           <p className="text-white/30 text-sm uppercase tracking-widest mb-6">Voice to Document</p>
           <h1 className="text-5xl md:text-6xl font-bold leading-tight tracking-tight mb-6 max-w-3xl">
-            <span className="text-white/40">Trasforma</span> la tua voce in documenti pronti all'uso.
+            <span className="text-white/40">Trasforma</span> la tua voce in{" "}
+            <br />
+            <span className="slot-wrapper">
+              <span className={`slot-word text-white ${isAnimating ? "slot-exit" : "slot-enter"}`}>
+                {words[wordIndex]}
+              </span>
+            </span>{" "}
+            pronti all'uso.
           </h1>
           <p className="text-white/40 text-lg max-w-xl leading-relaxed mb-10">
             Parla liberamente. VoiceMint genera presentazioni PPT, PDF professionali e siti web completi in pochi secondi, grazie all'AI.
