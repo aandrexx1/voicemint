@@ -1,0 +1,108 @@
+import i18n from "i18next"
+import { initReactI18next } from "react-i18next"
+
+const resources = {
+  it: {
+    translation: {
+      nav_prodotto: "Prodotto",
+      nav_prezzi: "Prezzi",
+      hero_tag: "Voice to Document",
+      hero_title_1: "Trasforma",
+      hero_title_2: "la tua voce in",
+      hero_title_3: "pronti all'uso.",
+      hero_desc: "Parla liberamente. VoiceMint genera presentazioni PPT, PDF professionali e siti web completi in pochi secondi, grazie all'AI.",
+      hero_cta: "Unisciti alla waitlist",
+      hero_sub: "Nessuna carta richiesta. Accesso anticipato gratuito.",
+      words: ["PowerPoint", "PDF", "Siti Web"],
+      stats_1: "Per generare un documento",
+      stats_2: "Formati di output",
+      stats_3: "Piano Pro al mese",
+      how_tag: "Come funziona",
+      how_title: "Tre passi.",
+      how_desc: "VoiceMint combina la trascrizione di OpenAI Whisper con la strutturazione automatica di GPT-4o per trasformare qualsiasi parlato in contenuto professionale.",
+      step_1_title: "Parla",
+      step_1_desc: "Premi Registra e parla liberamente. Anche in italiano.",
+      step_2_title: "AI elabora",
+      step_2_desc: "Whisper trascrive. GPT-4o struttura il contenuto automaticamente.",
+      step_3_title: "Scarica",
+      step_3_desc: "PPT, PDF o sito web pronti in secondi.",
+      pricing_tag: "Prezzi",
+      free_forever: "Per sempre",
+      free_f1: "3 minuti audio / mese",
+      free_f2: "PDF e PPT base",
+      free_f3: "1 sito web generato",
+      free_cta: "Inizia gratis",
+      pro_month: "Al mese",
+      pro_f1: "Audio illimitato",
+      pro_f2: "PPT, PDF e siti web illimitati",
+      pro_f3: "Priorità nella coda",
+      pro_f4: "Supporto dedicato",
+      pro_cta: "Unisciti alla waitlist",
+      faq_tag: "FAQ",
+      faq_1_q: "Che lingue supporta?",
+      faq_1_a: "Italiano, inglese e oltre 50 lingue grazie a OpenAI Whisper.",
+      faq_2_q: "I miei dati sono al sicuro?",
+      faq_2_a: "Sì. Le trascrizioni vengono elaborate e poi eliminate dai nostri server.",
+      faq_3_q: "Posso cancellare quando voglio?",
+      faq_3_a: "Assolutamente. Nessun vincolo, cancelli in un click.",
+      footer: "© 2026 VoiceMint",
+    }
+  },
+  en: {
+    translation: {
+      nav_prodotto: "Product",
+      nav_prezzi: "Pricing",
+      hero_tag: "Voice to Document",
+      hero_title_1: "Transform",
+      hero_title_2: "your voice into",
+      hero_title_3: "ready to use.",
+      hero_desc: "Speak freely. VoiceMint generates PPT presentations, professional PDFs and complete websites in seconds, powered by AI.",
+      hero_cta: "Join the waitlist",
+      hero_sub: "No credit card required. Free early access.",
+      words: ["PowerPoint", "PDF", "Websites"],
+      stats_1: "To generate a document",
+      stats_2: "Output formats",
+      stats_3: "Pro plan per month",
+      how_tag: "How it works",
+      how_title: "Three steps.",
+      how_desc: "VoiceMint combines OpenAI Whisper transcription with GPT-4o automatic structuring to turn any speech into professional content.",
+      step_1_title: "Speak",
+      step_1_desc: "Press Record and speak freely. In any language.",
+      step_2_title: "AI processes",
+      step_2_desc: "Whisper transcribes. GPT-4o structures the content automatically.",
+      step_3_title: "Download",
+      step_3_desc: "PPT, PDF or website ready in seconds.",
+      pricing_tag: "Pricing",
+      free_forever: "Forever",
+      free_f1: "3 minutes audio / month",
+      free_f2: "Basic PDF and PPT",
+      free_f3: "1 generated website",
+      free_cta: "Start for free",
+      pro_month: "Per month",
+      pro_f1: "Unlimited audio",
+      pro_f2: "Unlimited PPT, PDF and websites",
+      pro_f3: "Priority queue",
+      pro_f4: "Dedicated support",
+      pro_cta: "Join the waitlist",
+      faq_tag: "FAQ",
+      faq_1_q: "What languages are supported?",
+      faq_1_a: "Italian, English and over 50 languages thanks to OpenAI Whisper.",
+      faq_2_q: "Is my data safe?",
+      faq_2_a: "Yes. Transcriptions are processed and then deleted from our servers.",
+      faq_3_q: "Can I cancel anytime?",
+      faq_3_a: "Absolutely. No commitment, cancel in one click.",
+      footer: "© 2026 VoiceMint",
+    }
+  }
+}
+
+i18n
+  .use(initReactI18next)
+  .init({
+    resources,
+    lng: localStorage.getItem("lang") || "it",
+    fallbackLng: "it",
+    interpolation: { escapeValue: false }
+  })
+
+export default i18n
