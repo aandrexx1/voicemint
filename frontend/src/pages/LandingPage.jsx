@@ -49,7 +49,6 @@ export default function LandingPage({ onGetStarted, onLogin }) {
           >
             {t("nav_prezzi")}
           </span>
-          {/* Lang switcher */}
           <div className="flex items-center gap-2 text-sm">
             <button
               onClick={() => changeLang("it")}
