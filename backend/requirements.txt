@@ -10,3 +10,4 @@ reportlab
 jinja2
 python-dotenv
 resend
+stripe
