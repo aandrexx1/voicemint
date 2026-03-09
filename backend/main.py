@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import openai
@@ -10,12 +10,13 @@ from sqlalchemy.orm import Session
 from processors.nlp_parser import parse_transcription
 from processors.document_gen import generate_ppt, generate_pdf, generate_html
 from fastapi.responses import FileResponse
-from models import create_tables, get_db, User, Conversion, Waitlist
+from models import create_tables, get_db, User, Conversion, Waitlist, SessionLocal
 import resend
+import stripe
 
 load_dotenv()
 resend.api_key = os.getenv("RESEND_API_KEY")
-
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -192,3 +193,42 @@ def join_waitlist(data: WaitlistRequest, db: Session = Depends(get_db)):
         print(f"Errore invio email: {e}")
 
     return {"message": "Iscrizione avvenuta con successo!"}
+
+@app.post("/create-checkout-session")
+def create_checkout_session(current_user: User = Depends(get_current_user)):
+    session = stripe.checkout.Session.create(
+        payment_method_types=["card"],
+        mode="subscription",
+        line_items=[{
+            "price": os.getenv("STRIPE_PRICE_ID"),
+            "quantity": 1,
+        }],
+        success_url="https://voicemint.it/dashboard?upgraded=true",
+        cancel_url="https://voicemint.it",
+        customer_email=current_user.email,
+    )
+    return {"url": session.url}
+
+@app.post("/webhook")
+async def stripe_webhook(request: Request):
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+    
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, os.getenv("STRIPE_WEBHOOK_SECRET")
+        )
+    except Exception:
+        raise HTTPException(status_code=400, detail="Webhook error")
+    
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        email = session.get("customer_email")
+        db = SessionLocal()
+        user = db.query(User).filter(User.email == email).first()
+        if user:
+            user.tier = "pro"
+            db.commit()
+        db.close()
+    
+    return {"status": "ok"}
