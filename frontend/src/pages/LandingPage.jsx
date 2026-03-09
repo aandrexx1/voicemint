@@ -77,6 +77,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                 {words[wordIndex]}
               </span>
             </span>{" "}
+            <br />
             {t("hero_title_3")}
           </h1>
           <p className="text-white/40 text-base md:text-lg max-w-xl leading-relaxed mb-10">
