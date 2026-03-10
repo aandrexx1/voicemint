@@ -15,16 +15,16 @@
   }
 }
 
-.slot-enter {
+.slot-enter, .slot-exit {
   display: block;
+  will-change: transform;
+  backface-visibility: hidden;
   animation: enterDown 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .slot-exit {
-  display: block;
   animation: exitDown 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
-
 @keyframes enterDown {
   0% { transform: translateY(-100%); }
   100% { transform: translateY(0%); }
