@@ -79,7 +79,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                 {words[wordIndex]}
               </span>
             </span>{" "}
-            <br />
+            <br className="md:hidden" />
             {t("hero_title_3")}
           </h1>
           <p className="text-white/40 text-base md:text-lg max-w-xl leading-relaxed mb-10">
@@ -184,6 +184,26 @@ export default function LandingPage({ onGetStarted, onLogin }) {
         ...
       </section>
       */}
+      {!cookieAccepted && (
+        <div className="fixed bottom-0 left-0 right-0 bg-[#111] border-t border-white/10 px-6 py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 z-50">
+          <p className="text-white/50 text-xs max-w-xl">
+            {i18n.language === "it"
+              ? "Utilizziamo cookie tecnici per migliorare la tua esperienza. Continuando accetti la nostra cookie policy."
+              : "We use technical cookies to improve your experience. By continuing you accept our cookie policy."}
+          </p>
+          <div className="flex gap-3 shrink-0">
+            <button
+              onClick={() => {
+              localStorage.setItem("cookie_accepted", "true")
+              setCookieAccepted(true)
+            }}
+            className="bg-white text-black text-xs font-semibold px-4 py-2 rounded-full hover:bg-white/90 transition-all"
+          >
+            {i18n.language === "it" ? "Accetta" : "Accept"}
+          </button>
+        </div>
+      </div>
+    )}
     </div>
   )
 }
