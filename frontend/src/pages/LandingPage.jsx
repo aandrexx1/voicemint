@@ -72,14 +72,12 @@ export default function LandingPage({ onGetStarted, onLogin }) {
         >
           <p className="text-white/30 text-sm uppercase tracking-widest mb-6">{t("hero_tag")}</p>
           <h1 className="text-4xl md:text-6xl font-bold leading-tight tracking-tight mb-6 max-w-3xl">
-            <span className="text-white/40">{t("hero_title_1")}</span> {t("hero_title_2")}{" "}
-            <br />
+            <span className="text-white/40">{t("hero_title_1")}</span> {t("hero_title_2")}
             <span className="slot-wrapper">
               <span className={`slot-word text-white ${isAnimating ? "slot-exit" : "slot-enter"}`}>
                 {words[wordIndex]}
               </span>
-            </span>{" "}
-            <br className="md:hidden" />
+            </span>
             {t("hero_title_3")}
           </h1>
           <p className="text-white/40 text-base md:text-lg max-w-xl leading-relaxed mb-10">
