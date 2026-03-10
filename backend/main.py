@@ -13,8 +13,10 @@ from fastapi.responses import FileResponse
 from models import create_tables, get_db, User, Conversion, Waitlist, SessionLocal
 import resend
 import stripe
-
+from groq import Groq
 load_dotenv()
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
 resend.api_key = os.getenv("RESEND_API_KEY")
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
@@ -53,12 +55,11 @@ async def upload_audio(file: UploadFile = File(...)):
     try:
         # Manda l'audio a Whisper
         with open(tmp_path, "rb") as audio_file:
-            transcript = openai.audio.transcriptions.create(
-                model="whisper-1",
+            transcript = groq_client.audio.transcriptions.create(
+                model="whisper-large-v3",
                 file=audio_file,
                 language="it"
             )
-        
         return {"transcription": transcript.text}
     
     finally:
