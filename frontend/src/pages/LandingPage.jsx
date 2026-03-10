@@ -11,7 +11,9 @@ export default function LandingPage({ onGetStarted, onLogin }) {
   const words = t("words", { returnObjects: true })
   const [wordIndex, setWordIndex] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
-
+  const [cookieAccepted, setCookieAccepted] = useState(
+    localStorage.getItem("cookie_accepted") === "true"
+  )
   useEffect(() => {
     const interval = setInterval(() => {
       setIsAnimating(true)
