@@ -13,12 +13,9 @@ Testo: {transcription}
 Rispondi SOLO con un JSON valido in questo formato, senza altro testo:
 {{
   "title": "Titolo principale",
-  "slides": [
-    {{
-      "title": "Titolo slide",
-      "bullets": ["punto 1", "punto 2", "punto 3"]
-    }}
-  ]
+  "subtitle": "Sottotitolo breve",
+  "bullets": ["punto 1", "punto 2", "punto 3", "punto 4", "punto 5"],
+  "summary": "Riepilogo del contenuto in 2-3 frasi."
 }}
 """
     response = client.chat.completions.create(
