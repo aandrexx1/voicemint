@@ -110,7 +110,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
           ) : (
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 bg-white rounded-full" />
-              <p className="text-white/60 text-sm">{i18n.language === "it" ? "Sei nella lista — ti avviseremo al lancio!" : "You're on the list — we'll notify you at launch!"}</p>
+              <p className="text-white/60 text-sm">{i18n.language === "it" ? "Sei nella lista, ti avviseremo al lancio!" : "You're on the list, we'll notify you at launch!"}</p>
             </div>
           )}
           {error && <p className="text-red-400 text-xs mt-3">{error}</p>}
