@@ -122,7 +122,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
           {[
             { n: "30s", label: t("stats_1") },
             { n: "3", label: t("stats_2") },
-            { n: "€9", label: t("stats_3") },
+            { n: "€5", label: t("stats_3") },
           ].map((s, i) => (
             <motion.div
               key={i}
