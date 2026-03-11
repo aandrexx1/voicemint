@@ -16,6 +16,7 @@ import stripe
 from groq import Groq
 load_dotenv()
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+from datetime import datetime, timedelta
 
 resend.api_key = os.getenv("RESEND_API_KEY")
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -78,23 +79,48 @@ class LoginRequest(BaseModel):
 # --- Registrazione ---
 @app.post("/register")
 def register(data: RegisterRequest, db: Session = Depends(get_db)):
-    # Controlla se email già esistente
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=400, detail="Email già registrata")
     
-    # Crea nuovo utente
+    # Conta utenti registrati finora
+    user_count = db.query(User).count()
+    registration_number = user_count + 1
+    
+    # Assegna tier in base al numero
+    if registration_number <= 50:
+        tier = "pro"
+        lifetime_pro = True
+        pro_until = None
+    elif registration_number <= 100:
+        tier = "pro"
+        lifetime_pro = False
+        pro_until = datetime.utcnow() + timedelta(days=30)
+    else:
+        tier = "free"
+        lifetime_pro = False
+        pro_until = None
+
     user = User(
         email=data.email,
         username=data.username,
         hashed_password=hash_password(data.password),
-        tier="free"
+        tier=tier,
+        lifetime_pro=lifetime_pro,
+        pro_until=pro_until,
+        registration_number=registration_number
     )
     db.add(user)
     db.commit()
     db.refresh(user)
     
     token = create_token({"sub": user.email})
-    return {"token": token, "username": user.username, "tier": user.tier}
+    return {
+        "token": token,
+        "username": user.username,
+        "tier": user.tier,
+        "lifetime_pro": user.lifetime_pro,
+        "registration_number": user.registration_number
+    }
 
 # --- Login ---
 @app.post("/login")
@@ -110,11 +136,25 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
 # --- Profilo utente (richiede login) ---
 @app.get("/me")
 def get_me(current_user: User = Depends(get_current_user)):
+    # Controlla se il pro_until è scaduto
+    if current_user.pro_until and current_user.pro_until < datetime.utcnow():
+        db = SessionLocal()
+        user = db.query(User).filter(User.email == current_user.email).first()
+        user.tier = "free"
+        db.commit()
+        db.close()
+        current_user.tier = "free"
+
     return {
         "email": current_user.email,
         "username": current_user.username,
+        "first_name": current_user.first_name,
+        "last_name": current_user.last_name,
         "tier": current_user.tier,
-        "monthly_usage": current_user.monthly_usage
+        "lifetime_pro": current_user.lifetime_pro,
+        "pro_until": current_user.pro_until,
+        "monthly_usage": current_user.monthly_usage,
+        "registration_number": current_user.registration_number
     }
 
 # --- Genera documento da testo ---
@@ -249,3 +289,40 @@ def admin_stats(db: Session = Depends(get_db)):
         "total_waitlist": total_waitlist,
         "total_conversions": total_conversions
     }
+
+class UpdateProfileRequest(BaseModel):
+    first_name: str = None
+    last_name: str = None
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+@app.put("/me/profile")
+def update_profile(data: UpdateProfileRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if data.first_name is not None:
+        current_user.first_name = data.first_name
+    if data.last_name is not None:
+        current_user.last_name = data.last_name
+    db.add(current_user)
+    db.commit()
+    return {"message": "Profilo aggiornato"}
+
+@app.put("/me/password")
+def change_password(data: ChangePasswordRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not verify_password(data.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Password attuale non corretta")
+    current_user.hashed_password = hash_password(data.new_password)
+    db.add(current_user)
+    db.commit()
+    return {"message": "Password aggiornata"}
+
+@app.delete("/me/subscription")
+def cancel_subscription(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.lifetime_pro:
+        raise HTTPException(status_code=400, detail="Il tuo piano è gratuito a vita, non puoi annullarlo!")
+    current_user.tier = "free"
+    current_user.pro_until = None
+    db.add(current_user)
+    db.commit()
+    return {"message": "Abbonamento annullato"}

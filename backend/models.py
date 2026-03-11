@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
@@ -29,6 +29,11 @@ class User(Base):
     tier = Column(String, default="free")
     monthly_usage = Column(Float, default=0.0)
     created_at = Column(DateTime, default=datetime.utcnow)
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    pro_until = Column(DateTime, nullable=True)  # per utenti 51-100
+    lifetime_pro = Column(Boolean, default=False)  # per primi 50
+    registration_number = Column(Integer, nullable=True)  # numero progressivo
 
 class Conversion(Base):
     __tablename__ = "conversions"
