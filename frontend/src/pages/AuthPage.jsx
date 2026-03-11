@@ -24,14 +24,18 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin }) {
 
       const res = await axios.post(`${API}${endpoint}`, payload)
       setToken(res.data.token)
-      setUser({ username: res.data.username, tier: res.data.tier })
+      setUser({ 
+        username: res.data.username, 
+        tier: res.data.tier,
+        lifetime_pro: res.data.lifetime_pro,
+        registration_number: res.data.registration_number
+      })
     } catch (err) {
       setError(err.response?.data?.detail || "Errore di connessione")
     } finally {
       setLoading(false)
     }
   }
-
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex">
 

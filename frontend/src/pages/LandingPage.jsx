@@ -84,36 +84,32 @@ export default function LandingPage({ onGetStarted, onLogin }) {
             {t("hero_desc")}
           </p>
 
-          {!joined ? (
-            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 max-w-md">
-              <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 bg-transparent border border-white/10 text-white rounded-full px-5 py-3 text-sm outline-none placeholder-white/20 focus:border-white/30 transition-all"
-              />
-              <button
-                onClick={async () => {
-                  try {
-                    await axios.post("https://voicemint-backend.onrender.com/waitlist", { email, lang: i18n.language })
-                    setJoined(true)
-                  } catch (err) {
-                    setError(err.response?.data?.detail || "Errore, riprova")
-                  }
-                }}
-                className="shrink-0 bg-white text-black font-semibold px-6 py-3 rounded-full text-sm hover:bg-white/90 transition-all"
-              >
-                {t("hero_cta")}
-              </button>
+          {/* Counter posti */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+              <p className="text-white/60 text-xs">
+                {i18n.language === "it" 
+                  ? "🎉 I primi 50 utenti ottengono Pro gratis a vita" 
+                  : "🎉 First 50 users get Pro free forever"}
+              </p>
             </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-white rounded-full" />
-              <p className="text-white/60 text-sm">{i18n.language === "it" ? "Sei nella lista, ti avviseremo al lancio!" : "You're on the list, we'll notify you at launch!"}</p>
-            </div>
-          )}
-          {error && <p className="text-red-400 text-xs mt-3">{error}</p>}
+          </div>
+
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 max-w-md">
+            <button
+              onClick={onGetStarted}
+              className="shrink-0 bg-white text-black font-semibold px-8 py-3 rounded-full text-sm hover:bg-white/90 transition-all"
+            >
+              {i18n.language === "it" ? "Inizia gratis →" : "Get started free →"}
+            </button>
+            <button
+              onClick={onLogin}
+              className="text-white/40 text-sm hover:text-white transition-all px-4 py-3"
+            >
+              {i18n.language === "it" ? "Hai già un account? Accedi" : "Already have an account? Log in"}
+            </button>
+          </div>
           <div className="max-w-md">
             <p className="text-white/20 text-xs mt-4">{t("hero_sub")}</p>
           </div>
