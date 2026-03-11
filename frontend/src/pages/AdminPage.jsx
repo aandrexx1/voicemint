@@ -3,17 +3,52 @@ import axios from "axios"
 import { motion } from "framer-motion"
 
 const API = "https://voicemint-production.up.railway.app"
+const SECRET_PASSWORD = "6g@tteRitte"
 
 export default function AdminPage() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [authed, setAuthed] = useState(false)
+  const [pwd, setPwd] = useState("")
+  const [error, setError] = useState("")
 
   useEffect(() => {
+    if (!authed) return
     axios.get(`${API}/e5426679666b`).then(res => {
       setStats(res.data)
       setLoading(false)
     })
-  }, [])
+  }, [authed])
+
+  if (!authed) return (
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="flex flex-col gap-4 w-64">
+        <input
+          type="password"
+          placeholder="Password"
+          value={pwd}
+          onChange={(e) => setPwd(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              if (pwd === SECRET_PASSWORD) setAuthed(true)
+              else setError("Password errata")
+            }
+          }}
+          className="bg-transparent border border-white/10 text-white rounded-full px-5 py-3 text-sm outline-none placeholder-white/20 focus:border-white/30"
+        />
+        <button
+          onClick={() => {
+            if (pwd === SECRET_PASSWORD) setAuthed(true)
+            else setError("Password errata")
+          }}
+          className="bg-white text-black font-semibold px-6 py-3 rounded-full text-sm hover:bg-white/90"
+        >
+          Accedi
+        </button>
+        {error && <p className="text-red-400 text-xs text-center">{error}</p>}
+      </div>
+    </div>
+  )
 
   if (loading) return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
@@ -34,7 +69,6 @@ export default function AdminPage() {
       <div className="max-w-4xl mx-auto">
         <p className="text-white/20 text-xs uppercase tracking-widest mb-2">VoiceMint</p>
         <h1 className="text-3xl font-bold tracking-tight mb-16">Overview</h1>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {cards.map((c, i) => (
             <motion.div
