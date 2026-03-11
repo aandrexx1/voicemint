@@ -3,7 +3,7 @@ import axios from "axios"
 import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 
-export default function LandingPage({ onGetStarted, onLogin }) {
+export default function LandingPage({ onGetStarted, onLogin, onProduct}) {
   const [email, setEmail] = useState("")
   const [joined, setJoined] = useState(false)
   const [error, setError] = useState("")
