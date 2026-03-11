@@ -40,7 +40,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
         </div>
         <div className="flex items-center gap-4 md:gap-8">
           <span
-            onClick={() => document.getElementById("faq").scrollIntoView({ behavior: "smooth" })}
+            onClick={onProduct}
             className="hidden md:block text-white/40 text-sm cursor-pointer hover:text-white transition-all"
           >
             {t("nav_prodotto")}

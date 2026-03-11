@@ -4,6 +4,7 @@ import AuthPage from "./pages/AuthPage"
 import Dashboard from "./pages/Dashboard"
 import AdminPage from "./pages/AdminPage"
 import axios from "axios"
+import ProductPage
 
 const API = "https://voicemint-backend.onrender.com"
 
@@ -46,6 +47,7 @@ function App() {
     <LandingPage
       onGetStarted={() => setPage("auth")}
       onLogin={() => setPage("auth-login")}
+      onProduct={() => setPage("product")}
     />
   )
 
@@ -60,5 +62,12 @@ function App() {
 
   return <Dashboard token={token} user={user} setUser={setUser} onLogout={handleLogout} />
 }
+
+if (page === "product") return (
+  <ProductPage
+    onGetStarted={() => setPage("auth")}
+    onLogin={() => setPage("auth-login")}
+  />
+)
 
 export default App
