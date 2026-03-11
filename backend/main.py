@@ -134,11 +134,11 @@ def generate(
     
     # Genera il file richiesto
     if output_type == "ppt":
-        file_path = generate_ppt(data)
+        file_path = generate_ppt(data, user_tier=current_user.tier)
     elif output_type == "pdf":
-        file_path = generate_pdf(data)
+        file_path = generate_pdf(data, user_tier=current_user.tier)
     elif output_type == "html":
-        file_path = generate_html(data)
+        file_path = generate_html(data, user_tier=current_user.tier)
     else:
         raise HTTPException(status_code=400, detail="Tipo non valido. Usa: ppt, pdf, html")
     

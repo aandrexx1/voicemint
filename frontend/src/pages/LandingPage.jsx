@@ -182,6 +182,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
         ...
       </section>
       */}
+      
       {!cookieAccepted && (
         <div className="fixed bottom-0 left-0 right-0 bg-[#111] border-t border-white/10 px-6 py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 z-50">
           <p className="text-white/50 text-xs max-w-xl">

@@ -12,3 +12,4 @@ python-dotenv
 resend
 stripe
 groq
+playwright
