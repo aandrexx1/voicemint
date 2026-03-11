@@ -13,3 +13,4 @@ resend
 stripe
 groq
 playwright
+psycopg2-binary

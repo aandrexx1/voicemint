@@ -2,10 +2,20 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
+import os
 
-DATABASE_URL = "sqlite:///./voicemint.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./voicemint.db")
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+# Fix per Supabase/PostgreSQL — la connection string inizia con postgres:// ma SQLAlchemy vuole postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# connect_args solo per SQLite
+if "sqlite" in DATABASE_URL:
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -16,8 +26,8 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     username = Column(String, unique=True)
     hashed_password = Column(String)
-    tier = Column(String, default="free")  # "free" o "pro"
-    monthly_usage = Column(Float, default=0.0)  # secondi usati questo mese
+    tier = Column(String, default="free")
+    monthly_usage = Column(Float, default=0.0)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Conversion(Base):
@@ -27,7 +37,7 @@ class Conversion(Base):
     user_id = Column(Integer)
     transcription = Column(String)
     title = Column(String)
-    output_type = Column(String)  # "ppt", "pdf", "html"
+    output_type = Column(String)
     file_path = Column(String)
     duration_seconds = Column(Float)
     created_at = Column(DateTime, default=datetime.utcnow)
