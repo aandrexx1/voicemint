@@ -4,7 +4,7 @@ import AuthPage from "./pages/AuthPage"
 import Dashboard from "./pages/Dashboard"
 import AdminPage from "./pages/AdminPage"
 import axios from "axios"
-import ProductPage
+import ProductPage from "./pages/ProductPage"
 
 const API = "https://voicemint-backend.onrender.com"
 
