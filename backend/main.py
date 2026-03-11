@@ -233,3 +233,19 @@ async def stripe_webhook(request: Request):
         db.close()
     
     return {"status": "ok"}
+
+@app.get("/e5426679666b")
+def admin_stats(db: Session = Depends(get_db)):
+    total_users = db.query(User).count()
+    free_users = db.query(User).filter(User.tier == "free").count()
+    pro_users = db.query(User).filter(User.tier == "pro").count()
+    total_waitlist = db.query(Waitlist).count()
+    total_conversions = db.query(Conversion).count()
+    
+    return {
+        "total_users": total_users,
+        "free_users": free_users,
+        "pro_users": pro_users,
+        "total_waitlist": total_waitlist,
+        "total_conversions": total_conversions
+    }
