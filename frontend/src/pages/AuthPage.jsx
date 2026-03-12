@@ -1,6 +1,5 @@
 import { useState } from "react"
 import axios from "axios"
-import { Mic } from "lucide-react"
 import { motion } from "framer-motion"
 
 const API = "https://voicemint-backend.onrender.com"
@@ -24,8 +23,8 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin }) {
 
       const res = await axios.post(`${API}${endpoint}`, payload)
       setToken(res.data.token)
-      setUser({ 
-        username: res.data.username, 
+      setUser({
+        username: res.data.username,
         tier: res.data.tier,
         lifetime_pro: res.data.lifetime_pro,
         registration_number: res.data.registration_number
@@ -36,16 +35,18 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin }) {
       setLoading(false)
     }
   }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex">
 
       {/* Sinistra — branding */}
-      <img 
-        src="/text_logo.png" 
-        alt="VoiceMint" 
-        className="h-10 object-contain cursor-pointer" 
-        onClick={onBack}
-      />
+      <div className="hidden md:flex flex-col justify-between w-1/2 border-r border-white/5 p-12">
+        <img
+          src="/text_logo.png"
+          alt="VoiceMint"
+          className="h-10 object-contain cursor-pointer"
+          onClick={onBack}
+        />
         <div>
           <p className="text-white/20 text-xs uppercase tracking-widest mb-6">Voice to Document</p>
           <h2 className="text-5xl font-bold leading-tight tracking-tight mb-6">
@@ -66,13 +67,12 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin }) {
           transition={{ duration: 0.5 }}
           className="w-full max-w-sm"
         >
-        <button
+          <button
             onClick={onBack}
             className="flex items-center gap-2 text-white/60 hover:text-white transition-all text-xs mb-12"
-        >
+          >
             ← Torna alla home
-        </button>
-        <p className="text-white/30 text-xs uppercase tracking-widest mb-8"></p>    
+          </button>
           <p className="text-white/30 text-xs uppercase tracking-widest mb-8">
             {isLogin ? "Accedi" : "Registrati"}
           </p>
