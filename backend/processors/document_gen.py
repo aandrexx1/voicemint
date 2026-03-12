@@ -297,8 +297,10 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
 
 
 def generate_pdf(data: dict, user_tier: str = "free") -> str:
+    from reportlab.lib.pagesizes import landscape
+    from reportlab.platypus import Image as RLImage, PageBreak
+
     theme = data.get("theme", {})
-    accent = "#" + theme.get("accent_color", "00D4FF")
 
     slide_configs = [("title", data["title"], data["subtitle"])]
     for slide in data.get("slides", []):
@@ -312,22 +314,20 @@ def generate_pdf(data: dict, user_tier: str = "free") -> str:
         render_html_to_image(html, img_path)
         image_paths.append(img_path)
 
-    from reportlab.platypus import Image as RLImage
-    from reportlab.lib.units import inch
-
+    PAGE_W, PAGE_H = 1280, 720
     filename = f"{OUTPUT_DIR}/{uuid.uuid4()}.pdf"
-    doc = SimpleDocTemplate(filename, pagesize=(1280, 720),
-                            leftMargin=0, rightMargin=0,
-                            topMargin=0, bottomMargin=0)
+    doc = SimpleDocTemplate(
+        filename,
+        pagesize=landscape((PAGE_W, PAGE_H)),
+        leftMargin=0, rightMargin=0,
+        topMargin=0, bottomMargin=0
+    )
 
     story = []
-    for img_path in image_paths:
-        story.append(RLImage(img_path, width=1280, height=720))
-
-    if user_tier == "free":
-        styles = getSampleStyleSheet()
-        story.append(Spacer(1, 10))
-        story.append(Paragraph("<font size=8 color='#555555'>made with VoiceMint — voicemint.it</font>", styles["Normal"]))
+    for i, img_path in enumerate(image_paths):
+        story.append(RLImage(img_path, width=PAGE_W, height=PAGE_H))
+        if i < len(image_paths) - 1:
+            story.append(PageBreak())
 
     doc.build(story)
 
