@@ -36,7 +36,7 @@ export default function LandingPage({ onGetStarted, onLogin, onProduct}) {
       {/* Navbar */}
       <nav className="flex items-center justify-between px-6 md:px-8 py-6 max-w-6xl mx-auto border-b border-white/5">
         <div className="flex items-center">
-          <img src="/text_logo.png" alt="VoiceMint" className="h-8 md:h-14 object-contain" />
+          <img src="/text_logo.png" alt="VoiceMint" className="h-8 md:h-14 object-contain cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
         </div>
         <div className="flex items-center gap-4 md:gap-8">
           <span
