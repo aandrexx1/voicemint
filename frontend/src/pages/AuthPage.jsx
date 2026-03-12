@@ -40,11 +40,12 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin }) {
     <div className="min-h-screen bg-[#0a0a0a] text-white flex">
 
       {/* Sinistra — branding */}
-      <div className="hidden md:flex flex-col justify-between w-1/2 border-r border-white/5 p-12">
-        <div className="flex items-center gap-2">
-          <Mic className="w-4 h-4 text-white" />
-          <span className="font-semibold text-sm tracking-tight">VoiceMint</span>
-        </div>
+      <img 
+        src="/text_logo.png" 
+        alt="VoiceMint" 
+        className="h-10 object-contain cursor-pointer" 
+        onClick={onBack}
+      />
         <div>
           <p className="text-white/20 text-xs uppercase tracking-widest mb-6">Voice to Document</p>
           <h2 className="text-5xl font-bold leading-tight tracking-tight mb-6">

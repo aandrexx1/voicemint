@@ -13,8 +13,8 @@ export default function ProductPage({ onGetStarted, onLogin }) {
       icon: <Mic className="w-6 h-6" />,
       title: tr("Parla o scrivi", "Speak or type"),
       desc: tr(
-        "Registra la tua voce oppure scrivi un prompt. Puoi parlare per 10 secondi o 10 minuti — VoiceMint si adatta.",
-        "Record your voice or type a prompt. Speak for 10 seconds or 10 minutes — VoiceMint adapts."
+        "Registra la tua voce oppure scrivi un prompt. Puoi parlare per 10 secondi o 10 minuti, VoiceMint si adatta.",
+        "Record your voice or type a prompt. Speak for 10 seconds or 10 minutes, VoiceMint adapts."
       )
     },
     {
