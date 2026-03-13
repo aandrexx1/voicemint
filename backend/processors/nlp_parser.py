@@ -5,25 +5,29 @@ import json
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def parse_transcription(transcription: str) -> dict:
+    # Conta le sezioni per guidare Llama
+    lines = [l.strip() for l in transcription.split('\n') if l.strip()]
+    estimated_sections = max(3, min(8, len([l for l in lines if len(l) > 30])))
+
     prompt = f"""
-Analizza questo testo e crea una presentazione professionale con tutte le slide tematiche necessarie.
+Analizza questo testo e crea una presentazione professionale con MOLTE slide tematiche.
 
 Testo: "{transcription}"
 
 REGOLE FONDAMENTALI:
-- Crea UNA slide separata per ogni argomento/sezione del testo
-- Per un testo con 4-5 sezioni, crea 4-5 slide intermedie (NON 1 o 2)
-- Ogni slide deve coprire UN solo argomento specifico
-- Tipo "bullets" per elenchi di punti, "text" per paragrafi narrativi
+- Il testo fornito ha circa {estimated_sections} sezioni/argomenti distinti
+- Crea ESATTAMENTE {estimated_sections} slide intermedie, una per ogni sezione
+- Ogni slide copre UN solo argomento specifico del testo
+- Tipo "bullets" per elenchi di punti concreti, "text" per concetti narrativi
 - MAI due slide bullets consecutive sullo stesso argomento
-- Usa TUTTO il contenuto del testo, non riassumere troppo
+- Usa TUTTO il contenuto, non saltare sezioni
 
 Scegli il tema visivo più adatto:
 - Business/finance → dark blu navy, accenti oro
 - Tech/AI/startup → dark nero, accenti ciano
 - Creatività/arte → gradient viola-rosa, testo bianco
 - Salute/benessere → sfondo scuro, accenti verde
-- Se l'utente specifica uno stile, SEGUILO
+- Se l'utente specifica uno stile, seguilo
 
 Rispondi SOLO con JSON valido, zero testo extra:
 {{

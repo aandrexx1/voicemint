@@ -22,9 +22,9 @@ def render_html_to_image(html: str, output_path: str, width: int = 1280, height:
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": width, "height": height})
-        page.set_content(html)
-        page.wait_for_timeout(500)
-        page.screenshot(path=output_path, full_page=False)
+        page.set_content(html, wait_until="networkidle")
+        page.wait_for_timeout(800)
+        page.screenshot(path=output_path, full_page=False, omit_background=False)
         browser.close()
 
 def generate_slide_html(title: str, content: str, theme: dict, slide_type: str = "content") -> str:
