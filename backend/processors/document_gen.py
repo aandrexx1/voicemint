@@ -297,6 +297,8 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
 
 
 def generate_pdf(data: dict, user_tier: str = "free") -> str:
+    from PIL import Image as PILImage
+
     theme = data.get("theme", {})
 
     slide_configs = [("title", data["title"], data["subtitle"])]
@@ -304,78 +306,33 @@ def generate_pdf(data: dict, user_tier: str = "free") -> str:
         slide_configs.append((slide["type"], slide["title"], slide["content"]))
     slide_configs.append(("summary", "Riepilogo", data["summary"]))
 
+    image_paths = []
+    for slide_type, title, content in slide_configs:
+        html = generate_slide_html(title, content, theme, slide_type)
+        img_path = f"{OUTPUT_DIR}/{uuid.uuid4()}.png"
+        render_html_to_image(html, img_path)
+        image_paths.append(img_path)
+
     filename = f"{OUTPUT_DIR}/{uuid.uuid4()}.pdf"
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        
-        all_pages_html = ""
-        for slide_type, title, content in slide_configs:
-            slide_html_body = generate_slide_html(title, content, theme, slide_type)
-            # Estrai solo il body dall'HTML della slide
-            import re
-            body_match = re.search(r'<body[^>]*>(.*?)</body>', slide_html_body, re.DOTALL)
-            body_content = body_match.group(1) if body_match else slide_html_body
-            style_match = re.search(r'<style[^>]*>(.*?)</style>', slide_html_body, re.DOTALL)
-            style_content = style_match.group(1) if style_match else ""
-            font_match = re.search(r'<link[^>]*googleapis[^>]*>', slide_html_body)
-            font_link = font_match.group(0) if font_match else ""
+    images = []
+    for img_path in image_paths:
+        img = PILImage.open(img_path).convert("RGB")
+        images.append(img)
 
-            all_pages_html += f"""
-<div class="slide-page">
-  {font_link}
-  <style>
-  .slide-page-{len(all_pages_html)} {{ }}
-  {style_content}
-  </style>
-  <div class="slide-inner">{body_content}</div>
-</div>
-"""
-
-        watermark = ""
-        if user_tier == "free":
-            watermark = '<div style="position:fixed;bottom:6px;left:14px;font-size:9px;color:#444;font-family:sans-serif;">made with VoiceMint</div>'
-
-        full_html = f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-* {{ margin:0; padding:0; box-sizing:border-box; }}
-html, body {{ background:#000; }}
-.slide-page {{
-    width: 1280px;
-    height: 720px;
-    overflow: hidden;
-    position: relative;
-    page-break-after: always;
-    page-break-inside: avoid;
-}}
-.slide-page:last-child {{ page-break-after: auto; }}
-.slide-inner {{
-    width: 1280px;
-    height: 720px;
-    overflow: hidden;
-    position: relative;
-}}
-</style>
-</head>
-<body>
-{all_pages_html}
-{watermark}
-</body>
-</html>"""
-
-        page = browser.new_page()
-        page.set_content(full_html, wait_until="networkidle")
-        page.wait_for_timeout(2000)
-        page.pdf(
-            path=filename,
-            width="1280px",
-            height="720px",
-            print_background=True,
+    if images:
+        images[0].save(
+            filename,
+            save_all=True,
+            append_images=images[1:],
+            resolution=150
         )
-        browser.close()
+
+    for img_path in image_paths:
+        try:
+            os.remove(img_path)
+        except:
+            pass
 
     return filename
 
