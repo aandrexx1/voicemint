@@ -304,66 +304,76 @@ def generate_pdf(data: dict, user_tier: str = "free") -> str:
         slide_configs.append((slide["type"], slide["title"], slide["content"]))
     slide_configs.append(("summary", "Riepilogo", data["summary"]))
 
-    # Combina tutte le slide in un unico HTML con page-break
-    combined_html = """<!DOCTYPE html>
-<html>
-<head>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #000; }
-.slide {
-    width: 1280px;
-    height: 720px;
-    overflow: hidden;
-    page-break-after: always;
-    page-break-inside: avoid;
-}
-.slide:last-child { page-break-after: auto; }
-iframe {
-    width: 1280px;
-    height: 720px;
-    border: none;
-    display: block;
-}
-</style>
-</head>
-<body>"""
-
-    slide_htmls = []
-    for slide_type, title, content in slide_configs:
-        html = generate_slide_html(title, content, theme, slide_type)
-        slide_htmls.append(html)
-
-    # Inietta ogni slide come div con contenuto inline
-    for i, slide_html in enumerate(slide_htmls):
-        import base64
-        encoded = base64.b64encode(slide_html.encode()).decode()
-        combined_html += f"""
-<div class="slide">
-    <iframe src="data:text/html;base64,{encoded}"></iframe>
-</div>"""
-
-    if user_tier == "free":
-        combined_html += """
-<div style="position:fixed;bottom:8px;left:16px;font-size:10px;color:#444;font-family:sans-serif;z-index:999;">
-    made with VoiceMint — voicemint.it
-</div>"""
-
-    combined_html += "</body></html>"
-
     filename = f"{OUTPUT_DIR}/{uuid.uuid4()}.pdf"
 
     with sync_playwright() as p:
         browser = p.chromium.launch()
+        
+        all_pages_html = ""
+        for slide_type, title, content in slide_configs:
+            slide_html_body = generate_slide_html(title, content, theme, slide_type)
+            # Estrai solo il body dall'HTML della slide
+            import re
+            body_match = re.search(r'<body[^>]*>(.*?)</body>', slide_html_body, re.DOTALL)
+            body_content = body_match.group(1) if body_match else slide_html_body
+            style_match = re.search(r'<style[^>]*>(.*?)</style>', slide_html_body, re.DOTALL)
+            style_content = style_match.group(1) if style_match else ""
+            font_match = re.search(r'<link[^>]*googleapis[^>]*>', slide_html_body)
+            font_link = font_match.group(0) if font_match else ""
+
+            all_pages_html += f"""
+<div class="slide-page">
+  {font_link}
+  <style>
+  .slide-page-{len(all_pages_html)} {{ }}
+  {style_content}
+  </style>
+  <div class="slide-inner">{body_content}</div>
+</div>
+"""
+
+        watermark = ""
+        if user_tier == "free":
+            watermark = '<div style="position:fixed;bottom:6px;left:14px;font-size:9px;color:#444;font-family:sans-serif;">made with VoiceMint</div>'
+
+        full_html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+* {{ margin:0; padding:0; box-sizing:border-box; }}
+html, body {{ background:#000; }}
+.slide-page {{
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    position: relative;
+    page-break-after: always;
+    page-break-inside: avoid;
+}}
+.slide-page:last-child {{ page-break-after: auto; }}
+.slide-inner {{
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    position: relative;
+}}
+</style>
+</head>
+<body>
+{all_pages_html}
+{watermark}
+</body>
+</html>"""
+
         page = browser.new_page()
-        page.set_content(combined_html)
-        page.wait_for_timeout(1500)
+        page.set_content(full_html, wait_until="networkidle")
+        page.wait_for_timeout(2000)
         page.pdf(
             path=filename,
             width="1280px",
             height="720px",
             print_background=True,
-            page_ranges="1-100"
         )
         browser.close()
 

@@ -6,41 +6,42 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def parse_transcription(transcription: str) -> dict:
     prompt = f"""
-Analizza questo testo e restituisci un JSON strutturato per creare una presentazione professionale.
+Analizza questo testo e crea una presentazione professionale con tutte le slide tematiche necessarie.
 
 Testo: "{transcription}"
 
-Crea il numero di slide più adatto al contenuto. Se l'utente specifica un numero di slide, rispettalo esattamente.
-La prima slide è sempre il titolo, l'ultima è sempre il riepilogo.
-Le slide intermedie possono essere di tipo "bullets" o "text" in base al contenuto.
-IMPORTANTE: non creare mai due slide "bullets" consecutive con lo stesso argomento — uniscile in una sola.
-Se il contenuto è breve, usa 3-4 slide. Se è lungo o l'utente parla a lungo, usa più slide.
+REGOLE FONDAMENTALI:
+- Crea UNA slide separata per ogni argomento/sezione del testo
+- Per un testo con 4-5 sezioni, crea 4-5 slide intermedie (NON 1 o 2)
+- Ogni slide deve coprire UN solo argomento specifico
+- Tipo "bullets" per elenchi di punti, "text" per paragrafi narrativi
+- MAI due slide bullets consecutive sullo stesso argomento
+- Usa TUTTO il contenuto del testo, non riassumere troppo
 
-Scegli il tema visivo più adatto al contenuto:
+Scegli il tema visivo più adatto:
 - Business/finance → dark blu navy, accenti oro
-- Tech/startup → dark nero, accenti verde o ciano  
+- Tech/AI/startup → dark nero, accenti ciano
 - Creatività/arte → gradient viola-rosa, testo bianco
-- Cibo/lifestyle → sfondo caldo beige, accenti arancione
-- Salute/benessere → sfondo bianco, accenti verde
-- Se l'utente descrive uno stile specifico, seguilo
+- Salute/benessere → sfondo scuro, accenti verde
+- Se l'utente specifica uno stile, SEGUILO
 
-Rispondi SOLO con un JSON valido, senza altro testo:
+Rispondi SOLO con JSON valido, zero testo extra:
 {{
   "title": "Titolo principale",
   "subtitle": "Sottotitolo breve e incisivo",
   "slides": [
     {{
       "type": "bullets",
-      "title": "Titolo della slide",
-      "content": ["punto 1", "punto 2", "punto 3", "punto 4"]
+      "title": "Titolo slide 1",
+      "content": ["punto 1", "punto 2", "punto 3"]
     }},
     {{
       "type": "text",
-      "title": "Titolo della slide",
-      "content": "Testo descrittivo della slide"
+      "title": "Titolo slide 2",
+      "content": "Testo narrativo della slide"
     }}
   ],
-  "summary": "Riepilogo del contenuto in 2-3 frasi.",
+  "summary": "Riepilogo in 2-3 frasi.",
   "theme": {{
     "style": "dark",
     "bg_color": "0a0a0a",
@@ -56,7 +57,7 @@ Rispondi SOLO con un JSON valido, senza altro testo:
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.4,
+        temperature=0.3,
     )
     
     text = response.choices[0].message.content
