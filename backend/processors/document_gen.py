@@ -17,7 +17,11 @@ def hex_to_rgb(hex_str):
 def render_html_to_image(html: str, output_path: str, width: int = 1280, height: int = 720):
     with sync_playwright() as p:
         browser = p.chromium.launch()
-        page = browser.new_page(viewport={"width": width, "height": height})
+        context = browser.new_context(
+            viewport={"width": width, "height": height},
+            device_scale_factor=2
+        )
+        page = context.new_page()
         page.set_content(html, wait_until="domcontentloaded")
         page.wait_for_timeout(300)
         page.screenshot(path=output_path, full_page=False, omit_background=False)
