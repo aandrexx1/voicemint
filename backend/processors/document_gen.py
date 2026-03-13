@@ -297,9 +297,6 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
 
 
 def generate_pdf(data: dict, user_tier: str = "free") -> str:
-    from reportlab.lib.pagesizes import landscape
-    from reportlab.platypus import Image as RLImage, PageBreak
-
     theme = data.get("theme", {})
 
     slide_configs = [("title", data["title"], data["subtitle"])]
@@ -307,38 +304,70 @@ def generate_pdf(data: dict, user_tier: str = "free") -> str:
         slide_configs.append((slide["type"], slide["title"], slide["content"]))
     slide_configs.append(("summary", "Riepilogo", data["summary"]))
 
-    image_paths = []
+    # Combina tutte le slide in un unico HTML con page-break
+    combined_html = """<!DOCTYPE html>
+<html>
+<head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; }
+.slide {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    page-break-after: always;
+    page-break-inside: avoid;
+}
+.slide:last-child { page-break-after: auto; }
+iframe {
+    width: 1280px;
+    height: 720px;
+    border: none;
+    display: block;
+}
+</style>
+</head>
+<body>"""
+
+    slide_htmls = []
     for slide_type, title, content in slide_configs:
         html = generate_slide_html(title, content, theme, slide_type)
-        img_path = f"{OUTPUT_DIR}/{uuid.uuid4()}.png"
-        render_html_to_image(html, img_path)
-        image_paths.append(img_path)
+        slide_htmls.append(html)
 
-    PAGE_W, PAGE_H = 1280, 720
+    # Inietta ogni slide come div con contenuto inline
+    for i, slide_html in enumerate(slide_htmls):
+        import base64
+        encoded = base64.b64encode(slide_html.encode()).decode()
+        combined_html += f"""
+<div class="slide">
+    <iframe src="data:text/html;base64,{encoded}"></iframe>
+</div>"""
+
+    if user_tier == "free":
+        combined_html += """
+<div style="position:fixed;bottom:8px;left:16px;font-size:10px;color:#444;font-family:sans-serif;z-index:999;">
+    made with VoiceMint — voicemint.it
+</div>"""
+
+    combined_html += "</body></html>"
+
     filename = f"{OUTPUT_DIR}/{uuid.uuid4()}.pdf"
-    doc = SimpleDocTemplate(
-        filename,
-        pagesize=landscape((PAGE_W, PAGE_H)),
-        leftMargin=0, rightMargin=0,
-        topMargin=0, bottomMargin=0
-    )
 
-    story = []
-    for i, img_path in enumerate(image_paths):
-        story.append(RLImage(img_path, width=PAGE_W, height=PAGE_H))
-        if i < len(image_paths) - 1:
-            story.append(PageBreak())
-
-    doc.build(story)
-
-    for img_path in image_paths:
-        try:
-            os.remove(img_path)
-        except:
-            pass
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.set_content(combined_html)
+        page.wait_for_timeout(1500)
+        page.pdf(
+            path=filename,
+            width="1280px",
+            height="720px",
+            print_background=True,
+            page_ranges="1-100"
+        )
+        browser.close()
 
     return filename
-
 
 def generate_html(data: dict, user_tier: str = "free") -> str:
     theme = data.get("theme", {})
