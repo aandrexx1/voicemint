@@ -219,7 +219,8 @@ export function HeroWave({ className, style, extendLeftPx = 320, title = "Transf
     while (waveContainer.firstChild) {
       waveContainer.removeChild(waveContainer.firstChild);
     }
-    const waveRenderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
+    const waveRenderer = new THREE.WebGLRenderer({ antialias: false, alpha: false });
+    waveRenderer.setClearColor(0x0a0a0a, 1);
     waveRenderer.setPixelRatio(EFFECT_PR);
     waveRenderer.toneMapping = THREE.ACESFilmicToneMapping;
     waveRenderer.toneMappingExposure = 1.0;
