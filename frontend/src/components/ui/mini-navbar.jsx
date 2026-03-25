@@ -1,19 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const AnimatedNavLink = ({ href, children }) => {
-  const defaultTextColor = 'text-gray-300';
-  const hoverTextColor = 'text-white';
-  const textSizeClass = 'text-sm';
-
-  return (
-    <a href={href} className={`group relative inline-block overflow-hidden h-5 flex items-center ${textSizeClass}`}>
-      <div className="flex flex-col transition-transform duration-400 ease-out transform group-hover:-translate-y-1/2">
-        <span className={defaultTextColor}>{children}</span>
-        <span className={hoverTextColor}>{children}</span>
-      </div>
-    </a>
-  );
-};
+const AnimatedNavLink = ({ href, children }) => (
+  <a
+    href={href}
+    className="text-sm text-gray-300 transition-colors hover:text-white"
+  >
+    {children}
+  </a>
+);
 
 export function Navbar({ onLogin, onSignup, onProduct }) {
   const [isOpen, setIsOpen] = useState(false);
