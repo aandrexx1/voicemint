@@ -20,7 +20,6 @@ export function HeroWave({
   onPromptSubmit,
   onLogin,
   onGetStarted,
-  onProduct,
 }) {
   const [prompt, setPrompt] = useState("");
   const containerRef = useRef(null);
@@ -762,9 +761,9 @@ export function HeroWave({
       style={{ position: "relative", width: "100%", minHeight: "100vh", ...style }}
       aria-label="Animated hero"
     >
-      <Navbar onLogin={onLogin} onSignup={onGetStarted} onProduct={onProduct} />
+      <Navbar onLogin={onLogin} onSignup={onGetStarted} />
 
-      {/* Grana leggera sopra il canvas, sotto il testo (come nel mock) */}
+      {/* Grana nella hero (sopra l'onda), come prima */}
       <div
         className="pointer-events-none absolute inset-0 z-[2] opacity-[0.35]"
         style={{

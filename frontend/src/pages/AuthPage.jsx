@@ -1,6 +1,7 @@
 import { useState } from "react"
 import axios from "axios"
 import { motion } from "framer-motion"
+import { GrainBackdrop } from "../components/ui/grain-backdrop"
 
 const API = "https://voicemint-backend.onrender.com"
 
@@ -37,10 +38,11 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex">
+    <div className="relative min-h-screen text-white flex">
+      <GrainBackdrop />
 
       {/* Sinistra — branding */}
-      <div className="hidden md:flex flex-col justify-between w-1/2 border-r border-white/5 p-12">
+      <div className="relative z-10 hidden md:flex flex-col justify-between w-1/2 border-r border-white/5 p-12">
         <img
           src="/text_logo.png"
           alt="VoiceMint"
@@ -60,7 +62,7 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin }) {
       </div>
 
       {/* Destra — form */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="relative z-10 flex-1 flex items-center justify-center p-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

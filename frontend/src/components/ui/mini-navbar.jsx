@@ -9,7 +9,7 @@ const AnimatedNavLink = ({ href, children }) => (
   </a>
 );
 
-export function Navbar({ onLogin, onSignup, onProduct }) {
+export function Navbar({ onLogin, onSignup }) {
   const [isOpen, setIsOpen] = useState(false);
   const [headerShapeClass, setHeaderShapeClass] = useState('rounded-full');
   const shapeTimeoutRef = useRef(null);
@@ -48,7 +48,7 @@ export function Navbar({ onLogin, onSignup, onProduct }) {
   );
 
   const navLinksData = [
-    { label: 'Prodotto', href: '#', onClick: onProduct },
+    { label: 'Prodotto', href: '#prodotto' },
     { label: 'FAQ', href: '#faq' },
   ];
 
@@ -80,22 +80,11 @@ export function Navbar({ onLogin, onSignup, onProduct }) {
       <div className="flex items-center justify-between w-full gap-x-6 sm:gap-x-8">
         <div className="flex items-center">{logoElement}</div>
         <nav className="hidden sm:flex items-center space-x-4 sm:space-x-6 text-sm">
-          {navLinksData.map((link) =>
-            link.onClick ? (
-              <button
-                key={link.label}
-                type="button"
-                onClick={link.onClick}
-                className="text-sm text-gray-300 hover:text-white transition-colors"
-              >
-                {link.label}
-              </button>
-            ) : (
-              <AnimatedNavLink key={link.href} href={link.href}>
-                {link.label}
-              </AnimatedNavLink>
-            )
-          )}
+          {navLinksData.map((link) => (
+            <AnimatedNavLink key={link.href} href={link.href}>
+              {link.label}
+            </AnimatedNavLink>
+          ))}
         </nav>
         <div className="hidden sm:flex items-center gap-2 sm:gap-3">
           {loginButtonElement}
@@ -111,22 +100,11 @@ export function Navbar({ onLogin, onSignup, onProduct }) {
       </div>
       <div className={`sm:hidden flex flex-col items-center w-full transition-all ease-in-out duration-300 overflow-hidden ${isOpen ? 'max-h-[1000px] opacity-100 pt-4' : 'max-h-0 opacity-0 pt-0 pointer-events-none'}`}>
         <nav className="flex flex-col items-center space-y-4 text-base w-full">
-          {navLinksData.map((link) =>
-            link.onClick ? (
-              <button
-                key={link.label}
-                type="button"
-                onClick={link.onClick}
-                className="text-gray-300 hover:text-white transition-colors w-full text-center"
-              >
-                {link.label}
-              </button>
-            ) : (
-              <a key={link.href} href={link.href} className="text-gray-300 hover:text-white transition-colors w-full text-center">
-                {link.label}
-              </a>
-            )
-          )}
+          {navLinksData.map((link) => (
+            <a key={link.href} href={link.href} className="text-gray-300 hover:text-white transition-colors w-full text-center">
+              {link.label}
+            </a>
+          ))}
         </nav>
         <div className="flex flex-col items-center space-y-4 mt-4 w-full">
           {loginButtonElement}
