@@ -142,7 +142,7 @@ export function HeroWave({ className, style, extendLeftPx = 320, title = "Transf
       `,
     };
 
-    function createFilmGrainPass(intensity = 0.9, grainScale = 0.3) {
+    function createFilmGrainPass(intensity = 0.15, grainScale = 0.3) {
       const pass = new ShaderPass(FilmGrainShader);
       pass.uniforms.intensity.value = intensity;
       pass.uniforms.grainScale.value = grainScale;
