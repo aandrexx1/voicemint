@@ -220,7 +220,7 @@ export function HeroWave({ className, style, extendLeftPx = 320, title = "Transf
       waveContainer.removeChild(waveContainer.firstChild);
     }
     const waveRenderer = new THREE.WebGLRenderer({ antialias: false, alpha: false });
-    waveRenderer.setClearColor(0x0a0a0a, 1);
+    waveRenderer.setClearColor(0x000000, 1);
     waveRenderer.setPixelRatio(EFFECT_PR);
     waveRenderer.toneMapping = THREE.ACESFilmicToneMapping;
     waveRenderer.toneMappingExposure = 1.0;
@@ -575,7 +575,7 @@ export function HeroWave({ className, style, extendLeftPx = 320, title = "Transf
       waveRenderPass = new RenderPass(waveScene, waveCamera);
       waveComposer.addPass(waveRenderPass);
 
-      waveBloomPass = new UnrealBloomPass(new THREE.Vector2(cameraWidth, cameraHeight), 1.0, 0.68, 0.0);
+      waveBloomPass = new UnrealBloomPass(new THREE.Vector2(cameraWidth, cameraHeight), 0.6, 0.68, 0.0);
       waveBloomPass.resolution.set(cameraWidth * 0.5, cameraHeight * 0.5);
       waveComposer.addPass(waveBloomPass);
 
