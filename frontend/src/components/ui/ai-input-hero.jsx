@@ -142,7 +142,7 @@ export function HeroWave({ className, style, extendLeftPx = 320, title = "Transf
       `,
     };
 
-    function createFilmGrainPass(intensity = 0.15, grainScale = 0.3) {
+    function createFilmGrainPass(intensity = 0.9, grainScale = 0.3) {
       const pass = new ShaderPass(FilmGrainShader);
       pass.uniforms.intensity.value = intensity;
       pass.uniforms.grainScale.value = grainScale;
@@ -219,8 +219,7 @@ export function HeroWave({ className, style, extendLeftPx = 320, title = "Transf
     while (waveContainer.firstChild) {
       waveContainer.removeChild(waveContainer.firstChild);
     }
-    const waveRenderer = new THREE.WebGLRenderer({ antialias: false, alpha: false });
-    waveRenderer.setClearColor(0x000000, 1);
+    const waveRenderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
     waveRenderer.setPixelRatio(EFFECT_PR);
     waveRenderer.toneMapping = THREE.ACESFilmicToneMapping;
     waveRenderer.toneMappingExposure = 1.0;
@@ -746,7 +745,7 @@ export function HeroWave({ className, style, extendLeftPx = 320, title = "Transf
     <section
       ref={containerRef}
       className={className}
-      style={{ position: "relative", width: "100%", height: "100vh", ...style }}
+      style={{ position: "relative", width: "100%", height: "100vh", backgroundColor: "#0a0a0a", ...style }}
       aria-label="Animated hero"
     >
       <Navbar />
