@@ -5,6 +5,8 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@source "../src/components/ui/mini-navbar.jsx";
+
 .slot-wrapper {
   display: block;
   overflow: hidden;
