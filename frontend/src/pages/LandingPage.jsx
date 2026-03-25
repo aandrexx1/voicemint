@@ -33,7 +33,8 @@ export default function LandingPage({ onGetStarted, onLogin, onProduct}) {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white relative">
-      <BackgroundPaths title="Home background" />
+      {/* Sfondo decorativo (solo animazioni, niente titolo/bottone duplicati) */}
+      <BackgroundPaths showOverlay={false} />
 
       {/* Contenuto sopra lo sfondo */}
       <div className="relative z-10">
