@@ -15,7 +15,7 @@ export default function LandingPage({ onGetStarted, onLogin, onProduct }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white relative w-full overflow-hidden">
+    <div className="min-h-screen bg-[#0a0a0a] text-white relative w-full">
       
       {/* 🌊 NUOVA HERO WAVE (Sostituisce Navbar vecchia + Vecchia Hero) */}
       <HeroWave 
