@@ -116,28 +116,6 @@ export default function LandingPage({ onGetStarted, onLogin, onProduct}) {
         </motion.div>
       </section>
 
-      {/* Numeri */}
-      <section className="border-t border-white/5 py-16">
-        <div className="max-w-6xl mx-auto px-6 md:px-8 grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
-            { n: "30s", label: t("stats_1") },
-            { n: "3", label: t("stats_2") },
-            { n: "€5", label: t("stats_3") },
-          ].map((s, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ delay: i * 0.1 }}
-              className="border-l border-white/10 pl-8"
-            >
-              <p className="text-5xl font-bold tracking-tighter">{s.n}</p>
-              <p className="text-white/30 mt-2 text-sm">{s.label}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
       {/* FAQ */}
       <section id="faq" className="border-t border-white/5 py-24">
         <div className="max-w-6xl mx-auto px-6 md:px-8">
