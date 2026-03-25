@@ -53,7 +53,7 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin }) {
             <span className="text-white/30">Trasforma</span> la tua voce in documenti pronti all'uso.
           </h2>
           <p className="text-white/30 text-sm leading-relaxed max-w-sm">
-            Parla liberamente. VoiceMint genera presentazioni PPT, PDF professionali e siti web completi in pochi secondi.
+            Parla liberamente. VoiceMint genera presentazioni PowerPoint in pochi secondi.
           </p>
         </div>
         <p className="text-white/10 text-xs">© 2026 VoiceMint</p>

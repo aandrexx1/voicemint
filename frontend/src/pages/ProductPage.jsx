@@ -29,8 +29,8 @@ export default function ProductPage({ onGetStarted, onLogin }) {
       icon: <Download className="w-6 h-6" />,
       title: tr("Scarica e usa", "Download and use"),
       desc: tr(
-        "In pochi secondi hai un file pronto. PowerPoint modificabile, PDF professionale o sito web completo.",
-        "In seconds you have a ready file. Editable PowerPoint, professional PDF or complete website."
+        "In pochi secondi hai un file pronto. PowerPoint modificabile, pronto da presentare.",
+        "In seconds you have a ready file. Editable PowerPoint, ready to present."
       )
     },
   ]
@@ -42,22 +42,6 @@ export default function ProductPage({ onGetStarted, onLogin }) {
       desc: tr(
         "Slide moderne con tema colori generato dall'AI, titoli, punti chiave e riepilogo. Pronte per essere presentate.",
         "Modern slides with AI-generated color theme, titles, key points and summary. Ready to present."
-      )
-    },
-    {
-      type: "PDF",
-      emoji: "📄",
-      desc: tr(
-        "Documento professionale con layout pulito e grafica coerente. Perfetto per report, proposte e documentazione.",
-        "Professional document with clean layout and consistent graphics. Perfect for reports, proposals and documentation."
-      )
-    },
-    {
-      type: tr("Sito Web", "Website"),
-      emoji: "🌐",
-      desc: tr(
-        "Una pagina web completa con navigazione, sezioni e stile personalizzato. Pronta da pubblicare.",
-        "A complete web page with navigation, sections and custom style. Ready to publish."
       )
     },
   ]
@@ -131,7 +115,7 @@ export default function ProductPage({ onGetStarted, onLogin }) {
           <p className="text-white/30 text-xs uppercase tracking-widest mb-16">
             {tr("Cosa puoi generare", "What you can generate")}
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
             {outputs.map((o, i) => (
               <motion.div
                 key={i}
@@ -167,7 +151,7 @@ export default function ProductPage({ onGetStarted, onLogin }) {
               },
               {
                 role: tr("Creator e Influencer", "Creators & Influencers"),
-                desc: tr("Genera siti web e PDF per i tuoi contenuti, corsi e prodotti digitali senza saper programmare.", "Generate websites and PDFs for your content, courses and digital products without coding.")
+                desc: tr("Genera presentazioni per i tuoi contenuti, corsi e prodotti digitali senza partire da template.", "Generate presentations for your content, courses and digital products without starting from templates.")
               },
               {
                 role: tr("Team e Startup", "Teams & Startups"),

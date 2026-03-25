@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react"
-import { Mic, Download, LogOut, FileText, Globe, User, X, ChevronDown } from "lucide-react"
+import { Mic, Download, LogOut, FileText, User, X, ChevronDown } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import axios from "axios"
 
@@ -8,7 +8,7 @@ const API = "https://voicemint-backend.onrender.com"
 export default function Dashboard({ token, user, setUser, onLogout }) {
   const [recording, setRecording] = useState(false)
   const [transcription, setTranscription] = useState("")
-  const [outputType, setOutputType] = useState("pdf")
+  const [outputType] = useState("ppt") // Genera solo presentazioni PowerPoint
   const [loading, setLoading] = useState(false)
   const [conversions, setConversions] = useState([])
   const [mediaRecorder, setMediaRecorder] = useState(null)
@@ -68,7 +68,7 @@ export default function Dashboard({ token, user, setUser, onLogout }) {
       const url = URL.createObjectURL(res.data)
       const a = document.createElement("a")
       a.href = url
-      a.download = `voicemint.${outputType}`
+      a.download = "voicemint.pptx"
       a.click()
       setConversions(prev => [{ title: transcription.slice(0, 50) + "...", type: outputType, url }, ...prev])
     } catch {
@@ -206,12 +206,10 @@ export default function Dashboard({ token, user, setUser, onLogout }) {
 
             <select
               value={outputType}
-              onChange={(e) => setOutputType(e.target.value)}
+              disabled
               className="w-full bg-transparent border border-white/10 text-white/60 rounded-full px-4 py-2 text-sm outline-none"
             >
-              <option value="pdf" className="bg-[#0a0a0a]">PDF</option>
               <option value="ppt" className="bg-[#0a0a0a]">PowerPoint</option>
-              <option value="html" className="bg-[#0a0a0a]">Sito Web</option>
             </select>
           </div>
         </div>
@@ -244,7 +242,9 @@ export default function Dashboard({ token, user, setUser, onLogout }) {
               disabled={loading || !transcription}
               className="bg-white text-black font-semibold px-7 py-3 rounded-full text-sm hover:bg-white/90 disabled:opacity-30 transition-all"
             >
-              {loading ? t("Generazione in corso...", "Generating...") : `${t("Genera", "Generate")} ${outputType.toUpperCase()}`}
+              {loading
+                ? t("Generazione in corso...", "Generating...")
+                : t("Genera PowerPoint", "Generate PowerPoint")}
             </button>
 
             {conversions.length > 0 && (
@@ -262,14 +262,14 @@ export default function Dashboard({ token, user, setUser, onLogout }) {
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-8 h-8 border border-white/10 rounded-xl flex items-center justify-center">
-                          {c.type === "html" ? <Globe className="w-4 h-4 text-white/40" /> : <FileText className="w-4 h-4 text-white/40" />}
+                          <FileText className="w-4 h-4 text-white/40" />
                         </div>
                         <div>
                           <p className="text-white text-sm">{c.title}</p>
-                          <p className="text-white/30 text-xs mt-0.5">{c.type.toUpperCase()}</p>
+                          <p className="text-white/30 text-xs mt-0.5">{t("PowerPoint", "PowerPoint")}</p>
                         </div>
                       </div>
-                      <a href={c.url} download={`voicemint.${c.type}`}>
+                      <a href={c.url} download="voicemint.pptx">
                         <Download className="w-4 h-4 text-white/30 hover:text-white transition-all" />
                       </a>
                     </motion.div>
@@ -460,7 +460,7 @@ function PlansModal({ user, token, setUser, onClose, lang }) {
             <p className="text-3xl font-bold mb-4">€0</p>
             <ul className="space-y-2 text-white/40 text-sm">
               <li>✓ {t("180 crediti al mese", "180 credits/month")}</li>
-              <li>✓ {t("PPT, PDF, HTML", "PPT, PDF, HTML")}</li>
+              <li>✓ {t("PPT", "PPT")}</li>
               <li>✓ {t("Watermark VoiceMint", "VoiceMint watermark")}</li>
             </ul>
           </div>
@@ -478,7 +478,7 @@ function PlansModal({ user, token, setUser, onClose, lang }) {
             <p className="text-3xl font-bold mb-4">€5<span className="text-white/30 text-sm font-normal">/mese</span></p>
             <ul className="space-y-2 text-white/40 text-sm mb-6">
               <li>✓ {t("Crediti illimitati", "Unlimited credits")}</li>
-              <li>✓ {t("PPT, PDF, HTML", "PPT, PDF, HTML")}</li>
+              <li>✓ {t("PPT", "PPT")}</li>
               <li>✓ {t("Senza watermark", "No watermark")}</li>
               <li>✓ {t("Supporto prioritario", "Priority support")}</li>
             </ul>

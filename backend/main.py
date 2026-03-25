@@ -8,7 +8,7 @@ from auth import hash_password, verify_password, create_token, get_current_user
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from processors.nlp_parser import parse_transcription
-from processors.document_gen import generate_ppt, generate_pdf, generate_html
+from processors.document_gen import generate_ppt
 from fastapi.responses import FileResponse
 from models import create_tables, get_db, User, Conversion, Waitlist, SessionLocal
 import resend
@@ -161,7 +161,7 @@ def get_me(current_user: User = Depends(get_current_user)):
 @app.post("/generate")
 def generate(
     transcription: str,
-    output_type: str = "ppt",  # "ppt", "pdf", "html"
+    output_type: str = "ppt",  # supported: "ppt"
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -175,12 +175,8 @@ def generate(
     # Genera il file richiesto
     if output_type == "ppt":
         file_path = generate_ppt(data, user_tier=current_user.tier)
-    elif output_type == "pdf":
-        file_path = generate_pdf(data, user_tier=current_user.tier)
-    elif output_type == "html":
-        file_path = generate_html(data, user_tier=current_user.tier)
     else:
-        raise HTTPException(status_code=400, detail="Tipo non valido. Usa: ppt, pdf, html")
+        raise HTTPException(status_code=400, detail="Tipo non valido. Usa solo: ppt (PowerPoint)")
     
     # Salva la conversione nel database
     conversion = Conversion(
@@ -196,7 +192,8 @@ def generate(
     
     return FileResponse(
         file_path,
-        filename=f"voicemint_{data['title'][:20]}.{output_type}",
+        # generate_ppt() salva come .pptx: qui usiamo l'estensione corretta
+        filename=f"voicemint_{data['title'][:20]}.pptx",
         media_type="application/octet-stream"
     )
 
