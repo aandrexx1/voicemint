@@ -9,7 +9,19 @@ import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import gsap from "gsap";
 import { Navbar } from "./mini-navbar";
 
-export function HeroWave({ className, style, extendLeftPx = 320, title = "Transform your voice into PowerPoint.", subtitle = "Speak freely. Voicemint generates PPT presentations and professional PDFs in seconds, powered by AI.", placeholder = "Descrivi l'argomento del tuo studio...", buttonText = "Genera", onPromptSubmit }) {
+export function HeroWave({
+  className,
+  style,
+  extendLeftPx = 320,
+  title = "Transform your voice into PowerPoint.",
+  subtitle = "Speak freely. Voicemint generates PPT presentations and professional PDFs in seconds, powered by AI.",
+  placeholder = "Descrivi l'argomento del tuo studio...",
+  buttonText = "Genera",
+  onPromptSubmit,
+  onLogin,
+  onGetStarted,
+  onProduct,
+}) {
   const [prompt, setPrompt] = useState("");
   const containerRef = useRef(null);
   const waveRef = useRef(null);
@@ -693,6 +705,8 @@ export function HeroWave({ className, style, extendLeftPx = 320, title = "Transf
       const u = instancedBars.material.uniforms;
       u.w1Gain.value = wave1.gain;
       u.w1Len.value = wave1.waveLength;
+      u.w2Gain.value = wave2.gain;
+      u.w2Len.value = wave2.waveLength;
       u.uSmoothSpeed.value = smoothSpeed; // fix for THREE.js
 
       const mouseClipX = (proxyMouseX / cameraWidth) * 2 - 1;
@@ -744,28 +758,29 @@ export function HeroWave({ className, style, extendLeftPx = 320, title = "Transf
   return (
     <section
       ref={containerRef}
-      className={className}
-      style={{ position: "relative", width: "100%", height: "100vh", backgroundColor: "#0a0a0a", ...style }}
+      className={["isolate overflow-hidden bg-[#050508]", className].filter(Boolean).join(" ")}
+      style={{ position: "relative", width: "100%", minHeight: "100vh", ...style }}
       aria-label="Animated hero"
     >
-      <Navbar />
+      <Navbar onLogin={onLogin} onSignup={onGetStarted} onProduct={onProduct} />
+
+      {/* Grana leggera sopra il canvas, sotto il testo (come nel mock) */}
       <div
+        className="pointer-events-none absolute inset-0 z-[2] opacity-[0.35]"
         style={{
-          position: "absolute",
-          inset: 0,
-          zIndex: 3,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          pointerEvents: "none",
-          padding: "24px",
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E")`,
         }}
+        aria-hidden
+      />
+
+      <div
+        className="absolute inset-0 z-10 flex items-center justify-center px-6 pt-28 pb-16 text-white pointer-events-none sm:px-8"
       >
-        <div className="max-w-3xl w-full text-center" style={{ pointerEvents: "auto" }}>
-          <h1 className="text-white text-3xl sm:text-5xl font-semibold tracking-tight drop-shadow-[0_1px_8px_rgba(31,61,188,0.25)]">
+        <div className="max-w-3xl w-full text-center pointer-events-auto">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.85)]">
             {title}
           </h1>
-          <p className="text-gray-300/90 mt-3 sm:mt-4 text-sm sm:text-base">
+          <p className="mt-3 sm:mt-4 text-sm sm:text-base text-zinc-300 [text-shadow:0_1px_12px_rgba(0,0,0,0.8)]">
             {subtitle}
           </p>
           <form
@@ -802,12 +817,8 @@ export function HeroWave({ className, style, extendLeftPx = 320, title = "Transf
       <div
         ref={waveRef}
         id="waveCanvas"
-        style={{
-          position: "absolute",
-          inset: 0,
-          zIndex: 1,
-          opacity: 0.8
-        }}
+        className="absolute inset-0 z-0"
+        style={{ opacity: 0.95 }}
       />
     </section>
   );

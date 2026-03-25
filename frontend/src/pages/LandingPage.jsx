@@ -14,15 +14,22 @@ export default function LandingPage({ onGetStarted, onLogin, onProduct }) {
     localStorage.setItem("lang", lang)
   }
 
+  const words = t("words", { returnObjects: true })
+  const heroWord = Array.isArray(words) ? words[0] : "PowerPoint"
+  const heroTitle = `${t("hero_title_1")} ${t("hero_title_2")} ${heroWord}.`
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white relative w-full">
       
       {/* 🌊 NUOVA HERO WAVE (Sostituisce Navbar vecchia + Vecchia Hero) */}
       <HeroWave 
-        title={t("hero_title_2") || "Transform your voice into PowerPoint."}
-        subtitle={t("hero_desc") || "Speak freely. Voicemint generates PPT presentations and professional PDFs in seconds, powered by AI."}
+        title={heroTitle}
+        subtitle={t("hero_desc")}
         placeholder={i18n.language === "it" ? "Descrivi l'argomento..." : "Describe your topic..."}
         buttonText={i18n.language === "it" ? "Genera" : "Generate"}
+        onLogin={onLogin}
+        onGetStarted={onGetStarted}
+        onProduct={onProduct}
         onPromptSubmit={(prompt) => {
           console.log("Prompt inviato:", prompt)
           onGetStarted() // Rimanda alla registrazione/login per usare il prompt
