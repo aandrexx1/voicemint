@@ -2,6 +2,7 @@ import { motion } from "framer-motion"
 import axios from "axios"
 import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
+import { BackgroundPaths } from "../components/ui/background-paths"
 
 export default function LandingPage({ onGetStarted, onLogin, onProduct}) {
   const [email, setEmail] = useState("")
@@ -31,7 +32,11 @@ export default function LandingPage({ onGetStarted, onLogin, onProduct}) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white relative">
+      <BackgroundPaths title="Home background" />
+
+      {/* Contenuto sopra lo sfondo */}
+      <div className="relative z-10">
 
       {/* Navbar */}
       <nav className="flex items-center justify-between px-6 md:px-8 py-6 max-w-6xl mx-auto border-b border-white/5">
@@ -177,6 +182,7 @@ export default function LandingPage({ onGetStarted, onLogin, onProduct}) {
         </div>
       </div>
     )}
+      </div>
     </div>
   )
 }
