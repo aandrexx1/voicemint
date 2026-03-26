@@ -1,11 +1,16 @@
 import { useState } from "react"
 import axios from "axios"
-import { motion } from "framer-motion"
-import { GrainBackdrop } from "../components/ui/grain-backdrop"
+import { useTranslation } from "react-i18next"
+import { Button } from "@/components/ui/button"
+import { MinimalAuthPage } from "@/components/ui/minimal-auth-page"
 
 const API = "https://voicemint-backend.onrender.com"
 
+const inputClass =
+  "flex h-11 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+
 export default function AuthPage({ setToken, setUser, onBack, defaultLogin }) {
+  const { t } = useTranslation()
   const [isLogin, setIsLogin] = useState(defaultLogin ?? false)
   const [form, setForm] = useState({ email: "", username: "", password: "" })
   const [error, setError] = useState("")
@@ -28,120 +33,114 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin }) {
         username: res.data.username,
         tier: res.data.tier,
         lifetime_pro: res.data.lifetime_pro,
-        registration_number: res.data.registration_number
+        registration_number: res.data.registration_number,
       })
     } catch (err) {
-      setError(err.response?.data?.detail || "Errore di connessione")
+      setError(err.response?.data?.detail || t("auth_error_connection"))
     } finally {
       setLoading(false)
     }
   }
 
+  const footer = (
+    <p>
+      {t("auth_terms_prefix")}{" "}
+      <a href="#" className="text-foreground underline underline-offset-4 hover:text-primary">
+        {t("auth_terms_link")}
+      </a>{" "}
+      {t("auth_terms_and")}{" "}
+      <a href="#" className="text-foreground underline underline-offset-4 hover:text-primary">
+        {t("auth_privacy_link")}
+      </a>
+      .
+    </p>
+  )
+
   return (
-    <div className="relative min-h-screen text-white flex">
-      <GrainBackdrop />
-
-      {/* Sinistra — branding */}
-      <div className="relative z-10 hidden md:flex flex-col justify-between w-1/2 border-r border-white/5 p-12">
-        <img
-          src="/text_logo.png"
-          alt="VoiceMint"
-          className="h-10 object-contain cursor-pointer"
-          onClick={onBack}
-        />
-        <div>
-          <p className="text-white/20 text-xs uppercase tracking-widest mb-6">Voice to Document</p>
-          <h2 className="text-5xl font-bold leading-tight tracking-tight mb-6">
-            <span className="text-white/30">Trasforma</span> la tua voce in documenti pronti all'uso.
-          </h2>
-          <p className="text-white/30 text-sm leading-relaxed max-w-sm">
-            Parla liberamente. VoiceMint genera presentazioni PowerPoint in pochi secondi.
-          </p>
+    <MinimalAuthPage
+      onBack={onBack}
+      homeLabel={t("auth_home")}
+      title={isLogin ? t("auth_title_login") : t("auth_title_register")}
+      subtitle={isLogin ? t("auth_subtitle_login") : t("auth_subtitle_register")}
+      googleLabel={t("auth_google")}
+      githubLabel={t("auth_github")}
+      orEmailLabel={t("auth_or_email")}
+      socialDisabledTitle={t("auth_social_soon")}
+      footer={footer}
+    >
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <label htmlFor="auth-email" className="text-xs font-medium text-muted-foreground">
+            {t("auth_email")}
+          </label>
+          <input
+            id="auth-email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder={t("auth_email_ph")}
+            value={form.email}
+            onChange={handle}
+            className={inputClass}
+          />
         </div>
-        <p className="text-white/10 text-xs">© 2026 VoiceMint</p>
-      </div>
 
-      {/* Destra — form */}
-      <div className="relative z-10 flex-1 flex items-center justify-center p-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-sm"
-        >
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-white/60 hover:text-white transition-all text-xs mb-12"
-          >
-            ← Torna alla home
-          </button>
-          <p className="text-white/30 text-xs uppercase tracking-widest mb-8">
-            {isLogin ? "Accedi" : "Registrati"}
-          </p>
-          <h1 className="text-3xl font-bold mb-10">
-            {isLogin ? "Bentornato." : "Crea il tuo account."}
-          </h1>
-
-          <div className="space-y-4 mb-6">
-            <div>
-              <p className="text-white/30 text-xs mb-2">Email</p>
-              <input
-                name="email"
-                type="email"
-                placeholder="nome@email.com"
-                value={form.email}
-                onChange={handle}
-                className="w-full bg-transparent border border-white/10 text-white rounded-full px-5 py-3 text-sm outline-none placeholder-white/20 focus:border-white/30 transition-all"
-              />
-            </div>
-
-            {!isLogin && (
-              <div>
-                <p className="text-white/30 text-xs mb-2">Username</p>
-                <input
-                  name="username"
-                  placeholder="il tuo username"
-                  value={form.username}
-                  onChange={handle}
-                  className="w-full bg-transparent border border-white/10 text-white rounded-full px-5 py-3 text-sm outline-none placeholder-white/20 focus:border-white/30 transition-all"
-                />
-              </div>
-            )}
-
-            <div>
-              <p className="text-white/30 text-xs mb-2">Password</p>
-              <input
-                name="password"
-                type="password"
-                placeholder="••••••••"
-                value={form.password}
-                onChange={handle}
-                className="w-full bg-transparent border border-white/10 text-white rounded-full px-5 py-3 text-sm outline-none placeholder-white/20 focus:border-white/30 transition-all"
-              />
-            </div>
+        {!isLogin && (
+          <div className="space-y-1.5">
+            <label htmlFor="auth-username" className="text-xs font-medium text-muted-foreground">
+              {t("auth_username")}
+            </label>
+            <input
+              id="auth-username"
+              name="username"
+              autoComplete="username"
+              placeholder={t("auth_username_ph")}
+              value={form.username}
+              onChange={handle}
+              className={inputClass}
+            />
           </div>
+        )}
 
-          {error && <p className="text-red-400 text-xs mb-4">{error}</p>}
-
-          <button
-            onClick={submit}
-            disabled={loading}
-            className="w-full bg-white text-black font-semibold py-3 rounded-full text-sm hover:bg-white/90 disabled:opacity-30 transition-all mb-6"
-          >
-            {loading ? "Caricamento..." : isLogin ? "Accedi" : "Registrati"}
-          </button>
-
-          <p className="text-white/30 text-xs text-center">
-            {isLogin ? "Non hai un account?" : "Hai già un account?"}
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-white ml-1 hover:text-white/70 transition-all"
-            >
-              {isLogin ? "Registrati" : "Accedi"}
-            </button>
-          </p>
-        </motion.div>
+        <div className="space-y-1.5">
+          <label htmlFor="auth-password" className="text-xs font-medium text-muted-foreground">
+            {t("auth_password")}
+          </label>
+          <input
+            id="auth-password"
+            name="password"
+            type="password"
+            autoComplete={isLogin ? "current-password" : "new-password"}
+            placeholder={t("auth_password_ph")}
+            value={form.password}
+            onChange={handle}
+            className={inputClass}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") submit()
+            }}
+          />
+        </div>
       </div>
-    </div>
+
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+      <Button type="button" size="lg" className="mt-2 w-full" disabled={loading} onClick={submit}>
+        {loading ? t("auth_loading") : isLogin ? t("auth_submit_login") : t("auth_submit_register")}
+      </Button>
+
+      <p className="text-center text-sm text-muted-foreground">
+        {isLogin ? t("auth_toggle_no_account") : t("auth_toggle_has_account")}{" "}
+        <button
+          type="button"
+          onClick={() => {
+            setIsLogin(!isLogin)
+            setError("")
+          }}
+          className="font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
+        >
+          {isLogin ? t("auth_toggle_to_register") : t("auth_toggle_to_login")}
+        </button>
+      </p>
+    </MinimalAuthPage>
   )
 }

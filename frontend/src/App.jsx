@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import LandingPage from "./pages/LandingPage"
 import FAQDemoPage from "./pages/FAQDemoPage"
+import MinimalAuthDemoPage from "./pages/MinimalAuthDemoPage"
 import AuthPage from "./pages/AuthPage"
 import Dashboard from "./pages/Dashboard"
 import AdminPage from "./pages/AdminPage"
@@ -46,6 +47,7 @@ function App() {
 
   if (page === "admin") return <AdminPage />
   if (page === "faq-demo") return <FAQDemoPage />
+  if (page === "auth-demo") return <MinimalAuthDemoPage />
   if (page === "landing") return <LandingPage onGetStarted={() => setPage("auth")} onLogin={() => setPage("auth-login")} />
   if (page === "auth" || page === "auth-login") return <AuthPage setToken={handleSetToken} setUser={setUser} onBack={() => setPage("landing")} defaultLogin={page === "auth-login"} />
 
