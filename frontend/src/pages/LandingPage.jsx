@@ -77,7 +77,7 @@ export default function LandingPage({ token, user, onGetStarted, onLogin, onOpen
       ],
       description: "Tailored solutions for large teams and organizations.",
       buttonText: "Contact Sales",
-      contactHref: "mailto:sales@voicemint.it?subject=VoiceMint%20Enterprise",
+      contactHref: "mailto:support@voicemint.it?subject=VoiceMint%20Enterprise",
     },
   ]
 
