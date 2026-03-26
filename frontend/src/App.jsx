@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import LandingPage from "./pages/LandingPage"
 import FAQDemoPage from "./pages/FAQDemoPage"
 import MinimalAuthDemoPage from "./pages/MinimalAuthDemoPage"
+import FooterDemoPage from "./pages/FooterDemoPage"
 import AuthPage from "./pages/AuthPage"
 import Dashboard from "./pages/Dashboard"
 import AdminPage from "./pages/AdminPage"
@@ -18,6 +19,7 @@ function getInitialPage() {
   if (path === "/e5426679666b") return "admin"
   if (path === "/faq-demo") return "faq-demo"
   if (path === "/auth-demo") return "auth-demo"
+  if (path === "/footer-demo") return "footer-demo"
   if (path === "/terms") return "terms"
   if (path === "/privacy") return "privacy"
   return "landing"
@@ -96,6 +98,7 @@ function App() {
     if (page === "admin") return <AdminPage />
     if (page === "faq-demo") return <FAQDemoPage />
     if (page === "auth-demo") return <MinimalAuthDemoPage />
+    if (page === "footer-demo") return <FooterDemoPage />
     if (page === "terms") return <LegalPage variant="terms" onBack={handleLegalBack} />
     if (page === "privacy") return <LegalPage variant="privacy" onBack={handleLegalBack} />
     if (page === "landing")

@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { HeroWave } from "../components/ui/ai-input-hero"
 import { FAQSection } from "@/components/ui/faqsection"
+import { Footer } from "@/components/ui/footer-section"
 
 export default function LandingPage({ onGetStarted, onLogin, onOpenTerms, onOpenPrivacy }) {
   const { t, i18n } = useTranslation()
@@ -51,91 +52,13 @@ export default function LandingPage({ onGetStarted, onLogin, onOpenTerms, onOpen
           />
         </section>
 
-        <footer className="relative border-t border-white/10 bg-gradient-to-b from-transparent via-black/20 to-black/50 pt-16 pb-12">
-          <div className="max-w-6xl mx-auto px-6 md:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-8">
-              <div className="md:col-span-5">
-                <img src="/text_logo.png" alt="VoiceMint" className="h-9 md:h-10 object-contain opacity-95" />
-                <p className="mt-5 text-sm text-white/45 leading-relaxed max-w-sm">{t("footer_tagline")}</p>
-              </div>
-              <div className="md:col-span-3">
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/35 mb-4">
-                  {t("footer_column_links")}
-                </p>
-                <ul className="space-y-3">
-                  <li>
-                    <a
-                      href="#faq"
-                      className="text-sm text-white/70 hover:text-white transition-colors"
-                    >
-                      {t("faq_tag")}
-                    </a>
-                  </li>
-                  <li>
-                    <button
-                      type="button"
-                      onClick={onLogin}
-                      className="text-left text-sm text-white/70 transition-colors hover:text-white"
-                    >
-                      {t("footer_link_login")}
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      type="button"
-                      onClick={onOpenTerms}
-                      className="text-left text-sm text-white/70 transition-colors hover:text-white"
-                    >
-                      {t("footer_link_terms")}
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      type="button"
-                      onClick={onOpenPrivacy}
-                      className="text-left text-sm text-white/70 transition-colors hover:text-white"
-                    >
-                      {t("footer_link_privacy")}
-                    </button>
-                  </li>
-                </ul>
-              </div>
-              <div className="md:col-span-4 md:text-right">
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/35 mb-4">
-                  {i18n.language === "it" ? "Lingua" : "Language"}
-                </p>
-                <div className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/[0.04] px-1 py-1">
-                  <button
-                    type="button"
-                    onClick={() => changeLang("it")}
-                    className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all ${
-                      i18n.language === "it"
-                        ? "bg-white text-black shadow-sm"
-                        : "text-white/50 hover:text-white"
-                    }`}
-                  >
-                    IT
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => changeLang("en")}
-                    className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all ${
-                      i18n.language === "en"
-                        ? "bg-white text-black shadow-sm"
-                        : "text-white/50 hover:text-white"
-                    }`}
-                  >
-                    EN
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="mt-14 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-white/10 pt-8">
-              <p className="text-sm text-white/35">{t("footer")}</p>
-              <p className="text-xs text-white/25">{t("hero_tag")}</p>
-            </div>
-          </div>
-        </footer>
+        <Footer
+          onLogin={onLogin}
+          onOpenTerms={onOpenTerms}
+          onOpenPrivacy={onOpenPrivacy}
+          lang={i18n.language}
+          onChangeLang={changeLang}
+        />
       </div>
     </div>
   )
