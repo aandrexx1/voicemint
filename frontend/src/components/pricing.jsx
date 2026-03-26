@@ -4,11 +4,12 @@ import React, {
   useState,
   useRef,
   useEffect,
+  useMemo,
   createContext,
   useContext,
 } from "react";
 import confetti from "canvas-confetti";
-import { Check, Star as LucideStar } from "lucide-react";
+import { Check, Copy, Star as LucideStar } from "lucide-react";
 import NumberFlow from "@number-flow/react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva } from "class-variance-authority";
@@ -93,6 +94,8 @@ export function PricingSection({
   title = "Simple, Transparent Pricing",
   description = "Choose the plan that's right for you. All plans include our core features and support.",
   onPlanButtonClick,
+  contactCopyLabel = "Copy email",
+  contactCopiedLabel = "Copied",
 }) {
   const [isMonthly, setIsMonthly] = useState(true);
 
@@ -110,13 +113,15 @@ export function PricingSection({
             </p>
           </div>
           <PricingToggle />
-          <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 items-start gap-8">
+          <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 items-stretch gap-8">
             {plans.map((plan, index) => (
               <PricingCard
                 key={index}
                 plan={plan}
                 index={index}
                 onPlanButtonClick={onPlanButtonClick}
+                contactCopyLabel={contactCopyLabel}
+                contactCopiedLabel={contactCopiedLabel}
               />
             ))}
           </div>
@@ -223,10 +228,57 @@ function isCustomPrice(plan, isMonthly) {
   return Number.isNaN(n);
 }
 
+function emailFromMailto(href) {
+  if (!href || !href.startsWith("mailto:")) return null;
+  const path = href.slice("mailto:".length).split("?")[0];
+  try {
+    return decodeURIComponent(path) || null;
+  } catch {
+    return path || null;
+  }
+}
+
+function ContactEmailCopy({ mailtoHref, copyLabel, copiedLabel }) {
+  const email = useMemo(() => emailFromMailto(mailtoHref), [mailtoHref]);
+  const [copied, setCopied] = useState(false);
+
+  if (!email) return null;
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(email);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  return (
+    <div className="mt-4 w-full space-y-2 text-left">
+      <p className="text-xs text-muted-foreground break-all font-mono">{email}</p>
+      <button
+        type="button"
+        onClick={copy}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-border bg-background/80 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+      >
+        {copied ? (
+          <Check className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+        ) : (
+          <Copy className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+        )}
+        {copied ? copiedLabel : copyLabel}
+      </button>
+    </div>
+  );
+}
+
 function PricingCard({
   plan,
   index,
   onPlanButtonClick,
+  contactCopyLabel,
+  contactCopiedLabel,
 }) {
   const { isMonthly } = useContext(PricingContext);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -251,7 +303,7 @@ function PricingCard({
         delay: index * 0.15,
       }}
       className={cn(
-        "rounded-2xl p-8 flex flex-col relative bg-background/70 backdrop-blur-sm",
+        "h-full rounded-2xl p-8 flex flex-col relative bg-background/70 backdrop-blur-sm",
         plan.isPopular
           ? "border-2 border-primary shadow-xl"
           : "border border-border"
@@ -303,7 +355,7 @@ function PricingCard({
 
         <ul
           role="list"
-          className="mt-8 space-y-3 text-sm leading-6 text-left text-muted-foreground">
+          className="mt-8 flex-1 space-y-3 text-sm leading-6 text-left text-muted-foreground">
           {plan.features.map((feature) => (
             <li key={feature} className="flex gap-x-3">
               <Check className="h-6 w-5 flex-none text-primary" aria-hidden="true" />
@@ -312,20 +364,27 @@ function PricingCard({
           ))}
         </ul>
 
-        <div className="mt-auto pt-8">
+        <div className="mt-auto shrink-0 pt-8">
           {plan.contactHref ? (
-            <a
-              href={plan.contactHref}
-              className={cn(
-                buttonVariants({
-                  variant: plan.isPopular ? "default" : "outline",
-                  size: "lg",
-                }),
-                "w-full inline-flex",
-              )}
-            >
-              {plan.buttonText}
-            </a>
+            <>
+              <a
+                href={plan.contactHref}
+                className={cn(
+                  buttonVariants({
+                    variant: plan.isPopular ? "default" : "outline",
+                    size: "lg",
+                  }),
+                  "w-full inline-flex",
+                )}
+              >
+                {plan.buttonText}
+              </a>
+              <ContactEmailCopy
+                mailtoHref={plan.contactHref}
+                copyLabel={contactCopyLabel}
+                copiedLabel={contactCopiedLabel}
+              />
+            </>
           ) : onPlanButtonClick ? (
             <button
               type="button"

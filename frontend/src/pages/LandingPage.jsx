@@ -154,6 +154,8 @@ export default function LandingPage({ token, user, onGetStarted, onLogin, onOpen
                 : "Select the ideal package for your needs and start building today."
             }
             onPlanButtonClick={handlePricingPlan}
+            contactCopyLabel={i18n.language === "it" ? "Copia indirizzo" : "Copy email"}
+            contactCopiedLabel={i18n.language === "it" ? "Copiato!" : "Copied!"}
           />
         </section>
 
