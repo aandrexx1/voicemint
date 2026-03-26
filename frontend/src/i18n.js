@@ -62,6 +62,94 @@ const resources = {
       footer_tagline: "Voice to document — PowerPoint dalla voce.",
       footer_column_links: "Link",
       footer_link_login: "Accedi",
+      footer_link_terms: "Termini di servizio",
+      footer_link_privacy: "Privacy Policy",
+      cookie_banner_title: "Cookie e privacy",
+      cookie_banner_text:
+        "Usiamo cookie tecnici necessari al funzionamento del sito e, solo se accetti, strumenti per migliorare l’esperienza. Puoi consultare Termini e Privacy Policy e scegliere se accettare o rifiutare i cookie non strettamente necessari.",
+      cookie_link_terms: "Termini di servizio",
+      cookie_link_privacy: "Privacy Policy",
+      cookie_accept: "Accetta",
+      cookie_reject: "Rifiuta",
+      legal_back: "Indietro",
+      legal_terms_title: "Termini di servizio",
+      legal_terms_updated: "Ultimo aggiornamento: marzo 2026",
+      legal_privacy_title: "Privacy Policy",
+      legal_privacy_updated: "Ultimo aggiornamento: marzo 2026",
+      legal_terms_sections: [
+        {
+          title: "1. Oggetto",
+          body:
+            "I presenti Termini di servizio (“Termini”) regolano l’accesso e l’utilizzo di VoiceMint (“Servizio”), un prodotto software che consente di generare presentazioni PowerPoint a partire da input audio. Utilizzando il Servizio accetti questi Termini.",
+        },
+        {
+          title: "2. Account",
+          body:
+            "Per alcune funzioni può essere richiesta la registrazione. Sei responsabile della riservatezza delle credenziali e di tutte le attività svolte tramite il tuo account. Devi fornire informazioni veritiere e aggiornate.",
+        },
+        {
+          title: "3. Uso consentito",
+          body:
+            "Ti impegni a non utilizzare il Servizio in modo illecito, a non tentare accessi non autorizzati, a non interferire con l’infrastruttura e a non caricare contenuti che violino diritti di terzi o norme applicabili.",
+        },
+        {
+          title: "4. Contenuti e licenza",
+          body:
+            "Mantieni la proprietà dei contenuti che fornisci. Ci concedi una licenza limitata per elaborare tali contenuti al fine di erogare il Servizio. L’output generato dall’AI è fornito “così com’è”; è tua responsabilità verificarne l’adeguatezza prima dell’uso professionale o pubblico.",
+        },
+        {
+          title: "5. Servizio e modifiche",
+          body:
+            "Il Servizio può essere aggiornato, sospeso o limitato per manutenzione o motivi tecnici. Possiamo modificare i Termini: in caso di cambiamenti rilevanti, cercheremo di informarti tramite il sito o l’app. L’uso continuato dopo la modifica costituisce accettazione.",
+        },
+        {
+          title: "6. Limitazione di responsabilità",
+          body:
+            "Nella misura massima consentita dalla legge, VoiceMint non è responsabile per danni indiretti, perdita di dati o profitti, né per l’esito di presentazioni generate in contesti critici. Restano i rimedi obbligatori per legge.",
+        },
+        {
+          title: "7. Legge applicabile",
+          body:
+            "Per quanto non derogabile, si applica la legge italiana. Foro competente: Italia, salvo diversa competenza inderogabile del consumatore.",
+        },
+      ],
+      legal_privacy_sections: [
+        {
+          title: "1. Titolare",
+          body:
+            "Il titolare del trattamento dei dati personali raccolti tramite VoiceMint è il gestore del servizio indicato sul sito (di seguito “noi”). Per esercitare i tuoi diritti puoi contattarci tramite i canali indicati sul sito.",
+        },
+        {
+          title: "2. Dati trattati",
+          body:
+            "Possiamo trattare: dati di account (es. email, nome utente), contenuti audio inviati per la generazione, metadati tecnici (log, indirizzo IP, tipo di browser), dati di utilizzo del Servizio.",
+        },
+        {
+          title: "3. Finalità e base giuridica",
+          body:
+            "I dati sono trattati per: erogare il Servizio ed eseguire il contratto (art. 6(1)(b) GDPR); adempiere obblighi legali (art. 6(1)(c)); sicurezza e prevenzione abusi (legittimo interesse, art. 6(1)(f)); miglioramento del prodotto, previo consenso ove richiesto (art. 6(1)(a)).",
+        },
+        {
+          title: "4. Conservazione",
+          body:
+            "I dati sono conservati per il tempo necessario alle finalità indicate e secondo obblighi di legge. I contenuti elaborati possono essere conservati per periodi brevi per finalità operative e poi cancellati o anonimizzati, salvo diversa indicazione nel Servizio.",
+        },
+        {
+          title: "5. Cookie",
+          body:
+            "Utilizziamo cookie tecnici necessari al funzionamento. Altri strumenti (es. analitici) possono essere attivati solo in base alla tua scelta dal banner cookie. Puoi modificare le preferenze cancellando i cookie dal browser o contattandoci.",
+        },
+        {
+          title: "6. Trasferimenti extra-UE",
+          body:
+            "Se utilizziamo fornitori extra-UE, adottiamo garanzie adeguate (es. Clausole contrattuali tipo) ove richiesto dalla normativa.",
+        },
+        {
+          title: "7. Diritti",
+          body:
+            "Hai diritto di accesso, rettifica, cancellazione, limitazione, opposizione, portabilità e di proporre reclamo all’autorità di controllo (in Italia il Garante Privacy). Per esercitare i diritti, contattaci tramite i canali sul sito.",
+        },
+      ],
       auth_home: "Home",
       auth_title_login: "Accedi o registrati",
       auth_subtitle_login: "Entra con il tuo account VoiceMint.",
@@ -151,6 +239,94 @@ const resources = {
       footer_tagline: "Voice to document — PowerPoint from your voice.",
       footer_column_links: "Links",
       footer_link_login: "Log in",
+      footer_link_terms: "Terms of Service",
+      footer_link_privacy: "Privacy Policy",
+      cookie_banner_title: "Cookies & privacy",
+      cookie_banner_text:
+        "We use cookies that are strictly necessary for the site to work and, if you accept, tools to improve your experience. You can read our Terms and Privacy Policy and choose to accept or reject non-essential cookies.",
+      cookie_link_terms: "Terms of Service",
+      cookie_link_privacy: "Privacy Policy",
+      cookie_accept: "Accept",
+      cookie_reject: "Reject",
+      legal_back: "Back",
+      legal_terms_title: "Terms of Service",
+      legal_terms_updated: "Last updated: March 2026",
+      legal_privacy_title: "Privacy Policy",
+      legal_privacy_updated: "Last updated: March 2026",
+      legal_terms_sections: [
+        {
+          title: "1. Scope",
+          body:
+            'These Terms of Service (“Terms”) govern access to and use of VoiceMint (the “Service”), a software product that generates PowerPoint presentations from audio input. By using the Service you agree to these Terms.',
+        },
+        {
+          title: "2. Account",
+          body:
+            "Registration may be required for some features. You are responsible for keeping your credentials confidential and for all activity under your account. You must provide accurate information.",
+        },
+        {
+          title: "3. Acceptable use",
+          body:
+            "You agree not to use the Service unlawfully, not to attempt unauthorized access, not to interfere with infrastructure, and not to upload content that infringes third-party rights or applicable laws.",
+        },
+        {
+          title: "4. Content and licences",
+          body:
+            "You retain ownership of content you submit. You grant us a limited licence to process it to provide the Service. AI output is provided “as is”; you are responsible for verifying suitability before professional or public use.",
+        },
+        {
+          title: "5. Service and changes",
+          body:
+            "The Service may be updated, suspended or limited for maintenance or technical reasons. We may change these Terms; for material changes we will try to notify you via the site or app. Continued use after changes constitutes acceptance.",
+        },
+        {
+          title: "6. Limitation of liability",
+          body:
+            "To the maximum extent permitted by law, VoiceMint is not liable for indirect damages, loss of data or profits, or outcomes of presentations generated in critical contexts. Mandatory statutory rights remain unaffected.",
+        },
+        {
+          title: "7. Governing law",
+          body:
+            "Unless mandatory law provides otherwise, Italian law applies. Competent courts: Italy, without prejudice to mandatory consumer jurisdiction rules.",
+        },
+      ],
+      legal_privacy_sections: [
+        {
+          title: "1. Data controller",
+          body:
+            "The controller of personal data collected through VoiceMint is the service operator identified on the website (“we”). To exercise your rights, contact us via the channels listed on the site.",
+        },
+        {
+          title: "2. Data we process",
+          body:
+            "We may process: account data (e.g. email, username), audio content submitted for generation, technical metadata (logs, IP address, browser type), and usage data.",
+        },
+        {
+          title: "3. Purposes and legal bases",
+          body:
+            "Data are processed to: provide the Service and perform the contract (Art. 6(1)(b) GDPR); comply with legal obligations (Art. 6(1)(c)); ensure security and prevent abuse (legitimate interest, Art. 6(1)(f)); improve the product where consent is required (Art. 6(1)(a)).",
+        },
+        {
+          title: "4. Retention",
+          body:
+            "Data are kept as long as needed for the stated purposes and as required by law. Processed content may be stored briefly for operational purposes and then deleted or anonymised unless otherwise stated in the Service.",
+        },
+        {
+          title: "5. Cookies",
+          body:
+            "We use strictly necessary cookies. Other tools (e.g. analytics) may be activated only based on your choice in the cookie banner. You can change preferences by clearing browser cookies or contacting us.",
+        },
+        {
+          title: "6. Transfers outside the EU",
+          body:
+            "If we use providers outside the EU, we implement appropriate safeguards (e.g. Standard Contractual Clauses) where required.",
+        },
+        {
+          title: "7. Your rights",
+          body:
+            "You have the right of access, rectification, erasure, restriction, objection, portability, and to lodge a complaint with a supervisory authority. To exercise your rights, contact us via the channels on the site.",
+        },
+      ],
       auth_home: "Home",
       auth_title_login: "Sign in or join",
       auth_subtitle_login: "Sign in to your VoiceMint account.",

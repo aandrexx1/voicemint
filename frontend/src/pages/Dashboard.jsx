@@ -5,7 +5,7 @@ import axios from "axios"
 
 const API = "https://voicemint-backend.onrender.com"
 
-export default function Dashboard({ token, user, setUser, onLogout }) {
+export default function Dashboard({ token, user, setUser, onLogout, onOpenTerms, onOpenPrivacy }) {
   const [recording, setRecording] = useState(false)
   const [transcription, setTranscription] = useState("")
   const [outputType] = useState("ppt") // Genera solo presentazioni PowerPoint
@@ -278,6 +278,21 @@ export default function Dashboard({ token, user, setUser, onLogout }) {
               </div>
             )}
           </div>
+
+          {(onOpenTerms || onOpenPrivacy) && (
+            <div className="mt-16 flex flex-wrap gap-4 border-t border-white/5 pt-8 text-xs text-white/35">
+              {onOpenTerms && (
+                <button type="button" onClick={onOpenTerms} className="hover:text-white/70">
+                  {lang === "it" ? "Termini di servizio" : "Terms of Service"}
+                </button>
+              )}
+              {onOpenPrivacy && (
+                <button type="button" onClick={onOpenPrivacy} className="hover:text-white/70">
+                  {lang === "it" ? "Privacy Policy" : "Privacy Policy"}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

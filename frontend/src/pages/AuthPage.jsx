@@ -9,7 +9,7 @@ const API = "https://voicemint-backend.onrender.com"
 const inputClass =
   "flex h-11 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
 
-export default function AuthPage({ setToken, setUser, onBack, defaultLogin }) {
+export default function AuthPage({ setToken, setUser, onBack, defaultLogin, onOpenTerms, onOpenPrivacy }) {
   const { t } = useTranslation()
   const [isLogin, setIsLogin] = useState(defaultLogin ?? false)
   const [form, setForm] = useState({ email: "", username: "", password: "" })
@@ -45,13 +45,21 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin }) {
   const footer = (
     <p>
       {t("auth_terms_prefix")}{" "}
-      <a href="#" className="text-foreground underline underline-offset-4 hover:text-primary">
+      <button
+        type="button"
+        onClick={onOpenTerms}
+        className="text-foreground underline underline-offset-4 hover:text-primary"
+      >
         {t("auth_terms_link")}
-      </a>{" "}
+      </button>{" "}
       {t("auth_terms_and")}{" "}
-      <a href="#" className="text-foreground underline underline-offset-4 hover:text-primary">
+      <button
+        type="button"
+        onClick={onOpenPrivacy}
+        className="text-foreground underline underline-offset-4 hover:text-primary"
+      >
         {t("auth_privacy_link")}
-      </a>
+      </button>
       .
     </p>
   )

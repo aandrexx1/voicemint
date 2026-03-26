@@ -1,13 +1,9 @@
-import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { HeroWave } from "../components/ui/ai-input-hero"
 import { FAQSection } from "@/components/ui/faqsection"
 
-export default function LandingPage({ onGetStarted, onLogin }) {
+export default function LandingPage({ onGetStarted, onLogin, onOpenTerms, onOpenPrivacy }) {
   const { t, i18n } = useTranslation()
-  const [cookieAccepted, setCookieAccepted] = useState(
-    localStorage.getItem("cookie_accepted") === "true"
-  )
 
   const changeLang = (lang) => {
     i18n.changeLanguage(lang)
@@ -79,9 +75,27 @@ export default function LandingPage({ onGetStarted, onLogin }) {
                     <button
                       type="button"
                       onClick={onLogin}
-                      className="text-sm text-white/70 hover:text-white transition-colors text-left"
+                      className="text-left text-sm text-white/70 transition-colors hover:text-white"
                     >
                       {t("footer_link_login")}
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      onClick={onOpenTerms}
+                      className="text-left text-sm text-white/70 transition-colors hover:text-white"
+                    >
+                      {t("footer_link_terms")}
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      onClick={onOpenPrivacy}
+                      className="text-left text-sm text-white/70 transition-colors hover:text-white"
+                    >
+                      {t("footer_link_privacy")}
                     </button>
                   </li>
                 </ul>
@@ -122,28 +136,6 @@ export default function LandingPage({ onGetStarted, onLogin }) {
             </div>
           </div>
         </footer>
-
-        {!cookieAccepted && (
-          <div className="fixed bottom-0 left-0 right-0 bg-[#111] border-t border-white/10 px-6 py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 z-50">
-            <p className="text-white/50 text-xs max-w-xl">
-              {i18n.language === "it"
-                ? "Utilizziamo cookie tecnici per migliorare la tua esperienza. Continuando accetti la nostra cookie policy."
-                : "We use technical cookies to improve your experience. By continuing you accept our cookie policy."}
-            </p>
-            <div className="flex gap-3 shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  localStorage.setItem("cookie_accepted", "true")
-                  setCookieAccepted(true)
-                }}
-                className="bg-white text-black text-xs font-semibold px-4 py-2 rounded-full hover:bg-white/90 transition-all"
-              >
-                {i18n.language === "it" ? "Accetta" : "Accept"}
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )
