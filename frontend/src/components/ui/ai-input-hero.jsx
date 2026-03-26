@@ -17,6 +17,7 @@ export function HeroWave({
   onLogin,
   onGetStarted,
   onProfile,
+  isLoggedIn = false,
 }) {
   const [prompt, setPrompt] = useState("");
   const [recording, setRecording] = useState(false);
@@ -148,7 +149,12 @@ export function HeroWave({
       style={{ position: "relative", width: "100%", minHeight: "100vh", ...style }}
       aria-label="Hero"
     >
-      <Navbar onLogin={onLogin} onSignup={onGetStarted} onProfile={onProfile} />
+      <Navbar
+        onLogin={onLogin}
+        onSignup={onGetStarted}
+        onProfile={onProfile}
+        isLoggedIn={isLoggedIn}
+      />
 
       <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 pt-28 pb-16 sm:px-8">
         <div className="pointer-events-auto mx-auto w-full max-w-3xl text-center">

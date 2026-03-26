@@ -6,9 +6,9 @@ import { useTranslation } from "react-i18next";
 
 const footerLinks = {
   product: [
-    { title: "Features", href: "faq" },
-    { title: "Pricing", href: "faq" },
-    { title: "Integration", href: "faq" },
+    { title: "Features", href: "pricing" },
+    { title: "Pricing", href: "pricing" },
+    { title: "Integration", href: "pricing" },
   ],
   social: [
     { title: "Facebook", href: "#", icon: FacebookIcon },

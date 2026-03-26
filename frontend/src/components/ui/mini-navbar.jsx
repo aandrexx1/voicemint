@@ -18,7 +18,7 @@ const NavButton = ({ onClick, children }) => (
   </button>
 );
 
-export function Navbar({ onLogin, onSignup, onProfile }) {
+export function Navbar({ onLogin, onSignup, onProfile, isLoggedIn = false }) {
   const [isOpen, setIsOpen] = useState(false);
   const [headerShapeClass, setHeaderShapeClass] = useState('rounded-full');
   const shapeTimeoutRef = useRef(null);
@@ -93,8 +93,12 @@ export function Navbar({ onLogin, onSignup, onProfile }) {
           ))}
         </nav>
         <div className="hidden sm:flex items-center gap-2 sm:gap-3">
-          {loginButtonElement}
-          {signupButtonElement}
+          {!isLoggedIn ? (
+            <>
+              {loginButtonElement}
+              {signupButtonElement}
+            </>
+          ) : null}
         </div>
         <button className="sm:hidden flex items-center justify-center w-8 h-8 text-gray-300 focus:outline-none" onClick={toggleMenu} aria-label={isOpen ? 'Close Menu' : 'Open Menu'}>
           {isOpen ? (
@@ -121,8 +125,12 @@ export function Navbar({ onLogin, onSignup, onProfile }) {
           ))}
         </nav>
         <div className="flex flex-col items-center space-y-4 mt-4 w-full">
-          {loginButtonElement}
-          {signupButtonElement}
+          {!isLoggedIn ? (
+            <>
+              {loginButtonElement}
+              {signupButtonElement}
+            </>
+          ) : null}
         </div>
       </div>
     </header>
