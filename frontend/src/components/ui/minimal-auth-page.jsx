@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Particles } from "@/components/ui/particles";
 import { ChevronLeftIcon, GithubIcon } from "lucide-react";
 
 function GoogleIcon(props) {
@@ -25,17 +24,9 @@ export function MinimalAuthPage({
   socialDisabledTitle = "",
   children,
   footer,
-  particleColor = "#666666",
 }) {
   return (
-    <div className="relative min-h-screen w-full md:h-screen md:overflow-hidden bg-background text-foreground">
-      <Particles color={particleColor} quantity={120} ease={20} className="absolute inset-0" />
-      <div aria-hidden className="absolute inset-0 isolate -z-10 contain-strict">
-        <div className="absolute top-0 left-0 h-[320px] w-[140px] -translate-y-[35%] -rotate-45 rounded-full bg-[radial-gradient(68.54%_68.72%_at_55.02%_31.46%,rgba(255,255,255,0.06)_0,hsla(0,0%,55%,0.02)_50%,rgba(255,255,255,0.02)_80%)]" />
-        <div className="absolute top-0 left-0 h-[320px] w-[60px] translate-x-[5%] -translate-y-1/2 -rotate-45 rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,rgba(255,255,255,0.04)_0,rgba(255,255,255,0.01)_80%,transparent_100%)]" />
-        <div className="absolute top-0 left-0 h-[320px] w-[60px] -translate-y-[35%] -rotate-45 rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,rgba(255,255,255,0.04)_0,rgba(255,255,255,0.01)_80%,transparent_100%)]" />
-      </div>
-
+    <div className="relative min-h-screen w-full bg-transparent text-foreground md:h-screen md:overflow-hidden">
       <div className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-4 py-16 md:py-0">
         <Button type="button" variant="ghost" className="absolute top-4 left-4" onClick={onBack}>
           <ChevronLeftIcon className="me-1 size-4" />

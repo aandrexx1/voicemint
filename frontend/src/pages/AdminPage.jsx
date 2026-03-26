@@ -21,7 +21,7 @@ export default function AdminPage() {
   }, [authed])
 
   if (!authed) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center bg-transparent">
       <div className="flex flex-col gap-4 w-64">
         <input
           type="password"
@@ -51,7 +51,7 @@ export default function AdminPage() {
   )
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center bg-transparent">
       <p className="text-white/30 text-sm">Caricamento...</p>
     </div>
   )
@@ -65,7 +65,7 @@ export default function AdminPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white px-8 py-16">
+    <div className="min-h-screen bg-transparent px-8 py-16 text-white">
       <div className="max-w-4xl mx-auto">
         <p className="text-white/20 text-xs uppercase tracking-widest mb-2">VoiceMint</p>
         <h1 className="text-3xl font-bold tracking-tight mb-16">Overview</h1>

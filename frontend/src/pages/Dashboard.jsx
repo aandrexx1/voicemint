@@ -85,7 +85,7 @@ export default function Dashboard({ token, user, setUser, onLogout }) {
   const t = (it, en) => lang === "it" ? it : en
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
+    <div className="flex min-h-screen flex-col bg-transparent text-white">
 
       {/* Navbar */}
       <nav className="flex items-center justify-between px-8 py-5 border-b border-white/5">

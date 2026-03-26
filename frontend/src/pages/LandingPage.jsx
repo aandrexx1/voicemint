@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { HeroWave } from "../components/ui/ai-input-hero"
-import { GrainBackdrop } from "../components/ui/grain-backdrop"
 import { FAQSection } from "@/components/ui/faqsection"
 
 export default function LandingPage({ onGetStarted, onLogin }) {
@@ -29,9 +28,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
   ]
 
   return (
-    <div className="min-h-screen text-white relative w-full">
-      <GrainBackdrop />
-
+    <div className="relative min-h-screen w-full text-white">
       <div className="relative z-10">
         <HeroWave
           title={heroTitle}
