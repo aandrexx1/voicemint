@@ -82,7 +82,7 @@ export function Navbar({ onLogin, onSignup, onProfile, isLoggedIn = false }) {
   );
 
   return (
-    <header className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center pl-6 pr-6 py-3 backdrop-blur-sm ${headerShapeClass} border border-[#333] bg-[#1f1f1f57] w-[calc(100%-2rem)] sm:w-auto transition-[border-radius] duration-0 ease-in-out`}>
+    <header className={`fixed top-6 left-1/2 z-[100] flex -translate-x-1/2 transform flex-col items-center border border-[#333] bg-[#1f1f1f57] py-3 pl-6 pr-6 backdrop-blur-sm transition-[border-radius] duration-0 ease-in-out sm:w-auto w-[calc(100%-2rem)] ${headerShapeClass}`}>
       <div className="flex items-center justify-between w-full gap-x-6 sm:gap-x-8">
         <div className="flex items-center">{logoElement}</div>
         <nav className="hidden sm:flex items-center space-x-4 sm:space-x-6 text-sm">

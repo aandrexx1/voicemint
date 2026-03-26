@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { HeroWave } from "../components/ui/ai-input-hero"
+import { Navbar } from "../components/ui/mini-navbar"
 import { FAQSection } from "@/components/ui/faqsection"
 import { Footer } from "@/components/ui/footer-section"
 import axios from "axios"
@@ -119,16 +120,18 @@ export default function LandingPage({
 
   return (
     <div className="relative min-h-screen w-full text-white">
+      <Navbar
+        onLogin={onLogin}
+        onSignup={onGetStarted}
+        onProfile={onOpenProfile}
+        isLoggedIn={!!token}
+      />
       <div className="relative z-10">
         <HeroWave
           title={heroTitle}
           subtitle={t("hero_desc")}
           placeholder={i18n.language === "it" ? "Descrivi l'argomento..." : "Describe your topic..."}
           buttonText={i18n.language === "it" ? "Genera" : "Generate"}
-          onLogin={onLogin}
-          onGetStarted={onGetStarted}
-          onProfile={onOpenProfile}
-          isLoggedIn={!!token}
           onPromptSubmit={async (prompt) => {
             const text = (prompt || "").trim()
             if (!text) return
