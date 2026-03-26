@@ -5,6 +5,7 @@ import { FAQSection } from "@/components/ui/faqsection"
 import { Footer } from "@/components/ui/footer-section"
 import axios from "axios"
 import { PricingSection } from "@/components/ui/pricing"
+import { Check } from "lucide-react"
 
 const API = "https://voicemint-backend.onrender.com"
 
@@ -37,6 +38,9 @@ export default function LandingPage({
     { question: t("faq_3_q"), answer: t("faq_3_a") },
     { question: t("faq_4_q"), answer: t("faq_4_a") },
   ]
+
+  const howItWorksBullets = t("how_it_works_bullets", { returnObjects: true })
+  const howBullets = Array.isArray(howItWorksBullets) ? howItWorksBullets : []
 
   const pricingPlans = [
     {
@@ -156,6 +160,27 @@ export default function LandingPage({
             }
           }}
         />
+
+        <section id="how-it-works" className="scroll-mt-28 border-t border-white/10 py-12 md:py-20">
+          <div className="mx-auto max-w-3xl px-4 md:px-6">
+            <h2 className="text-center text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              {t("how_it_works_title")}
+            </h2>
+            <p className="mx-auto mt-5 max-w-2xl text-center text-base leading-relaxed text-white/65 md:text-lg">
+              {t("how_it_works_intro")}
+            </p>
+            <ul className="mt-10 space-y-5 md:space-y-6">
+              {howBullets.map((text, i) => (
+                <li key={i} className="flex gap-4 text-left">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-primary">
+                    <Check className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+                  </span>
+                  <span className="text-[15px] leading-relaxed text-white/85 md:text-base">{text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
 
         <section id="pricing" className="scroll-mt-28">
           <PricingSection

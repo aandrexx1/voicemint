@@ -11,6 +11,15 @@ const resources = {
       hero_title_2: "la tua voce in",
       hero_title_3: "pronti all'uso.",
       hero_desc: "Parla liberamente. VoiceMint genera presentazioni PowerPoint in pochi secondi, grazie all'AI.",
+      how_it_works_title: "Come funziona",
+      how_it_works_intro:
+        "Non serve un nuovo metodo di studio. Ripeti ad alta voce come fai sempre: nel frattempo VoiceMint prepara una presentazione (o appunti ordinati) con cui puoi ripassare o presentare, se serve.",
+      how_it_works_bullets: [
+        "Studi come sei abituato: spieghi a voce il tema, ripassi i concetti, ripeti come davanti a un compito — come hai sempre fatto.",
+        "Mentre parli, VoiceMint trasforma quello che dici in slide chiare, con titoli e punti che puoi rileggere in un attimo.",
+        "Ti servono per ripassare di nuovo da solo, oppure come base quando devi presentare in classe, in università o al lavoro.",
+        "Niente da configurare e niente termini tecnici: parli, e in pochi secondi hai il file pronto da scaricare.",
+      ],
       hero_cta: "Unisciti alla waitlist",
       hero_sub: "Nessuna carta richiesta. Accesso anticipato gratuito.",
       words: ["PowerPoint"],
@@ -198,6 +207,15 @@ const resources = {
       hero_title_2: "your voice into",
       hero_title_3: "ready to use.",
       hero_desc: "Speak freely. VoiceMint generates PowerPoint presentations in seconds, powered by AI.",
+      how_it_works_title: "How it works",
+      how_it_works_intro:
+        "You don't need a new study habit. Talk through your notes out loud like you always have—meanwhile VoiceMint builds a presentation (or neat notes) you can review or use when you need to present.",
+      how_it_works_bullets: [
+        "Study the way you already do: explain the topic out loud, rehearse ideas, walk through what you know—just like before.",
+        "As you speak, VoiceMint turns it into clear slides with headings and bullet points you can skim in seconds.",
+        "Use them to review again on your own, or as a starting point when you present at school, university, or work.",
+        "No complicated setup and no tech jargon: you talk, and in a few seconds your file is ready to download.",
+      ],
       hero_cta: "Join the waitlist",
       hero_sub: "No credit card required. Free early access.",
       words: ["PowerPoint"],
