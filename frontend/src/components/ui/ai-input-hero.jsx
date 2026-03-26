@@ -2,6 +2,9 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Navbar } from "./mini-navbar";
+import axios from "axios";
+
+const API = "https://voicemint-backend.onrender.com";
 
 export function HeroWave({
   className,
@@ -13,8 +16,11 @@ export function HeroWave({
   onPromptSubmit,
   onLogin,
   onGetStarted,
+  onProfile,
 }) {
   const [prompt, setPrompt] = useState("");
+  const [recording, setRecording] = useState(false);
+  const recorderRef = useRef(null);
 
   const basePlaceholder = "Riassumi ";
   const suggestionsRef = useRef([
@@ -100,13 +106,49 @@ export function HeroWave({
     };
   }, [prompt]);
 
+  const toggleRecording = async () => {
+    if (recording) {
+      try {
+        recorderRef.current?.stop?.();
+      } catch {}
+      setRecording(false);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks = [];
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = async () => {
+        try {
+          const blob = new Blob(chunks, { type: "audio/webm" });
+          const formData = new FormData();
+          formData.append("file", blob, "recording.webm");
+          const res = await axios.post(`${API}/upload-audio`, formData);
+          setPrompt(res.data.transcription || "");
+        } catch {
+          // ignore
+        } finally {
+          try {
+            stream.getTracks().forEach((t) => t.stop());
+          } catch {}
+        }
+      };
+      recorderRef.current = recorder;
+      recorder.start();
+      setRecording(true);
+    } catch {
+      // ignore (permissions)
+    }
+  };
+
   return (
     <section
       className={["isolate overflow-hidden bg-transparent", className].filter(Boolean).join(" ")}
       style={{ position: "relative", width: "100%", minHeight: "100vh", ...style }}
       aria-label="Hero"
     >
-      <Navbar onLogin={onLogin} onSignup={onGetStarted} />
+      <Navbar onLogin={onLogin} onSignup={onGetStarted} onProfile={onProfile} />
 
       <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 pt-28 pb-16 sm:px-8">
         <div className="pointer-events-auto mx-auto w-full max-w-3xl text-center">
@@ -150,6 +192,17 @@ export function HeroWave({
                   <path d="M7 17L17 7" />
                   <path d="M7 7h10v10" />
                 </svg>
+              </button>
+
+              <button
+                type="button"
+                onClick={toggleRecording}
+                aria-label={recording ? "Stop recording" : "Start recording"}
+                className={`absolute bottom-3 right-14 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 backdrop-blur-md transition-colors ${
+                  recording ? "bg-red-500/20 text-red-100 hover:bg-red-500/25" : "bg-white/5 text-white/80 hover:bg-white/10"
+                }`}
+              >
+                {recording ? "■" : "🎙"}
               </button>
             </div>
           </form>

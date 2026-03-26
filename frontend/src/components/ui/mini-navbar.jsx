@@ -1,15 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const AnimatedNavLink = ({ href, children }) => (
-  <a
-    href={href}
+function scrollToId(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+  // niente '#...' in URL
+  window.history.replaceState({}, "", window.location.pathname);
+}
+
+const NavButton = ({ onClick, children }) => (
+  <button
+    type="button"
+    onClick={onClick}
     className="text-sm text-gray-300 transition-colors hover:text-white"
   >
     {children}
-  </a>
+  </button>
 );
 
-export function Navbar({ onLogin, onSignup }) {
+export function Navbar({ onLogin, onSignup, onProfile }) {
   const [isOpen, setIsOpen] = useState(false);
   const [headerShapeClass, setHeaderShapeClass] = useState('rounded-full');
   const shapeTimeoutRef = useRef(null);
@@ -47,7 +56,10 @@ export function Navbar({ onLogin, onSignup }) {
     </div>
   );
 
-  const navLinksData = [{ label: 'FAQ', href: '#faq' }];
+  const navLinksData = [
+    { label: 'FAQ', onClick: () => scrollToId("faq") },
+    { label: 'Profile', onClick: onProfile || onSignup },
+  ];
 
   const loginButtonElement = (
     <button
@@ -75,9 +87,9 @@ export function Navbar({ onLogin, onSignup }) {
         <div className="flex items-center">{logoElement}</div>
         <nav className="hidden sm:flex items-center space-x-4 sm:space-x-6 text-sm">
           {navLinksData.map((link) => (
-            <AnimatedNavLink key={link.href} href={link.href}>
+            <NavButton key={link.label} onClick={link.onClick}>
               {link.label}
-            </AnimatedNavLink>
+            </NavButton>
           ))}
         </nav>
         <div className="hidden sm:flex items-center gap-2 sm:gap-3">
@@ -95,9 +107,17 @@ export function Navbar({ onLogin, onSignup }) {
       <div className={`sm:hidden flex flex-col items-center w-full transition-all ease-in-out duration-300 overflow-hidden ${isOpen ? 'max-h-[1000px] opacity-100 pt-4' : 'max-h-0 opacity-0 pt-0 pointer-events-none'}`}>
         <nav className="flex flex-col items-center space-y-4 text-base w-full">
           {navLinksData.map((link) => (
-            <a key={link.href} href={link.href} className="text-gray-300 hover:text-white transition-colors w-full text-center">
+            <button
+              key={link.label}
+              type="button"
+              onClick={() => {
+                link.onClick?.();
+                setIsOpen(false);
+              }}
+              className="text-gray-300 hover:text-white transition-colors w-full text-center"
+            >
               {link.label}
-            </a>
+            </button>
           ))}
         </nav>
         <div className="flex flex-col items-center space-y-4 mt-4 w-full">

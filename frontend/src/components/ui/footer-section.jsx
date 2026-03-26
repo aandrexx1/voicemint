@@ -1,19 +1,20 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
-import { FrameIcon } from "lucide-react";
+import { FacebookIcon, FrameIcon, InstagramIcon, LinkedinIcon, YoutubeIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const footerLinks = {
   product: [
-    { title: "Features", href: "#faq" },
-    { title: "Pricing", href: "#faq" },
-    { title: "Integration", href: "#faq" },
+    { title: "Features", href: "faq" },
+    { title: "Pricing", href: "faq" },
+    { title: "Integration", href: "faq" },
   ],
-  resources: [
-    { title: "FAQ", href: "#faq" },
-    { title: "Terms of Service", href: "/terms", action: "terms" },
-    { title: "Privacy Policy", href: "/privacy", action: "privacy" },
+  social: [
+    { title: "Facebook", href: "#", icon: FacebookIcon },
+    { title: "Instagram", href: "#", icon: InstagramIcon },
+    { title: "YouTube", href: "#", icon: YoutubeIcon },
+    { title: "LinkedIn", href: "#", icon: LinkedinIcon },
   ],
 };
 
@@ -24,6 +25,13 @@ export function Footer({ onLogin, onOpenTerms, onOpenPrivacy, lang, onChangeLang
     if (action === "terms" && onOpenTerms) return onOpenTerms;
     if (action === "privacy" && onOpenPrivacy) return onOpenPrivacy;
     return null;
+  };
+
+  const scrollToId = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.history.replaceState({}, "", window.location.pathname);
   };
 
   return (
@@ -50,9 +58,13 @@ export function Footer({ onLogin, onOpenTerms, onOpenPrivacy, lang, onChangeLang
               <ul className="mt-4 space-y-2 text-sm text-white/65">
                 {footerLinks.product.map((link) => (
                   <li key={link.title}>
-                    <a href={link.href} className="inline-flex items-center transition-colors hover:text-white">
+                    <button
+                      type="button"
+                      onClick={() => scrollToId(link.href)}
+                      className="inline-flex items-center transition-colors hover:text-white"
+                    >
                       {link.title}
-                    </a>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -61,32 +73,34 @@ export function Footer({ onLogin, onOpenTerms, onOpenPrivacy, lang, onChangeLang
 
           <AnimatedContainer delay={0.3}>
             <div>
-              <h3 className="text-xs uppercase tracking-[0.18em] text-white/50">Resources</h3>
+              <h3 className="text-xs uppercase tracking-[0.18em] text-white/50">Social Links</h3>
               <ul className="mt-4 space-y-2 text-sm text-white/65">
-                {footerLinks.resources.map((link) => {
-                  const action = resolveAction(link.action);
-                  if (action) {
-                    return (
-                      <li key={link.title}>
-                        <button
-                          type="button"
-                          onClick={action}
-                          className="inline-flex items-center transition-colors hover:text-white"
-                        >
-                          {link.title}
-                        </button>
-                      </li>
-                    );
-                  }
-                  return (
-                    <li key={link.title}>
-                      <a href={link.href} className="inline-flex items-center transition-colors hover:text-white">
-                        {link.title}
-                      </a>
-                    </li>
-                  );
-                })}
+                {footerLinks.social.map((link) => (
+                  <li key={link.title}>
+                    <a href={link.href} className="inline-flex items-center gap-2 transition-colors hover:text-white">
+                      {link.icon ? <link.icon className="size-4" /> : null}
+                      {link.title}
+                    </a>
+                  </li>
+                ))}
               </ul>
+
+              <div className="mt-6 space-y-2 text-sm text-white/65">
+                <button
+                  type="button"
+                  onClick={onOpenTerms}
+                  className="inline-flex items-center transition-colors hover:text-white"
+                >
+                  {t("footer_link_terms")}
+                </button>
+                <button
+                  type="button"
+                  onClick={onOpenPrivacy}
+                  className="inline-flex items-center transition-colors hover:text-white"
+                >
+                  {t("footer_link_privacy")}
+                </button>
+              </div>
             </div>
           </AnimatedContainer>
 

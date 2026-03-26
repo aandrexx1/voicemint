@@ -64,7 +64,8 @@ function App() {
   const handleSetToken = (t) => {
     setToken(t)
     localStorage.setItem("token", t)
-    setPage("dashboard")
+    window.history.pushState({}, "", "/")
+    setPage("landing")
   }
 
   const handleLogout = () => {
@@ -108,10 +109,20 @@ function App() {
     if (page === "landing")
       return (
         <LandingPage
+          token={token}
+          user={user}
           onGetStarted={() => setPage("auth")}
           onLogin={() => setPage("auth-login")}
           onOpenTerms={goTerms}
           onOpenPrivacy={goPrivacy}
+          onOpenProfile={() => {
+            if (token) {
+              window.history.pushState({}, "", "/profile")
+              setPage("profile")
+            } else {
+              setPage("auth") // registration
+            }
+          }}
         />
       )
     if (page === "auth" || page === "auth-login")
@@ -143,17 +154,22 @@ function App() {
           onLogout={handleLogout}
         />
       )
+    // Fallback: se arriviamo qui, torniamo alla landing
     return (
-      <Dashboard
+      <LandingPage
         token={token}
         user={user}
-        setUser={setUser}
-        onLogout={handleLogout}
+        onGetStarted={() => setPage("auth")}
+        onLogin={() => setPage("auth-login")}
         onOpenTerms={goTerms}
         onOpenPrivacy={goPrivacy}
-        onNavigateProfile={() => {
-          window.history.pushState({}, "", "/profile")
-          setPage("profile")
+        onOpenProfile={() => {
+          if (token) {
+            window.history.pushState({}, "", "/profile")
+            setPage("profile")
+          } else {
+            setPage("auth")
+          }
         }}
       />
     )

@@ -2,8 +2,11 @@ import { useTranslation } from "react-i18next"
 import { HeroWave } from "../components/ui/ai-input-hero"
 import { FAQSection } from "@/components/ui/faqsection"
 import { Footer } from "@/components/ui/footer-section"
+import axios from "axios"
 
-export default function LandingPage({ onGetStarted, onLogin, onOpenTerms, onOpenPrivacy }) {
+const API = "https://voicemint-backend.onrender.com"
+
+export default function LandingPage({ token, user, onGetStarted, onLogin, onOpenTerms, onOpenPrivacy, onOpenProfile }) {
   const { t, i18n } = useTranslation()
 
   const changeLang = (lang) => {
@@ -34,8 +37,29 @@ export default function LandingPage({ onGetStarted, onLogin, onOpenTerms, onOpen
           buttonText={i18n.language === "it" ? "Genera" : "Generate"}
           onLogin={onLogin}
           onGetStarted={onGetStarted}
-          onPromptSubmit={() => {
-            onGetStarted()
+          onProfile={onOpenProfile}
+          onPromptSubmit={async (prompt) => {
+            const text = (prompt || "").trim()
+            if (!text) return
+            if (!token) {
+              onGetStarted()
+              return
+            }
+            try {
+              const res = await axios.post(
+                `${API}/generate?transcription=${encodeURIComponent(text)}&output_type=ppt`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" }
+              )
+              const url = URL.createObjectURL(res.data)
+              const a = document.createElement("a")
+              a.href = url
+              a.download = "voicemint.pptx"
+              a.click()
+              URL.revokeObjectURL(url)
+            } catch (e) {
+              alert(i18n.language === "it" ? "Errore nella generazione" : "Generation error")
+            }
           }}
         />
 
