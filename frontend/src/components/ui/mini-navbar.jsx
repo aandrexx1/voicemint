@@ -60,16 +60,13 @@ export function Navbar({ onLogin, onSignup }) {
   );
 
   const signupButtonElement = (
-    <div className="relative group w-full sm:w-auto">
-      <div className="absolute inset-0 -m-2 rounded-full hidden sm:block bg-gray-100 opacity-40 filter blur-lg pointer-events-none transition-all duration-300 ease-out group-hover:opacity-60 group-hover:blur-xl group-hover:-m-3"></div>
-      <button
-        type="button"
-        onClick={onSignup}
-        className="relative z-10 px-4 py-2 sm:px-3 text-xs sm:text-sm font-semibold text-black bg-gradient-to-br from-gray-100 to-gray-300 rounded-full hover:from-gray-200 hover:to-gray-400 transition-all duration-200 w-full sm:w-auto"
-      >
-        Inizia gratis
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={onSignup}
+      className="w-full px-4 py-2 text-xs font-semibold text-black transition-all duration-200 bg-gradient-to-br rounded-full sm:w-auto sm:px-3 sm:text-sm from-gray-100 to-gray-300 hover:from-gray-200 hover:to-gray-400"
+    >
+      Inizia gratis
+    </button>
   );
 
   return (
