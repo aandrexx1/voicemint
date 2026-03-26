@@ -433,7 +433,7 @@ function SettingsModal({ user, token, setUser, onClose, lang }) {
         </div>
 
         {/* Annulla abbonamento */}
-        {user?.tier === "pro" && !user?.lifetime_pro && (
+        {(user?.tier === "pro" || user?.tier === "starter") && !user?.lifetime_pro && (
           <div className="border-t border-white/5 pt-6">
             <button onClick={cancelSub} className="w-full text-red-400 text-sm hover:text-red-300 transition-all py-2">
               {t("Annulla abbonamento", "Cancel subscription")}
@@ -453,10 +453,12 @@ function PlansModal({ user, token, setUser, onClose, lang }) {
 
   const checkout = async () => {
     try {
-      const res = await axios.post(`${API}/create-checkout-session`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      window.location.href = res.data.url
+      const res = await axios.post(
+        `${API}/create-checkout-session`,
+        { plan: "professional", interval: "month" },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      if (res.data?.url) window.location.href = res.data.url
     } catch {
       alert(t("Errore nel pagamento", "Payment error"))
     }

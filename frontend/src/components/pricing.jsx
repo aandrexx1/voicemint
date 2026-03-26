@@ -1,5 +1,5 @@
 "use client";;
-import { motion, useSpring } from "framer-motion";
+import { motion } from "framer-motion";
 import React, {
   useState,
   useRef,
@@ -81,96 +81,6 @@ const Button = React.forwardRef(({ className, variant, size, asChild = false, ..
 });
 Button.displayName = "Button";
 
-// --- INTERACTIVE STARFIELD ---
-
-function Star({
-  mousePosition,
-  containerRef
-}) {
-  const [initialPos] = useState({
-    top: `${Math.random() * 100}%`,
-    left: `${Math.random() * 100}%`,
-  });
-
-  const springConfig = { stiffness: 100, damping: 15, mass: 0.1 };
-  const springX = useSpring(0, springConfig);
-  const springY = useSpring(0, springConfig);
-
-  useEffect(() => {
-    if (
-      !containerRef.current ||
-      mousePosition.x === null ||
-      mousePosition.y === null
-    ) {
-      springX.set(0);
-      springY.set(0);
-      return;
-    }
-
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const starX =
-      containerRect.left +
-      (parseFloat(initialPos.left) / 100) * containerRect.width;
-    const starY =
-      containerRect.top +
-      (parseFloat(initialPos.top) / 100) * containerRect.height;
-
-    const deltaX = mousePosition.x - starX;
-    const deltaY = mousePosition.y - starY;
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-    const radius = 600; // Radius of magnetic influence
-
-    if (distance < radius) {
-      const force = 1 - distance / radius;
-      const pullX = deltaX * force * 0.5;
-      const pullY = deltaY * force * 0.5;
-      springX.set(pullX);
-      springY.set(pullY);
-    } else {
-      springX.set(0);
-      springY.set(0);
-    }
-  }, [mousePosition, initialPos, containerRef, springX, springY]);
-
-  return (
-    <motion.div
-      className="absolute bg-foreground rounded-full"
-      style={{
-        top: initialPos.top,
-        left: initialPos.left,
-        width: `${1 + Math.random() * 2}px`,
-        height: `${1 + Math.random() * 2}px`,
-        x: springX,
-        y: springY,
-      }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: [0, 1, 0] }}
-      transition={{
-        duration: 2 + Math.random() * 3,
-        repeat: Infinity,
-        delay: Math.random() * 5,
-      }} />
-  );
-}
-
-function InteractiveStarfield({
-  mousePosition,
-  containerRef
-}) {
-  return (
-    <div
-      className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-      {Array.from({ length: 150 }).map((_, i) => (
-        <Star
-          key={`star-${i}`}
-          mousePosition={mousePosition}
-          containerRef={containerRef} />
-      ))}
-    </div>
-  );
-}
-
 // Context for state management
 const PricingContext = createContext({
   isMonthly: true,
@@ -181,25 +91,14 @@ const PricingContext = createContext({
 export function PricingSection({
   plans,
   title = "Simple, Transparent Pricing",
-  description = "Choose the plan that's right for you. All plans include our core features and support."
+  description = "Choose the plan that's right for you. All plans include our core features and support.",
+  onPlanButtonClick,
 }) {
   const [isMonthly, setIsMonthly] = useState(true);
-  const containerRef = useRef(null);
-  const [mousePosition, setMousePosition] = useState({ x: null, y: null });
-
-  const handleMouseMove = (event) => {
-    const { clientX, clientY } = event;
-    setMousePosition({ x: clientX, y: clientY });
-  };
 
   return (
     <PricingContext.Provider value={{ isMonthly, setIsMonthly }}>
-      <div
-        ref={containerRef}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={() => setMousePosition({ x: null, y: null })}
-        className="relative w-full bg-background dark:bg-neutral-950 py-20 sm:py-24">
-        <InteractiveStarfield mousePosition={mousePosition} containerRef={containerRef} />
+      <div className="relative w-full bg-transparent py-20 sm:py-24">
         <div className="relative z-10 container mx-auto px-4 md:px-6">
           <div className="max-w-3xl mx-auto text-center space-y-4 mb-12">
             <h2
@@ -213,7 +112,12 @@ export function PricingSection({
           <PricingToggle />
           <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 items-start gap-8">
             {plans.map((plan, index) => (
-              <PricingCard key={index} plan={plan} index={index} />
+              <PricingCard
+                key={index}
+                plan={plan}
+                index={index}
+                onPlanButtonClick={onPlanButtonClick}
+              />
             ))}
           </div>
         </div>
@@ -311,12 +215,25 @@ function PricingToggle() {
 }
 
 // Pricing Card Component
+function isCustomPrice(plan, isMonthly) {
+  const raw = isMonthly ? plan.price : plan.yearlyPrice;
+  if (raw == null) return true;
+  if (typeof raw === "string" && raw.trim().toLowerCase() === "custom") return true;
+  const n = Number(raw);
+  return Number.isNaN(n);
+}
+
 function PricingCard({
   plan,
-  index
+  index,
+  onPlanButtonClick,
 }) {
   const { isMonthly } = useContext(PricingContext);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const custom = isCustomPrice(plan, isMonthly);
+  const numericPrice = custom
+    ? 0
+    : Number(isMonthly ? plan.price : plan.yearlyPrice);
 
   return (
     <motion.div
@@ -354,27 +271,35 @@ function PricingCard({
         <p className="mt-2 text-sm text-muted-foreground">
           {plan.description}
         </p>
-        <div className="mt-6 flex items-baseline justify-center gap-x-1">
-          <span className="text-5xl font-bold tracking-tight text-foreground">
-            <NumberFlow
-              value={
-                isMonthly ? Number(plan.price) : Number(plan.yearlyPrice)
-              }
-              format={{
-                style: "currency",
-                currency: "USD",
-                minimumFractionDigits: 0,
-              }}
-              className="font-variant-numeric: tabular-nums" />
-          </span>
-          <span
-            className="text-sm font-semibold leading-6 tracking-wide text-muted-foreground">
-            / {plan.period}
-          </span>
+        <div className="mt-6 flex items-baseline justify-center gap-x-1 flex-wrap">
+          {custom ? (
+            <span className="text-5xl font-bold tracking-tight text-foreground">
+              Custom
+            </span>
+          ) : (
+            <>
+              <span className="text-5xl font-bold tracking-tight text-foreground">
+                <NumberFlow
+                  value={numericPrice}
+                  format={{
+                    style: "currency",
+                    currency: "USD",
+                    minimumFractionDigits: 0,
+                  }}
+                  className="font-variant-numeric: tabular-nums"
+                />
+              </span>
+              <span className="text-sm font-semibold leading-6 tracking-wide text-muted-foreground">
+                / {plan.period}
+              </span>
+            </>
+          )}
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          {isMonthly ? "Billed Monthly" : "Billed Annually"}
-        </p>
+        {!custom && (
+          <p className="text-xs text-muted-foreground mt-2">
+            {isMonthly ? "Billed Monthly" : "Billed Annually"}
+          </p>
+        )}
 
         <ul
           role="list"
@@ -388,18 +313,51 @@ function PricingCard({
         </ul>
 
         <div className="mt-auto pt-8">
-          <a
-            href={plan.href}
-            className={cn(
-              buttonVariants({
-                variant: plan.isPopular ? "default" : "outline",
-                size: "lg",
-              }),
-              "w-full",
-            )}
-          >
-            {plan.buttonText}
-          </a>
+          {plan.contactHref ? (
+            <a
+              href={plan.contactHref}
+              className={cn(
+                buttonVariants({
+                  variant: plan.isPopular ? "default" : "outline",
+                  size: "lg",
+                }),
+                "w-full inline-flex",
+              )}
+            >
+              {plan.buttonText}
+            </a>
+          ) : onPlanButtonClick ? (
+            <button
+              type="button"
+              onClick={() =>
+                onPlanButtonClick(plan, {
+                  interval: isMonthly ? "month" : "year",
+                })
+              }
+              className={cn(
+                buttonVariants({
+                  variant: plan.isPopular ? "default" : "outline",
+                  size: "lg",
+                }),
+                "w-full",
+              )}
+            >
+              {plan.buttonText}
+            </button>
+          ) : (
+            <a
+              href={plan.href}
+              className={cn(
+                buttonVariants({
+                  variant: plan.isPopular ? "default" : "outline",
+                  size: "lg",
+                }),
+                "w-full",
+              )}
+            >
+              {plan.buttonText}
+            </a>
+          )}
         </div>
       </div>
     </motion.div>

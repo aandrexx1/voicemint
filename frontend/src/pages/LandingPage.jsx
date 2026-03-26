@@ -31,6 +31,7 @@ export default function LandingPage({ token, user, onGetStarted, onLogin, onOpen
   const pricingPlans = [
     {
       name: "Starter",
+      checkoutPlan: "starter",
       price: "2.99",
       yearlyPrice: "28",
       period: "month",
@@ -43,10 +44,11 @@ export default function LandingPage({ token, user, onGetStarted, onLogin, onOpen
       ],
       description: "Perfect for studends and occasional creators.",
       buttonText: "Start Free Trial",
-      href: "/",
+      href: "#",
     },
     {
       name: "Professional",
+      checkoutPlan: "professional",
       price: "4.99",
       yearlyPrice: "47.99",
       period: "month",
@@ -59,7 +61,7 @@ export default function LandingPage({ token, user, onGetStarted, onLogin, onOpen
       ],
       description: "Ideal for consultants, marketers, and professionals.",
       buttonText: "Get Started",
-      href: "/",
+      href: "#",
       isPopular: true,
     },
     {
@@ -75,9 +77,35 @@ export default function LandingPage({ token, user, onGetStarted, onLogin, onOpen
       ],
       description: "Tailored solutions for large teams and organizations.",
       buttonText: "Contact Sales",
-      href: "/",
+      contactHref: "mailto:sales@voicemint.it?subject=VoiceMint%20Enterprise",
     },
   ]
+
+  const handlePricingPlan = async (plan, { interval }) => {
+    if (plan.contactHref) {
+      window.location.href = plan.contactHref
+      return
+    }
+    if (!plan.checkoutPlan) return
+    if (!token) {
+      onGetStarted()
+      return
+    }
+    try {
+      const res = await axios.post(
+        `${API}/create-checkout-session`,
+        { plan: plan.checkoutPlan, interval },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      if (res.data?.url) window.location.href = res.data.url
+    } catch (e) {
+      alert(
+        i18n.language === "it"
+          ? "Impossibile avviare il pagamento. Riprova o controlla la configurazione Stripe."
+          : "Could not start checkout. Try again or verify Stripe configuration."
+      )
+    }
+  }
 
   return (
     <div className="relative min-h-screen w-full text-white">
@@ -125,6 +153,7 @@ export default function LandingPage({ token, user, onGetStarted, onLogin, onOpen
                 ? "Scegli la soluzione ideale per le tue esigenze e inizia oggi."
                 : "Select the ideal package for your needs and start building today."
             }
+            onPlanButtonClick={handlePricingPlan}
           />
         </section>
 

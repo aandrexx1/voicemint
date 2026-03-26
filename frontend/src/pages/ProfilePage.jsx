@@ -33,11 +33,24 @@ export default function ProfilePage({ token, user, setUser, onLogout }) {
   }, [user])
 
   const isFree = user?.tier === "free"
+  const isStarter = user?.tier === "starter"
   const isPro = user?.tier === "pro"
+  const isEnterprise = user?.tier === "enterprise"
   const isLifetimePro = !!user?.lifetime_pro
   const userInitial = (user?.username || user?.email || "U")[0].toUpperCase()
 
-  const planLabel = isLifetimePro ? t("Lifetime Pro", "Lifetime Pro") : isPro ? t("Pro", "Pro") : t("Free", "Free")
+  const planLabel = isLifetimePro
+    ? t("Lifetime Pro", "Lifetime Pro")
+    : isEnterprise
+      ? t("Enterprise", "Enterprise")
+      : isStarter
+        ? t("Starter", "Starter")
+        : isPro
+          ? t("Professional", "Professional")
+          : t("Free", "Free")
+
+  const canCancelSubscription =
+    (isStarter || (isPro && !isLifetimePro)) && !isEnterprise
 
   const saveProfile = async () => {
     try {
@@ -72,10 +85,10 @@ export default function ProfilePage({ token, user, setUser, onLogout }) {
   const upgradeToPro = async () => {
     const res = await axios.post(
       `${API}/create-checkout-session`,
-      {},
+      { plan: "professional", interval: "month" },
       { headers: { Authorization: `Bearer ${token}` } }
     )
-    window.location.href = res.data.url
+    if (res.data?.url) window.location.href = res.data.url
   }
 
   const cancelSubscription = async () => {
@@ -314,7 +327,7 @@ export default function ProfilePage({ token, user, setUser, onLogout }) {
                   </button>
                 ) : null}
 
-                {isPro && !isLifetimePro ? (
+                {canCancelSubscription ? (
                   <button
                     type="button"
                     onClick={cancelSubscription}

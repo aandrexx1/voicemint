@@ -283,6 +283,46 @@ def generate(
         media_type="application/octet-stream"
     )
 
+class CreateCheckoutSessionRequest(BaseModel):
+    """Stripe Checkout: starter = Starter plan (watermark), professional = Professional (no watermark)."""
+    plan: str = "professional"  # "starter" | "professional"
+    interval: str = "month"  # "month" | "year"
+
+
+def _stripe_price_id_for_plan(plan: str, interval: str) -> str:
+    plan = plan.lower().strip()
+    interval = interval.lower().strip()
+    if interval not in ("month", "year"):
+        raise HTTPException(status_code=400, detail="interval must be month or year")
+    env_map = {
+        ("starter", "month"): "STRIPE_PRICE_STARTER_MONTHLY",
+        ("starter", "year"): "STRIPE_PRICE_STARTER_YEARLY",
+        ("professional", "month"): "STRIPE_PRICE_PROFESSIONAL_MONTHLY",
+        ("professional", "year"): "STRIPE_PRICE_PROFESSIONAL_YEARLY",
+    }
+    key = (plan, interval)
+    if key not in env_map:
+        raise HTTPException(status_code=400, detail="Invalid plan")
+    price_id = os.getenv(env_map[key])
+    if price_id:
+        return price_id
+    # Backward compatibility: single Pro monthly price
+    if plan == "professional" and interval == "month":
+        legacy = os.getenv("STRIPE_PRICE_ID")
+        if legacy:
+            return legacy
+    raise HTTPException(
+        status_code=503,
+        detail="Stripe price not configured. Set the matching STRIPE_PRICE_* environment variable.",
+    )
+
+
+def _tier_for_checkout_plan(plan: str) -> str:
+    if plan.lower().strip() == "starter":
+        return "starter"
+    return "pro"
+
+
 class WaitlistRequest(BaseModel):
     email: str
 
@@ -319,17 +359,22 @@ def join_waitlist(data: WaitlistRequest, db: Session = Depends(get_db)):
     return {"message": "Iscrizione avvenuta con successo!"}
 
 @app.post("/create-checkout-session")
-def create_checkout_session(current_user: User = Depends(get_current_user)):
+def create_checkout_session(
+    data: CreateCheckoutSessionRequest,
+    current_user: User = Depends(get_current_user),
+):
+    price_id = _stripe_price_id_for_plan(data.plan, data.interval)
+    tier = _tier_for_checkout_plan(data.plan)
+    frontend = os.getenv("FRONTEND_URL", "https://voicemint.it").rstrip("/")
     session = stripe.checkout.Session.create(
         payment_method_types=["card"],
         mode="subscription",
-        line_items=[{
-            "price": os.getenv("STRIPE_PRICE_ID"),
-            "quantity": 1,
-        }],
-        success_url="https://voicemint.it/dashboard?upgraded=true",
-        cancel_url="https://voicemint.it",
+        line_items=[{"price": price_id, "quantity": 1}],
+        success_url=f"{frontend}/profile?checkout=success",
+        cancel_url=f"{frontend}/",
         customer_email=current_user.email,
+        metadata={"tier": tier, "user_email": current_user.email},
+        subscription_data={"metadata": {"tier": tier}},
     )
     return {"url": session.url}
 
@@ -347,12 +392,35 @@ async def stripe_webhook(request: Request):
     
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
-        email = session.get("customer_email")
+        email = session.get("customer_email") or (session.get("customer_details") or {}).get("email")
+        metadata = session.get("metadata") or {}
+        tier = (metadata.get("tier") or "pro").lower().strip()
+        if tier not in ("starter", "pro", "enterprise"):
+            tier = "pro"
         db = SessionLocal()
-        user = db.query(User).filter(User.email == email).first()
+        user = db.query(User).filter(User.email == email).first() if email else None
         if user:
-            user.tier = "pro"
+            user.tier = tier
             db.commit()
+        db.close()
+
+    if event["type"] == "customer.subscription.deleted":
+        sub = event["data"]["object"]
+        customer_id = sub.get("customer")
+        db = SessionLocal()
+        try:
+            if customer_id:
+                cust = stripe.Customer.retrieve(customer_id)
+                email = cust.get("email")
+                if email:
+                    user = db.query(User).filter(User.email == email).first()
+                    if user and user.tier in ("starter", "pro") and not user.lifetime_pro:
+                        user.tier = "free"
+                        user.pro_until = None
+                        db.add(user)
+                        db.commit()
+        except Exception as e:
+            print(f"Stripe subscription.deleted handler: {e}")
         db.close()
     
     return {"status": "ok"}
@@ -361,6 +429,7 @@ async def stripe_webhook(request: Request):
 def admin_stats(db: Session = Depends(get_db)):
     total_users = db.query(User).count()
     free_users = db.query(User).filter(User.tier == "free").count()
+    starter_users = db.query(User).filter(User.tier == "starter").count()
     pro_users = db.query(User).filter(User.tier == "pro").count()
     total_waitlist = db.query(Waitlist).count()
     total_conversions = db.query(Conversion).count()
@@ -368,6 +437,7 @@ def admin_stats(db: Session = Depends(get_db)):
     return {
         "total_users": total_users,
         "free_users": free_users,
+        "starter_users": starter_users,
         "pro_users": pro_users,
         "total_waitlist": total_waitlist,
         "total_conversions": total_conversions

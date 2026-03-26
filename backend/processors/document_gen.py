@@ -172,7 +172,8 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
         fill.fore_color.rgb = rgb
 
     def add_watermark(slide):
-        if user_tier != "free":
+        # Watermark for free trial and Starter; no watermark for Professional, Enterprise, legacy "pro"
+        if user_tier not in ("free", "starter"):
             return
         tx = slide.shapes.add_textbox(Inches(0.35), Inches(7.05), Inches(3.2), Inches(0.4))
         tf = tx.text_frame
