@@ -161,6 +161,10 @@ function App() {
           user={user}
           setUser={setUser}
           onLogout={handleLogout}
+          onGoHome={() => {
+            window.history.pushState({}, "", "/")
+            setPage("landing")
+          }}
         />
       )
     if (page === "contact-sales")

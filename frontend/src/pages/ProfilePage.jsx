@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import axios from "axios"
-import { Mic, LogOut, ChevronDown, Eye, EyeOff } from "lucide-react"
+import { LogOut, Eye, EyeOff } from "lucide-react"
 
 const API = "https://voicemint-backend.onrender.com"
 
@@ -11,7 +11,7 @@ function formatDate(value) {
   return d.toLocaleDateString("it-IT", { year: "numeric", month: "short", day: "2-digit" })
 }
 
-export default function ProfilePage({ token, user, setUser, onLogout }) {
+export default function ProfilePage({ token, user, setUser, onLogout, onGoHome }) {
   const [lang, setLang] = useState(localStorage.getItem("lang") || "it")
   const t = useMemo(() => (it, en) => (lang === "it" ? it : en), [lang])
 
@@ -123,9 +123,28 @@ export default function ProfilePage({ token, user, setUser, onLogout }) {
     <div className="flex min-h-screen flex-col bg-[#0a0a0a] text-white">
       {/* Navbar (stile Dashboard) */}
       <nav className="flex items-center justify-between px-8 py-5 border-b border-white/5 bg-[#0a0a0a]">
-        <div className="flex items-center gap-2">
-          <Mic className="w-4 h-4 text-white" />
-          <span className="font-semibold text-sm tracking-tight">VoiceMint</span>
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            type="button"
+            onClick={onGoHome}
+            className="flex min-w-0 items-center rounded-md py-1 -ml-1 pl-1 pr-2 hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+            aria-label={t("Torna alla home", "Back to home")}
+          >
+            <img
+              src="/text_logo.png"
+              alt="VoiceMint"
+              className="h-7 w-auto max-w-[200px] object-contain object-left"
+            />
+          </button>
+          {onGoHome ? (
+            <button
+              type="button"
+              onClick={onGoHome}
+              className="hidden sm:inline shrink-0 text-xs font-medium text-white/45 hover:text-white transition-colors"
+            >
+              {t("Home", "Home")}
+            </button>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-4">
@@ -174,7 +193,7 @@ export default function ProfilePage({ token, user, setUser, onLogout }) {
         <aside className="w-64 border-r border-white/5 flex flex-col p-6 fixed h-full pt-10">
           <div className="border-t border-white/5 pt-8">
             <p className="text-white/20 text-xs uppercase tracking-widest mb-4">{t("Profilo", "Profile")}</p>
-            <div className="w-full py-3 rounded-full text-sm font-semibold bg-white/10 border border-white/20 text-white">
+            <div className="flex w-full items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-white text-center">
               {t("Account", "Account")}
             </div>
           </div>
