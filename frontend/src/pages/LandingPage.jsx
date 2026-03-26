@@ -31,8 +31,8 @@ export default function LandingPage({ token, user, onGetStarted, onLogin, onOpen
   const pricingPlans = [
     {
       name: "Starter",
-      price: "2.99 USD",
-      yearlyPrice: "28 USD",
+      price: "2.99",
+      yearlyPrice: "28",
       period: "month",
       features: [
         "Up to 15 presentations / month",
@@ -47,8 +47,8 @@ export default function LandingPage({ token, user, onGetStarted, onLogin, onOpen
     },
     {
       name: "Professional",
-      price: "4.99 USD",
-      yearlyPrice: "47.99 USD",
+      price: "4.99",
+      yearlyPrice: "47.99",
       period: "month",
       features: [
         "Unlimited presentations",
