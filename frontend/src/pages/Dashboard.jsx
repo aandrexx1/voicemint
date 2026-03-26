@@ -5,7 +5,15 @@ import axios from "axios"
 
 const API = "https://voicemint-backend.onrender.com"
 
-export default function Dashboard({ token, user, setUser, onLogout, onOpenTerms, onOpenPrivacy }) {
+export default function Dashboard({
+  token,
+  user,
+  setUser,
+  onLogout,
+  onOpenTerms,
+  onOpenPrivacy,
+  onNavigateProfile,
+}) {
   const [recording, setRecording] = useState(false)
   const [transcription, setTranscription] = useState("")
   const [outputType] = useState("ppt") // Genera solo presentazioni PowerPoint
@@ -103,6 +111,14 @@ export default function Dashboard({ token, user, setUser, onLogout, onOpenTerms,
             <button onClick={() => { setLang("en"); localStorage.setItem("lang", "en") }}
               className={lang === "en" ? "text-white" : "text-white/30 hover:text-white transition-all"}>EN</button>
           </div>
+
+          <button
+            type="button"
+            onClick={onNavigateProfile}
+            className="hidden md:inline-flex items-center px-3 py-2 text-xs font-semibold text-white/70 hover:text-white transition-colors rounded-full border border-white/10 bg-white/[0.02]"
+          >
+            {lang === "it" ? "Profilo" : "Profile"}
+          </button>
 
           {/* Profilo */}
           <div className="relative" ref={profileRef}>

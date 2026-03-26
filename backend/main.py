@@ -14,9 +14,12 @@ from models import create_tables, get_db, User, Conversion, Waitlist, SessionLoc
 import resend
 import stripe
 from groq import Groq
+from jose import jwt, JWTError
 load_dotenv()
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 from datetime import datetime, timedelta
+
+from auth import SECRET_KEY, ALGORITHM
 
 resend.api_key = os.getenv("RESEND_API_KEY")
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -132,6 +135,89 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     
     token = create_token({"sub": user.email})
     return {"token": token, "username": user.username, "tier": user.tier}
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+def create_reset_token(email: str) -> str:
+    expire = datetime.utcnow() + timedelta(minutes=30)
+    payload = {"sub": email, "type": "reset", "exp": expire}
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+
+@app.post("/forgot-password")
+def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == data.email).first()
+
+    # Messaggio generico per non rivelare se l'email esiste
+    message = {"message": "Email inviata"}
+    if not user:
+        return message
+
+    token = create_reset_token(user.email)
+    reset_link = f"https://voicemint.it/reset-password?token={token}"
+
+    try:
+        resend.Emails.send(
+            {
+                "from": "VoiceMint <noreply@voicemint.it>",
+                "to": data.email,
+                "subject": "Hai richiesto di cambiare la password — VoiceMint",
+                "html": f"""
+                <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 36px; background: #0a0a0a; color: #ffffff;">
+                  <div style="display:flex; align-items:center; gap:10px; margin-bottom: 18px;">
+                    <img src="https://voicemint.it/logo.png" alt="VoiceMint" style="height: 30px; width: auto;" />
+                  </div>
+                  <h1 style="font-size: 22px; font-weight: 800; margin: 0 0 12px;">Hai richiesto di cambiare la password</h1>
+                  <p style="color:#b3b3b3; line-height:1.6; margin: 0 0 18px;">
+                    Se non sei stato tu, puoi ignorare questo messaggio. Se invece l'hai richiesto, usa il link qui sotto per impostare una nuova password.
+                  </p>
+                  <a href="{reset_link}" style="display:inline-block; background:#ffffff; color:#000000; padding: 12px 18px; border-radius: 999px; text-decoration:none; font-weight: 700;">
+                    Cambia password
+                  </a>
+                  <p style="color:#7a7a7a; font-size: 12px; line-height:1.6; margin: 22px 0 0;">
+                    Link valido per 30 minuti.
+                  </p>
+                </div>
+                """,
+            }
+        )
+    except Exception as e:
+        print(f"Errore invio reset password: {e}")
+
+    return message
+
+
+@app.post("/reset-password")
+def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(data.token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Token non valido")
+
+    if payload.get("type") != "reset":
+        raise HTTPException(status_code=400, detail="Token non valido")
+
+    email = payload.get("sub")
+    if not email:
+        raise HTTPException(status_code=400, detail="Token non valido")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Token non valido")
+
+    user.hashed_password = hash_password(data.new_password)
+    db.add(user)
+    db.commit()
+
+    return {"message": "Password aggiornata"}
 
 # --- Profilo utente (richiede login) ---
 @app.get("/me")

@@ -10,11 +10,13 @@ const inputClass =
   "flex h-11 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
 
 export default function AuthPage({ setToken, setUser, onBack, defaultLogin, onOpenTerms, onOpenPrivacy }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [isLogin, setIsLogin] = useState(defaultLogin ?? false)
   const [form, setForm] = useState({ email: "", username: "", password: "" })
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [forgotMessage, setForgotMessage] = useState("")
 
   const handle = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
@@ -63,6 +65,33 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin, onOp
       .
     </p>
   )
+
+  const requestReset = async () => {
+    const email = form.email?.trim()
+    if (!email) {
+      setError(i18n.language === "it" ? "Inserisci una email" : "Enter your email")
+      return
+    }
+
+    setForgotLoading(true)
+    setForgotMessage("")
+    try {
+      await axios.post(`${API}/forgot-password`, { email })
+      setForgotMessage(
+        i18n.language === "it"
+          ? "Email inviata. Controlla la tua inbox."
+          : "Email sent. Check your inbox."
+      )
+    } catch (err) {
+      setForgotMessage(
+        i18n.language === "it"
+          ? "Errore invio email. Riprova più tardi."
+          : "Error sending email. Try again later."
+      )
+    } finally {
+      setForgotLoading(false)
+    }
+  }
 
   return (
     <MinimalAuthPage
@@ -128,6 +157,22 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin, onOp
             }}
           />
         </div>
+
+        {isLogin && (
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={requestReset}
+              disabled={forgotLoading}
+              className="text-left text-xs text-white/60 hover:text-white transition-colors underline underline-offset-4"
+            >
+              {i18n.language === "it" ? "Password dimenticata?" : "Forgot password?"}
+            </button>
+            {forgotMessage ? (
+              <p className="text-xs text-white/50">{forgotMessage}</p>
+            ) : null}
+          </div>
+        )}
       </div>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}

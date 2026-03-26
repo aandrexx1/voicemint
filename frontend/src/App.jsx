@@ -7,6 +7,8 @@ import AuthPage from "./pages/AuthPage"
 import Dashboard from "./pages/Dashboard"
 import AdminPage from "./pages/AdminPage"
 import LegalPage from "./pages/LegalPage"
+import ResetPasswordPage from "./pages/ResetPasswordPage"
+import ProfilePage from "./pages/ProfilePage"
 import { SiteParticlesBackground } from "./components/ui/site-particles-background"
 import { CookieConsentBanner } from "./components/cookie-consent-banner"
 import { readCookieConsent, writeCookieConsent } from "./lib/cookie-consent"
@@ -22,6 +24,8 @@ function getInitialPage() {
   if (path === "/footer-demo") return "footer-demo"
   if (path === "/terms") return "terms"
   if (path === "/privacy") return "privacy"
+  if (path === "/reset-password") return "reset-password"
+  if (path === "/profile") return "profile"
   return "landing"
 }
 
@@ -121,6 +125,24 @@ function App() {
           onOpenPrivacy={goPrivacy}
         />
       )
+    if (page === "reset-password")
+      return (
+        <ResetPasswordPage
+          onGoLogin={() => {
+            window.history.pushState({}, "", "/")
+            setPage("auth-login")
+          }}
+        />
+      )
+    if (page === "profile")
+      return (
+        <ProfilePage
+          token={token}
+          user={user}
+          setUser={setUser}
+          onLogout={handleLogout}
+        />
+      )
     return (
       <Dashboard
         token={token}
@@ -129,6 +151,10 @@ function App() {
         onLogout={handleLogout}
         onOpenTerms={goTerms}
         onOpenPrivacy={goPrivacy}
+        onNavigateProfile={() => {
+          window.history.pushState({}, "", "/profile")
+          setPage("profile")
+        }}
       />
     )
   }

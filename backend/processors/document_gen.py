@@ -2,8 +2,11 @@ import os
 import uuid
 from pptx import Presentation
 from pptx.util import Inches, Pt
+from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.text import PP_ALIGN
 from pptx.dml.color import RGBColor
 from playwright.sync_api import sync_playwright
+import math
 
 OUTPUT_DIR = "outputs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -145,40 +148,285 @@ body {{ width:1280px; height:720px; overflow:hidden; background: linear-gradient
 
 
 def generate_ppt(data: dict, user_tier: str = "free") -> str:
-    theme = data.get("theme", {})
+    theme = data.get("theme", {}) or {}
 
-    slide_configs = [("title", data["title"], data["subtitle"])]
-    for slide in data.get("slides", []):
-        slide_configs.append((slide["type"], slide["title"], slide["content"]))
-    slide_configs.append(("summary", "Riepilogo", data["summary"]))
+    # Theme colors: input viene da nlp_parser come stringhe hex senza '#'
+    bg_color = "#" + theme.get("bg_color", "0a0a0a")
+    slide_bg_color = "#" + theme.get("slide_bg_color", "111111")
+    accent_color = "#" + theme.get("accent_color", "00D4FF")
+    text_color = "#" + theme.get("text_color", "FFFFFF")
+    subtitle_color = "#" + theme.get("subtitle_color", "A0A0B0")
+    font_title = theme.get("font_title", "Inter")
+    font_body = theme.get("font_body", "Inter")
 
-    image_paths = []
-    for slide_type, title, content in slide_configs:
-        html = generate_slide_html(title, content, theme, slide_type)
-        img_path = f"{OUTPUT_DIR}/{uuid.uuid4()}.png"
-        render_html_to_image(html, img_path)
-        image_paths.append(img_path)
+    bg_rgb = hex_to_rgb(bg_color)
+    slide_bg_rgb = hex_to_rgb(slide_bg_color)
+    accent_rgb = hex_to_rgb(accent_color)
+    text_rgb = hex_to_rgb(text_color)
+    subtitle_rgb = hex_to_rgb(subtitle_color)
+
+    def set_slide_background(slide, rgb):
+        # Background solido: scuro e coerente con theme
+        fill = slide.background.fill
+        fill.solid()
+        fill.fore_color.rgb = rgb
+
+    def add_watermark(slide):
+        if user_tier != "free":
+            return
+        tx = slide.shapes.add_textbox(Inches(0.35), Inches(7.05), Inches(3.2), Inches(0.4))
+        tf = tx.text_frame
+        tf.clear()
+        p = tf.paragraphs[0]
+        p.text = "made with VoiceMint"
+        p.font.size = Pt(9)
+        p.font.color.rgb = RGBColor(0x55, 0x55, 0x55)
+        p.font.name = font_body
+
+    def add_centered_text(slide, text, x, y, w, h, size, color, bold=False, font_name=None):
+        box = slide.shapes.add_textbox(x, y, w, h)
+        tf = box.text_frame
+        tf.clear()
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = text
+        p.font.size = size
+        p.font.bold = bold
+        p.font.color.rgb = color
+        p.font.name = font_name or font_body
+        p.alignment = PP_ALIGN.CENTER
+        return box
 
     prs = Presentation()
     prs.slide_width = Inches(13.33)
     prs.slide_height = Inches(7.5)
     blank_layout = prs.slide_layouts[6]
 
-    for i, img_path in enumerate(image_paths):
+    slide_configs = [("title", data.get("title", ""), data.get("subtitle", ""))]
+    for slide in data.get("slides", []):
+        slide_configs.append((slide.get("type"), slide.get("title", ""), slide.get("content")))
+    slide_configs.append(("summary", data.get("summary_title", "Riepilogo"), data.get("summary", "")))
+
+    for slide_type, title, content in slide_configs:
         slide = prs.slides.add_slide(blank_layout)
-        slide.shapes.add_picture(img_path, Inches(0), Inches(0), prs.slide_width, prs.slide_height)
-        if user_tier == "free":
-            txBox = slide.shapes.add_textbox(Inches(0.15), Inches(7.25), Inches(3), Inches(0.25))
-            tf = txBox.text_frame
+        set_slide_background(slide, bg_rgb if slide_type == "title" else slide_bg_rgb)
+
+        if slide_type == "title":
+            # Accent bar
+            accent_bar = slide.shapes.add_shape(
+                MSO_SHAPE.RECTANGLE,
+                Inches(2.0),
+                Inches(2.35),
+                Inches(1.6),
+                Inches(0.06),
+            )
+            accent_bar.fill.solid()
+            accent_bar.fill.fore_color.rgb = accent_rgb
+
+            add_centered_text(
+                slide,
+                title,
+                Inches(0.8),
+                Inches(1.45),
+                Inches(11.7),
+                Inches(1.5),
+                Pt(44),
+                text_rgb,
+                bold=True,
+                font_name=font_title,
+            )
+            add_centered_text(
+                slide,
+                content or "",
+                Inches(2.0),
+                Inches(2.85),
+                Inches(9.3),
+                Inches(0.9),
+                Pt(20),
+                subtitle_rgb,
+                bold=False,
+                font_name=font_body,
+            )
+
+        elif slide_type == "bullets":
+            bullets = content if isinstance(content, list) else [str(content)]
+
+            # Slide title
+            title_box = slide.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(0.6))
+            tf = title_box.text_frame
+            tf.clear()
             p = tf.paragraphs[0]
-            run = p.add_run()
-            run.text = "made with VoiceMint"
-            run.font.size = Pt(7)
-            run.font.color.rgb = RGBColor(0x55, 0x55, 0x55)
+            p.text = title or ""
+            p.font.size = Pt(26)
+            p.font.bold = True
+            p.font.color.rgb = accent_rgb
+            p.font.name = font_title
+            p.alignment = PP_ALIGN.LEFT
+
+            # Cards grid
+            n = len(bullets)
+            columns = 2 if n > 3 else 1
+            rows = int(math.ceil(n / columns)) if columns else 1
+
+            left_margin = 0.6
+            right_margin = 0.6
+            col_gap = 0.35
+            card_w = (13.33 - left_margin - right_margin - col_gap) / columns
+            top_y = 1.25
+            bottom_reserved = 0.55
+            usable_h = 7.5 - top_y - bottom_reserved
+            gap_y = 0.25
+            card_h = (usable_h - gap_y * (rows - 1)) / max(rows, 1)
+
+            number_color = accent_rgb
+            card_fill = slide_bg_rgb
+            card_line_color = accent_rgb
+
+            for idx, bullet in enumerate(bullets):
+                col = idx % columns
+                row = idx // columns
+
+                x = left_margin + col * (card_w + col_gap)
+                y = top_y + row * (card_h + gap_y)
+
+                card = slide.shapes.add_shape(
+                    MSO_SHAPE.ROUNDED_RECTANGLE,
+                    Inches(x),
+                    Inches(y),
+                    Inches(card_w),
+                    Inches(card_h),
+                )
+                card.fill.solid()
+                card.fill.fore_color.rgb = card_fill
+                card.line.color.rgb = card_line_color
+                card.line.width = Pt(1)
+
+                # Number
+                num_box = slide.shapes.add_textbox(Inches(x + 0.35), Inches(y + 0.12), Inches(0.5), Inches(0.3))
+                num_tf = num_box.text_frame
+                num_tf.clear()
+                num_tf.word_wrap = False
+                num_p = num_tf.paragraphs[0]
+                num_p.text = str(idx + 1)
+                num_p.font.size = Pt(12)
+                num_p.font.bold = True
+                num_p.font.color.rgb = number_color
+                num_p.font.name = font_body
+                num_p.alignment = PP_ALIGN.CENTER
+
+                # Bullet text
+                text_x = x + 0.85
+                text_y = y + 0.05
+                text_w = card_w - 0.95
+                text_h = card_h - 0.15
+
+                b_box = slide.shapes.add_textbox(Inches(text_x), Inches(text_y), Inches(text_w), Inches(text_h))
+                b_tf = b_box.text_frame
+                b_tf.clear()
+                b_tf.word_wrap = True
+                p = b_tf.paragraphs[0]
+                p.text = str(bullet)
+                p.font.size = Pt(16)
+                p.font.color.rgb = text_rgb
+                p.font.name = font_body
+                p.alignment = PP_ALIGN.LEFT
+
+        elif slide_type == "text":
+            # Title at top
+            title_box = slide.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(0.6))
+            tf = title_box.text_frame
+            tf.clear()
+            p = tf.paragraphs[0]
+            p.text = title or ""
+            p.font.size = Pt(26)
+            p.font.bold = True
+            p.font.color.rgb = accent_rgb
+            p.font.name = font_title
+            p.alignment = PP_ALIGN.LEFT
+
+            # Left accent border effect
+            border = slide.shapes.add_shape(
+                MSO_SHAPE.RECTANGLE,
+                Inches(0.95),
+                Inches(1.35),
+                Inches(0.06),
+                Inches(5.8),
+            )
+            border.fill.solid()
+            border.fill.fore_color.rgb = accent_rgb
+            border.line.color.rgb = accent_rgb
+            border.line.width = Pt(0.0)
+
+            body_box = slide.shapes.add_textbox(Inches(1.15), Inches(1.35), Inches(11.9), Inches(5.8))
+            tf = body_box.text_frame
+            tf.clear()
+            tf.word_wrap = True
+            tf.auto_size = None
+
+            # Keep it readable (wrap by slide width)
+            p = tf.paragraphs[0]
+            p.text = str(content or "")
+            p.font.size = Pt(20)
+            p.font.color.rgb = text_rgb
+            p.font.name = font_body
+            p.alignment = PP_ALIGN.LEFT
+
+        elif slide_type == "summary":
+            # Accent line
+            # Quote text (centered)
+            summary_text = str(content or "")
+
+            add_centered_text(
+                slide,
+                f"“{summary_text}”",
+                Inches(1.0),
+                Inches(2.4),
+                Inches(11.3),
+                Inches(3.0),
+                Pt(24),
+                text_rgb,
+                bold=False,
+                font_name=font_body,
+            )
+
+            line = slide.shapes.add_shape(
+                MSO_SHAPE.RECTANGLE,
+                Inches(5.35),
+                Inches(5.25),
+                Inches(2.6),
+                Inches(0.05),
+            )
+            line.fill.solid()
+            line.fill.fore_color.rgb = accent_rgb
+            line.line.color.rgb = accent_rgb
+            line.line.width = Pt(0.0)
+
+        else:
+            # Fallback: treat as text slide
+            title_box = slide.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(0.6))
+            tf = title_box.text_frame
+            tf.clear()
+            p = tf.paragraphs[0]
+            p.text = title or ""
+            p.font.size = Pt(26)
+            p.font.bold = True
+            p.font.color.rgb = accent_rgb
+            p.font.name = font_title
+            p.alignment = PP_ALIGN.LEFT
+
+            body_box = slide.shapes.add_textbox(Inches(1.15), Inches(1.5), Inches(11.9), Inches(5.8))
+            tf = body_box.text_frame
+            tf.clear()
+            tf.word_wrap = True
+            p = tf.paragraphs[0]
+            p.text = str(content or "")
+            p.font.size = Pt(20)
+            p.font.color.rgb = text_rgb
+            p.font.name = font_body
+            p.alignment = PP_ALIGN.LEFT
+
+        add_watermark(slide)
 
     filename = f"{OUTPUT_DIR}/{uuid.uuid4()}.pptx"
     prs.save(filename)
-    for img_path in image_paths:
-        try: os.remove(img_path)
-        except: pass
     return filename
