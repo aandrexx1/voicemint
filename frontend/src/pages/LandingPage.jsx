@@ -7,7 +7,16 @@ import { PricingSection } from "@/components/ui/pricing"
 
 const API = "https://voicemint-backend.onrender.com"
 
-export default function LandingPage({ token, user, onGetStarted, onLogin, onOpenTerms, onOpenPrivacy, onOpenProfile }) {
+export default function LandingPage({
+  token,
+  user,
+  onGetStarted,
+  onLogin,
+  onOpenTerms,
+  onOpenPrivacy,
+  onOpenProfile,
+  onContactSales,
+}) {
   const { t, i18n } = useTranslation()
 
   const changeLang = (lang) => {
@@ -77,13 +86,14 @@ export default function LandingPage({ token, user, onGetStarted, onLogin, onOpen
       ],
       description: "Tailored solutions for large teams and organizations.",
       buttonText: "Contact Sales",
-      contactHref: "mailto:support@voicemint.it?subject=VoiceMint%20Enterprise",
+      contactPath: "/contact-sales",
     },
   ]
 
   const handlePricingPlan = async (plan, { interval }) => {
-    if (plan.contactHref) {
-      window.location.href = plan.contactHref
+    if (plan.contactPath) {
+      window.history.pushState({}, "", plan.contactPath)
+      onContactSales?.()
       return
     }
     if (!plan.checkoutPlan) return
@@ -154,8 +164,6 @@ export default function LandingPage({ token, user, onGetStarted, onLogin, onOpen
                 : "Select the ideal package for your needs and start building today."
             }
             onPlanButtonClick={handlePricingPlan}
-            contactCopyLabel={i18n.language === "it" ? "Copia indirizzo" : "Copy email"}
-            contactCopiedLabel={i18n.language === "it" ? "Copiato!" : "Copied!"}
           />
         </section>
 

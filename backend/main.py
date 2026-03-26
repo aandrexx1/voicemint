@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+import html
 import openai
 import os
 import tempfile
@@ -321,6 +322,61 @@ def _tier_for_checkout_plan(plan: str) -> str:
     if plan.lower().strip() == "starter":
         return "starter"
     return "pro"
+
+
+class ContactSalesRequest(BaseModel):
+    work_email: str
+    topic: str
+
+
+CONTACT_SALES_TOPICS = frozenset({"enterprise", "support", "partnership"})
+
+
+@app.post("/contact-sales")
+def contact_sales(data: ContactSalesRequest):
+    """Public form: notifies sales inbox via Resend."""
+    email = (data.work_email or "").strip()
+    topic = (data.topic or "").strip().lower()
+    if "@" not in email or len(email) > 254:
+        raise HTTPException(status_code=400, detail="Email non valida")
+    if topic not in CONTACT_SALES_TOPICS:
+        raise HTTPException(status_code=400, detail="Argomento non valido")
+
+    inbox = os.getenv("CONTACT_SALES_INBOX", "support@voicemint.it")
+    topic_labels = {
+        "enterprise": "Voicemint Enterprise",
+        "support": "Support",
+        "partnership": "Partnership",
+    }
+    label = topic_labels.get(topic, topic)
+    safe_email = html.escape(email)
+    safe_label = html.escape(label)
+
+    body_html = f"""
+    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 28px; background: #0a0a0a; color: #ffffff;">
+      <h1 style="font-size: 18px; font-weight: 700; margin: 0 0 16px;">Richiesta da voicemint.it/contact-sales</h1>
+      <p style="color: #b3b3b3; margin: 0 0 8px;"><strong style="color: #fff;">Email di lavoro:</strong> {safe_email}</p>
+      <p style="color: #b3b3b3; margin: 0;"><strong style="color: #fff;">Argomento:</strong> {safe_label}</p>
+    </div>
+    """
+
+    try:
+        resend.Emails.send(
+            {
+                "from": "VoiceMint <noreply@voicemint.it>",
+                "to": inbox,
+                "subject": f"[Contact sales] {label} — {email}",
+                "html": body_html,
+            }
+        )
+    except Exception as e:
+        print(f"contact-sales email error: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Invio non riuscito. Riprova più tardi.",
+        )
+
+    return {"message": "ok"}
 
 
 class WaitlistRequest(BaseModel):

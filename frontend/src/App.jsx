@@ -9,6 +9,7 @@ import AdminPage from "./pages/AdminPage"
 import LegalPage from "./pages/LegalPage"
 import ResetPasswordPage from "./pages/ResetPasswordPage"
 import ProfilePage from "./pages/ProfilePage"
+import ContactSalesPage from "./pages/ContactSalesPage"
 import { SiteParticlesBackground } from "./components/ui/site-particles-background"
 import { CookieConsentBanner } from "./components/cookie-consent-banner"
 import { readCookieConsent, writeCookieConsent } from "./lib/cookie-consent"
@@ -26,6 +27,7 @@ function getInitialPage() {
   if (path === "/privacy") return "privacy"
   if (path === "/reset-password") return "reset-password"
   if (path === "/profile") return "profile"
+  if (path === "/contact-sales") return "contact-sales"
   return "landing"
 }
 
@@ -60,6 +62,12 @@ function App() {
         })
     }
   }, [token])
+
+  useEffect(() => {
+    const onPop = () => setPage(getInitialPage())
+    window.addEventListener("popstate", onPop)
+    return () => window.removeEventListener("popstate", onPop)
+  }, [])
 
   const handleSetToken = (t) => {
     setToken(t)
@@ -123,6 +131,7 @@ function App() {
               setPage("auth") // registration
             }
           }}
+          onContactSales={() => setPage("contact-sales")}
         />
       )
     if (page === "auth" || page === "auth-login")
@@ -154,6 +163,15 @@ function App() {
           onLogout={handleLogout}
         />
       )
+    if (page === "contact-sales")
+      return (
+        <ContactSalesPage
+          onBack={() => {
+            window.history.pushState({}, "", "/")
+            setPage("landing")
+          }}
+        />
+      )
     // Fallback: se arriviamo qui, torniamo alla landing
     return (
       <LandingPage
@@ -171,6 +189,7 @@ function App() {
             setPage("auth")
           }
         }}
+        onContactSales={() => setPage("contact-sales")}
       />
     )
   }
