@@ -47,10 +47,7 @@ export function Navbar({ onLogin, onSignup }) {
     </div>
   );
 
-  const navLinksData = [
-    { label: 'Prodotto', href: '#prodotto' },
-    { label: 'FAQ', href: '#faq' },
-  ];
+  const navLinksData = [{ label: 'FAQ', href: '#faq' }];
 
   const loginButtonElement = (
     <button

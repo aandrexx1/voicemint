@@ -45,13 +45,23 @@ const resources = {
       section_audience_desc:
         "Studenti, professionisti e creator che vogliono passare dalla voce a una presentazione senza partire da zero o aprire il template sbagliato.",
       faq_tag: "FAQ",
+      faq_section_title: "Domande e risposte",
+      faq_section_desc:
+        "Tutto quello che serve su VoiceMint: lingue, privacy, account e piano.",
+      faq_cta: "Inizia gratis →",
       faq_1_q: "Che lingue supporta?",
       faq_1_a: "Italiano, inglese e oltre 50 lingue grazie a OpenAI Whisper.",
       faq_2_q: "I miei dati sono al sicuro?",
       faq_2_a: "Sì. Le trascrizioni vengono elaborate e poi eliminate dai nostri server.",
       faq_3_q: "Posso cancellare quando voglio?",
       faq_3_a: "Assolutamente. Nessun vincolo, cancelli in un click.",
+      faq_4_q: "Quanto costa VoiceMint?",
+      faq_4_a:
+        "È disponibile un piano gratuito con limiti mensili e un piano Pro con più funzioni. I dettagli sono nel tuo account dopo la registrazione.",
       footer: "© 2026 VoiceMint",
+      footer_tagline: "Voice to document — PowerPoint dalla voce.",
+      footer_column_links: "Link",
+      footer_link_login: "Accedi",
     }
   },
   en: {
@@ -97,13 +107,23 @@ const resources = {
       section_audience_desc:
         "Students, professionals and creators who want to go from voice to a presentation without starting from scratch.",
       faq_tag: "FAQ",
+      faq_section_title: "Questions & answers",
+      faq_section_desc:
+        "Everything you need to know about VoiceMint: languages, privacy, account and pricing.",
+      faq_cta: "Start for free →",
       faq_1_q: "What languages are supported?",
       faq_1_a: "Italian, English and over 50 languages thanks to OpenAI Whisper.",
       faq_2_q: "Is my data safe?",
       faq_2_a: "Yes. Transcriptions are processed and then deleted from our servers.",
       faq_3_q: "Can I cancel anytime?",
       faq_3_a: "Absolutely. No commitment, cancel in one click.",
+      faq_4_q: "How much does VoiceMint cost?",
+      faq_4_a:
+        "There is a free plan with monthly limits and a Pro plan with more features. Details appear in your account after signup.",
       footer: "© 2026 VoiceMint",
+      footer_tagline: "Voice to document — PowerPoint from your voice.",
+      footer_column_links: "Links",
+      footer_link_login: "Log in",
     }
   }
 }

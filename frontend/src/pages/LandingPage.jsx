@@ -1,9 +1,8 @@
-import { motion } from "framer-motion"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Mic, Sparkles, Download } from "lucide-react"
 import { HeroWave } from "../components/ui/ai-input-hero"
 import { GrainBackdrop } from "../components/ui/grain-backdrop"
+import { FAQSection } from "@/components/ui/faqsection"
 
 export default function LandingPage({ onGetStarted, onLogin }) {
   const { t, i18n } = useTranslation()
@@ -20,10 +19,13 @@ export default function LandingPage({ onGetStarted, onLogin }) {
   const heroWord = Array.isArray(words) ? words[0] : "PowerPoint"
   const heroTitle = `${t("hero_title_1")} ${t("hero_title_2")} ${heroWord}.`
 
-  const steps = [
-    { icon: Mic, title: t("step_1_title"), desc: t("step_1_desc") },
-    { icon: Sparkles, title: t("step_2_title"), desc: t("step_2_desc") },
-    { icon: Download, title: t("step_3_title"), desc: t("step_3_desc") },
+  const faqsLeft = [
+    { question: t("faq_1_q"), answer: t("faq_1_a") },
+    { question: t("faq_2_q"), answer: t("faq_2_a") },
+  ]
+  const faqsRight = [
+    { question: t("faq_3_q"), answer: t("faq_3_a") },
+    { question: t("faq_4_q"), answer: t("faq_4_a") },
   ]
 
   return (
@@ -43,112 +45,83 @@ export default function LandingPage({ onGetStarted, onLogin }) {
           }}
         />
 
-        {/* Prodotto — come funziona */}
-        <section
-          id="prodotto"
-          className="scroll-mt-28 border-t border-white/5 py-24"
-        >
-          <div className="max-w-6xl mx-auto px-6 md:px-8">
-            <p className="text-white/30 text-sm uppercase tracking-widest mb-4">
-              {t("nav_prodotto")}
-            </p>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 max-w-2xl">
-              {t("how_title")}
-            </h2>
-            <p className="text-white/45 text-base md:text-lg leading-relaxed max-w-2xl mb-16">
-              {t("how_desc")}
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {steps.map((s, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.08 }}
-                  className="border border-white/10 rounded-2xl p-8 bg-white/[0.03]"
-                >
-                  <div className="w-12 h-12 rounded-2xl border border-white/10 flex items-center justify-center text-white/70 mb-5">
-                    <s.icon className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">{s.title}</h3>
-                  <p className="text-white/45 text-sm leading-relaxed">{s.desc}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
+        <section id="faq" className="scroll-mt-28 border-t border-white/10 py-8 md:py-12">
+          <FAQSection
+            className="py-12 md:py-16"
+            title={t("faq_section_title")}
+            subtitle={t("faq_tag")}
+            description={t("faq_section_desc")}
+            buttonLabel={t("faq_cta")}
+            onButtonClick={onGetStarted}
+            faqsLeft={faqsLeft}
+            faqsRight={faqsRight}
+          />
         </section>
 
-        <section
-          id="cosa-ottieni"
-          className="scroll-mt-28 border-t border-white/5 py-24"
-        >
+        <footer className="relative border-t border-white/10 bg-gradient-to-b from-transparent via-black/20 to-black/50 pt-16 pb-12">
           <div className="max-w-6xl mx-auto px-6 md:px-8">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-6 max-w-2xl">
-              {t("section_deliver_title")}
-            </h2>
-            <p className="text-white/45 text-base md:text-lg leading-relaxed max-w-2xl">
-              {t("section_deliver_desc")}
-            </p>
-          </div>
-        </section>
-
-        <section
-          id="per-chi"
-          className="scroll-mt-28 border-t border-white/5 py-24"
-        >
-          <div className="max-w-6xl mx-auto px-6 md:px-8">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-6 max-w-2xl">
-              {t("section_audience_title")}
-            </h2>
-            <p className="text-white/45 text-base md:text-lg leading-relaxed max-w-2xl">
-              {t("section_audience_desc")}
-            </p>
-          </div>
-        </section>
-
-        <section id="faq" className="scroll-mt-28 border-t border-white/5 py-24">
-          <div className="max-w-6xl mx-auto px-6 md:px-8">
-            <p className="text-white/30 text-sm uppercase tracking-widest mb-16">{t("faq_tag")}</p>
-            <div className="max-w-2xl space-y-0">
-              {[
-                { q: t("faq_1_q"), a: t("faq_1_a") },
-                { q: t("faq_2_q"), a: t("faq_2_a") },
-                { q: t("faq_3_q"), a: t("faq_3_a") },
-              ].map((f, i) => (
-                <div key={i} className="border-t border-white/5 py-8">
-                  <h4 className="text-white font-semibold mb-3">{f.q}</h4>
-                  <p className="text-white/40 text-sm leading-relaxed">{f.a}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <footer className="border-t border-white/5 py-8">
-          <div className="max-w-6xl mx-auto px-6 md:px-8 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <img src="/text_logo.png" alt="VoiceMint" className="h-8 md:h-10 object-contain" />
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm">
-                <button
-                  type="button"
-                  onClick={() => changeLang("it")}
-                  className={`transition-all ${i18n.language === "it" ? "text-white" : "text-white/30 hover:text-white"}`}
-                >
-                  IT
-                </button>
-                <span className="text-white/20">|</span>
-                <button
-                  type="button"
-                  onClick={() => changeLang("en")}
-                  className={`transition-all ${i18n.language === "en" ? "text-white" : "text-white/30 hover:text-white"}`}
-                >
-                  EN
-                </button>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-8">
+              <div className="md:col-span-5">
+                <img src="/text_logo.png" alt="VoiceMint" className="h-9 md:h-10 object-contain opacity-95" />
+                <p className="mt-5 text-sm text-white/45 leading-relaxed max-w-sm">{t("footer_tagline")}</p>
               </div>
-              <p className="text-white/20 text-sm">{t("footer")}</p>
+              <div className="md:col-span-3">
+                <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/35 mb-4">
+                  {t("footer_column_links")}
+                </p>
+                <ul className="space-y-3">
+                  <li>
+                    <a
+                      href="#faq"
+                      className="text-sm text-white/70 hover:text-white transition-colors"
+                    >
+                      {t("faq_tag")}
+                    </a>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      onClick={onLogin}
+                      className="text-sm text-white/70 hover:text-white transition-colors text-left"
+                    >
+                      {t("footer_link_login")}
+                    </button>
+                  </li>
+                </ul>
+              </div>
+              <div className="md:col-span-4 md:text-right">
+                <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/35 mb-4">
+                  {i18n.language === "it" ? "Lingua" : "Language"}
+                </p>
+                <div className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/[0.04] px-1 py-1">
+                  <button
+                    type="button"
+                    onClick={() => changeLang("it")}
+                    className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all ${
+                      i18n.language === "it"
+                        ? "bg-white text-black shadow-sm"
+                        : "text-white/50 hover:text-white"
+                    }`}
+                  >
+                    IT
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => changeLang("en")}
+                    className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all ${
+                      i18n.language === "en"
+                        ? "bg-white text-black shadow-sm"
+                        : "text-white/50 hover:text-white"
+                    }`}
+                  >
+                    EN
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="mt-14 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-white/10 pt-8">
+              <p className="text-sm text-white/35">{t("footer")}</p>
+              <p className="text-xs text-white/25">{t("hero_tag")}</p>
             </div>
           </div>
         </footer>
