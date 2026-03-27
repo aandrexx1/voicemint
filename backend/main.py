@@ -392,7 +392,7 @@ def generate(
         file_path=file_path,
     )
     db.add(conversion)
-    current_user.monthly_usage += int(len(transcription.split()) /3 )
+    current_user.monthly_usage += int(len(text.split()) / 3)
     db.commit()
     
     return FileResponse(
