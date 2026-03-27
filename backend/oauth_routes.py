@@ -7,6 +7,7 @@ from authlib.integrations.starlette_client import OAuth
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
+import secrets
 
 from auth import create_token
 from models import get_db
@@ -56,13 +57,23 @@ def _redirect_frontend_token(token: str) -> RedirectResponse:
         status_code=302,
     )
     secure = os.getenv("COOKIE_SECURE", "1") != "0"
-    samesite = os.getenv("COOKIE_SAMESITE", "lax").lower()
+    samesite = os.getenv("COOKIE_SAMESITE", "none").lower()
     if samesite not in ("lax", "strict", "none"):
         samesite = "lax"
     response.set_cookie(
         key="vm_token",
         value=token,
         httponly=True,
+        secure=secure,
+        samesite=samesite,
+        max_age=60 * 60 * 24 * 7,
+        path="/",
+    )
+    csrf = secrets.token_urlsafe(24)
+    response.set_cookie(
+        key="vm_csrf",
+        value=csrf,
+        httponly=False,
         secure=secure,
         samesite=samesite,
         max_age=60 * 60 * 24 * 7,

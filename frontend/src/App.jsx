@@ -19,6 +19,19 @@ import axios from "axios"
 const API = import.meta.env.VITE_API_URL || "https://voicemint-backend.onrender.com"
 
 axios.defaults.withCredentials = true
+function getCookie(name) {
+  const m = document.cookie.match(new RegExp(`(?:^|; )${name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}=([^;]*)`))
+  return m ? decodeURIComponent(m[1]) : ""
+}
+
+axios.interceptors.request.use((config) => {
+  const csrf = getCookie("vm_csrf")
+  if (csrf) {
+    config.headers = config.headers || {}
+    config.headers["X-CSRF-Token"] = csrf
+  }
+  return config
+})
 
 function getInitialPage() {
   const path = window.location.pathname.replace(/\/$/, "") || "/"

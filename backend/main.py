@@ -27,6 +27,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import json
+import secrets
 
 resend.api_key = os.getenv("RESEND_API_KEY")
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -69,7 +70,8 @@ async def security_headers(request: Request, call_next):
 
 def _set_auth_cookie(response: Response, token: str):
     secure = os.getenv("COOKIE_SECURE", "1") != "0"
-    samesite = os.getenv("COOKIE_SAMESITE", "lax").lower()
+    # Per cookie cross-site (frontend su voicemint.it e backend su onrender.com) serve SameSite=None
+    samesite = os.getenv("COOKIE_SAMESITE", "none").lower()
     if samesite not in ("lax", "strict", "none"):
         samesite = "lax"
     response.set_cookie(
@@ -81,9 +83,34 @@ def _set_auth_cookie(response: Response, token: str):
         max_age=60 * 60 * 24 * 7,
         path="/",
     )
+    # CSRF token (non-HttpOnly) per richieste mutating con cookie auth
+    csrf = secrets.token_urlsafe(24)
+    response.set_cookie(
+        key="vm_csrf",
+        value=csrf,
+        httponly=False,
+        secure=secure,
+        samesite=samesite,
+        max_age=60 * 60 * 24 * 7,
+        path="/",
+    )
 
 def _clear_auth_cookie(response: Response):
     response.delete_cookie(key="vm_token", path="/")
+    response.delete_cookie(key="vm_csrf", path="/")
+
+@app.middleware("http")
+async def csrf_protect(request: Request, call_next):
+    # Protegge solo quando si usa cookie auth (nessun Bearer)
+    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+        has_cookie = bool(request.cookies.get("vm_token"))
+        has_bearer = bool(request.headers.get("authorization"))
+        if has_cookie and not has_bearer:
+            csrf_cookie = request.cookies.get("vm_csrf")
+            csrf_header = request.headers.get("x-csrf-token")
+            if not csrf_cookie or not csrf_header or csrf_cookie != csrf_header:
+                return JSONResponse({"detail": "CSRF check failed"}, status_code=403)
+    return await call_next(request)
 
 @app.get("/")
 def root():
