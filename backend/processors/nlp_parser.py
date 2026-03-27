@@ -5,21 +5,45 @@ import re
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
+def _extract_json(text: str) -> dict:
+    text = (text or "").strip().replace("```json", "").replace("```", "").strip()
+    try:
+        return json.loads(text)
+    except Exception:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            return json.loads(text[start : end + 1])
+        raise
+
+def _clamp(n: int, lo: int, hi: int) -> int:
+    return max(lo, min(hi, int(n)))
+
 def parse_transcription(transcription: str) -> dict:
     text_in = (transcription or "").strip()
     words = re.findall(r"\w+", text_in)
     wc = len(words)
-    # Stima complessità: più parole → più slide. Clamp per evitare output enormi.
-    target_content_slides = max(4, min(12, (wc // 120) + 4))
+    # Stima complessità: più parole → più slide.
+    max_content_slides = int(os.getenv("MAX_CONTENT_SLIDES", "18"))
+    target_content_slides = _clamp((wc // 110) + 4, 4, max_content_slides)
+    if wc >= 900:
+        min_content_slides = min(12, max_content_slides)
+    elif wc >= 600:
+        min_content_slides = min(10, max_content_slides)
+    elif wc >= 300:
+        min_content_slides = min(8, max_content_slides)
+    else:
+        min_content_slides = 4
     short_prompt = wc < 30
 
     prompt = f"""
-Analizza questo testo e crea una presentazione professionale VARIA e specifica per l'argomento.
+Analizza questo testo e crea una presentazione professionale VARIA, specifica per l'argomento e NON generica.
 
 Testo: "{text_in}"
 
 REGOLE FONDAMENTALI:
-- Crea circa {target_content_slides} slide di contenuto (oltre a titolo e riepilogo). Se il testo è molto breve, fanne almeno 4; se è lungo, fino a 12.
+- Devi creare tra {min_content_slides} e {max_content_slides} slide di contenuto (oltre a titolo e riepilogo). Obiettivo: {target_content_slides}.
+- Non restituire mai meno di {min_content_slides} slide di contenuto.
 - Ogni slide deve introdurre un punto diverso (no ripetizioni).
 - Alterna i tipi: usa "bullets" quando ha senso (3-6 bullet concreti), e "text" per spiegazioni brevi e chiare (max 3-5 frasi).
 - Non usare titoli generici (tipo "Introduzione", "Conclusione") a meno che il testo lo richieda: rendili specifici.
@@ -69,14 +93,37 @@ Rispondi SOLO con JSON valido, zero testo extra:
         temperature=0.3,
     )
     
-    text = response.choices[0].message.content
-    text = text.replace("```json", "").replace("```", "").strip()
-    # Estrai JSON robustamente (a volte il modello aggiunge testo)
-    try:
-        return json.loads(text)
-    except Exception:
-        start = text.find("{")
-        end = text.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            return json.loads(text[start : end + 1])
-        raise
+    data = _extract_json(response.choices[0].message.content)
+    if not isinstance(data, dict):
+        data = {"title": "", "subtitle": "", "slides": [], "summary_title": "Riepilogo", "summary": "", "theme": {}}
+    slides = data.get("slides")
+    if not isinstance(slides, list):
+        slides = []
+        data["slides"] = slides
+
+    if len(slides) < min_content_slides:
+        fix_prompt = f"""
+Hai generato solo {len(slides)} slide di contenuto, ma ne servono almeno {min_content_slides}.
+
+INPUT TESTO:
+\"\"\"{text_in}\"\"\"
+
+JSON ATTUALE:
+{json.dumps(data, ensure_ascii=False)}
+
+COMPITO:
+- Espandi la presentazione fino ad avere tra {min_content_slides} e {max_content_slides} slide di contenuto.
+- Mantieni titolo e tema.
+- Aggiungi nuove slide con titoli specifici e contenuti concreti.
+- Rispondi SOLO con JSON valido (stesso schema).
+"""
+        r2 = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": fix_prompt}],
+            temperature=0.3,
+        )
+        data2 = _extract_json(r2.choices[0].message.content)
+        if isinstance(data2, dict) and isinstance(data2.get("slides"), list):
+            data = data2
+
+    return data
