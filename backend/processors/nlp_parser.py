@@ -11,6 +11,7 @@ def parse_transcription(transcription: str) -> dict:
     wc = len(words)
     # Stima complessità: più parole → più slide. Clamp per evitare output enormi.
     target_content_slides = max(4, min(12, (wc // 120) + 4))
+    short_prompt = wc < 30
 
     prompt = f"""
 Analizza questo testo e crea una presentazione professionale VARIA e specifica per l'argomento.
@@ -23,6 +24,7 @@ REGOLE FONDAMENTALI:
 - Alterna i tipi: usa "bullets" quando ha senso (3-6 bullet concreti), e "text" per spiegazioni brevi e chiare (max 3-5 frasi).
 - Non usare titoli generici (tipo "Introduzione", "Conclusione") a meno che il testo lo richieda: rendili specifici.
 - Il titolo principale deve riflettere davvero l'argomento.
+{"- Se il testo è una richiesta breve (es. \"fammi un riassunto di...\") devi comunque produrre slide utili: definizioni chiave, struttura del programma, concetti fondamentali, errori comuni, esempi, mini-casi, e un piano di studio rapido." if short_prompt else ""}
 
 Scegli il tema visivo più adatto:
 - Business/finance → dark blu navy, accenti oro

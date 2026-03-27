@@ -7,6 +7,7 @@ from pptx.enum.text import PP_ALIGN
 from pptx.dml.color import RGBColor
 from playwright.sync_api import sync_playwright
 import math
+import hashlib
 
 OUTPUT_DIR = "outputs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -202,6 +203,9 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
     prs.slide_width = Inches(13.33)
     prs.slide_height = Inches(7.5)
     blank_layout = prs.slide_layouts[6]
+    # layout variant deterministica per avere deck diversi tra argomenti
+    variant_seed = (data.get("title") or "") + "|" + (data.get("subtitle") or "")
+    variant = int(hashlib.sha256(variant_seed.encode("utf-8")).hexdigest(), 16) % 3
 
     slide_configs = [("title", data.get("title", ""), data.get("subtitle", ""))]
     for slide in data.get("slides", []):
@@ -251,9 +255,11 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
 
         elif slide_type == "bullets":
             bullets = content if isinstance(content, list) else [str(content)]
+            bullets = [str(b).strip() for b in bullets if str(b).strip()]
 
-            # Slide title
-            title_box = slide.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(0.6))
+            # Slide title (con piccola variazione stile)
+            title_x = 0.8 if variant != 2 else 1.1
+            title_box = slide.shapes.add_textbox(Inches(title_x), Inches(0.5), Inches(11.7), Inches(0.6))
             tf = title_box.text_frame
             tf.clear()
             p = tf.paragraphs[0]
@@ -264,70 +270,40 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
             p.font.name = font_title
             p.alignment = PP_ALIGN.LEFT
 
-            # Cards grid
+            # Layout bullets: lista pulita (niente card giganti)
             n = len(bullets)
-            columns = 2 if n > 3 else 1
-            rows = int(math.ceil(n / columns)) if columns else 1
+            columns = 2 if n >= 8 else 1
+            top_y = 1.35
+            left_margin = 0.95 if variant == 1 else 0.85
+            col_gap = 0.55
+            col_w = (13.33 - left_margin - 0.75 - (col_gap if columns == 2 else 0)) / columns
+            row_h = 0.55 if n <= 8 else 0.48
 
-            left_margin = 0.6
-            right_margin = 0.6
-            col_gap = 0.35
-            card_w = (13.33 - left_margin - right_margin - col_gap) / columns
-            top_y = 1.25
-            bottom_reserved = 0.55
-            usable_h = 7.5 - top_y - bottom_reserved
-            gap_y = 0.25
-            card_h = (usable_h - gap_y * (rows - 1)) / max(rows, 1)
+            for idx, bullet in enumerate(bullets[:12]):
+                col = 0 if columns == 1 else (idx // 6)
+                row = idx if columns == 1 else (idx % 6)
+                x = left_margin + col * (col_w + (col_gap if columns == 2 else 0))
+                y = top_y + row * row_h
 
-            number_color = accent_rgb
-            card_fill = slide_bg_rgb
-            card_line_color = accent_rgb
-
-            for idx, bullet in enumerate(bullets):
-                col = idx % columns
-                row = idx // columns
-
-                x = left_margin + col * (card_w + col_gap)
-                y = top_y + row * (card_h + gap_y)
-
-                card = slide.shapes.add_shape(
-                    MSO_SHAPE.ROUNDED_RECTANGLE,
+                # accent dot / number
+                dot = slide.shapes.add_shape(
+                    MSO_SHAPE.OVAL,
                     Inches(x),
-                    Inches(y),
-                    Inches(card_w),
-                    Inches(card_h),
+                    Inches(y + 0.07),
+                    Inches(0.16),
+                    Inches(0.16),
                 )
-                card.fill.solid()
-                card.fill.fore_color.rgb = card_fill
-                card.line.color.rgb = card_line_color
-                card.line.width = Pt(1)
+                dot.fill.solid()
+                dot.fill.fore_color.rgb = accent_rgb
+                dot.line.color.rgb = accent_rgb
 
-                # Number
-                num_box = slide.shapes.add_textbox(Inches(x + 0.35), Inches(y + 0.12), Inches(0.5), Inches(0.3))
-                num_tf = num_box.text_frame
-                num_tf.clear()
-                num_tf.word_wrap = False
-                num_p = num_tf.paragraphs[0]
-                num_p.text = str(idx + 1)
-                num_p.font.size = Pt(12)
-                num_p.font.bold = True
-                num_p.font.color.rgb = number_color
-                num_p.font.name = font_body
-                num_p.alignment = PP_ALIGN.CENTER
-
-                # Bullet text
-                text_x = x + 0.85
-                text_y = y + 0.05
-                text_w = card_w - 0.95
-                text_h = card_h - 0.15
-
-                b_box = slide.shapes.add_textbox(Inches(text_x), Inches(text_y), Inches(text_w), Inches(text_h))
-                b_tf = b_box.text_frame
-                b_tf.clear()
-                b_tf.word_wrap = True
-                p = b_tf.paragraphs[0]
+                box = slide.shapes.add_textbox(Inches(x + 0.28), Inches(y), Inches(col_w - 0.25), Inches(row_h))
+                tf = box.text_frame
+                tf.clear()
+                tf.word_wrap = True
+                p = tf.paragraphs[0]
                 p.text = str(bullet)
-                p.font.size = Pt(16)
+                p.font.size = Pt(18 if n <= 6 else 16)
                 p.font.color.rgb = text_rgb
                 p.font.name = font_body
                 p.alignment = PP_ALIGN.LEFT
