@@ -2,8 +2,8 @@ import os
 import uuid
 from pptx import Presentation
 from pptx.util import Inches, Pt
-from pptx.enum.shapes import MSO_SHAPE
-from pptx.enum.text import PP_ALIGN
+from pptx.enum.shapes import MSO_SHAPE, MSO_SHAPE_TYPE
+from pptx.enum.text import PP_ALIGN, MSO_AUTO_SIZE
 from pptx.dml.color import RGBColor
 from playwright.sync_api import sync_playwright
 import math
@@ -121,10 +121,125 @@ def _first_body_placeholder(slide):
             continue
     return None
 
+
+def _theme_dict(data: dict) -> dict:
+    return data.get("theme") if isinstance(data.get("theme"), dict) else {}
+
+
+def _theme_rgb(theme: dict, key: str, default_hex: str) -> RGBColor:
+    raw = str(theme.get(key) or default_hex).lstrip("#")
+    if len(raw) < 6:
+        raw = default_hex.lstrip("#")
+    try:
+        return RGBColor(int(raw[0:2], 16), int(raw[2:4], 16), int(raw[4:6], 16))
+    except Exception:
+        return hex_to_rgb("#" + default_hex)
+
+
+def _apply_slide_background_solid(slide, rgb: RGBColor):
+    """Copre lo sfondo master/template con un colore pieno (niente immagini stock di sfondo)."""
+    fill = slide.background.fill
+    fill.solid()
+    fill.fore_color.rgb = rgb
+
+
+def _remove_large_background_pictures(slide, prs: Presentation, cover_ratio: float = 0.32):
+    """
+    Rimuove immagini molto grandi sullo slide (tipiche placeholder stock a tutta pagina),
+    lasciando testo e forme piccole.
+    """
+    slide_area = float(prs.slide_width * prs.slide_height)
+    if slide_area <= 0:
+        return
+    for shape in list(slide.shapes):
+        try:
+            if shape.shape_type != MSO_SHAPE_TYPE.PICTURE:
+                continue
+            if shape.width * shape.height < slide_area * cover_ratio:
+                continue
+            el = shape.element
+            parent = el.getparent()
+            if parent is not None:
+                parent.remove(el)
+        except Exception:
+            continue
+
+
+def _style_title_shape(shape, text: str, color_rgb: RGBColor, font_title: str | None, size_pt: int = 30):
+    if not getattr(shape, "text_frame", None):
+        return
+    tf = shape.text_frame
+    tf.clear()
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    p.text = text or ""
+    p.font.bold = True
+    p.font.size = Pt(size_pt)
+    p.font.color.rgb = color_rgb
+    if font_title:
+        p.font.name = font_title
+
+
+def _fill_body_paragraphs(
+    tf,
+    lines: list[str],
+    *,
+    text_rgb: RGBColor,
+    font_body: str | None,
+    body_pt: int = 18,
+    bullet: bool = False,
+):
+    """Riempie il text frame con paragrafi, word wrap e (opz.) elenco puntato."""
+    tf.clear()
+    tf.word_wrap = True
+    try:
+        tf.auto_size = MSO_AUTO_SIZE.NONE
+    except Exception:
+        pass
+    first = True
+    for line in lines:
+        line = (line or "").strip()
+        if not line:
+            continue
+        p = tf.paragraphs[0] if first else tf.add_paragraph()
+        first = False
+        p.text = (f"• {line}" if bullet else line)
+        p.level = 0
+        p.font.size = Pt(body_pt)
+        p.font.color.rgb = text_rgb
+        if font_body:
+            p.font.name = font_body
+        try:
+            p.space_after = Pt(6)
+            p.line_spacing = 1.15
+        except Exception:
+            pass
+
+
+def _fill_body_plain(tf, text: str, text_rgb: RGBColor, font_body: str | None, body_pt: int = 19):
+    """Testo lungo: spezza su righe vuote per paragrafi multipli."""
+    raw = str(text or "").replace("\r\n", "\n")
+    if "\n\n" in raw:
+        lines = [p.strip() for p in raw.split("\n\n") if p.strip()]
+    else:
+        lines = [ln.strip() for ln in raw.split("\n") if ln.strip()]
+    if not lines:
+        lines = [raw] if raw else [""]
+    _fill_body_paragraphs(tf, lines, text_rgb=text_rgb, font_body=font_body, body_pt=body_pt, bullet=False)
+
 def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path) -> str:
     prs = Presentation(str(template_path))
     if len(prs.slides) > 0:
         _clear_all_slides(prs)
+
+    theme = _theme_dict(data)
+    bg_rgb = _theme_rgb(theme, "bg_color", "0a0a0a")
+    slide_bg_rgb = _theme_rgb(theme, "slide_bg_color", "111111")
+    accent_rgb = _theme_rgb(theme, "accent_color", "00D4FF")
+    text_rgb = _theme_rgb(theme, "text_color", "FFFFFF")
+    subtitle_rgb = _theme_rgb(theme, "subtitle_color", "A0A0B0")
+    font_title = (theme.get("font_title") or "").strip() or None
+    font_body = (theme.get("font_body") or "").strip() or None
 
     # layout fallback robusto
     title_layout = prs.slide_layouts[0] if len(prs.slide_layouts) > 0 else prs.slide_layouts[6]
@@ -141,72 +256,87 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
         p.text = "made with VoiceMint"
         p.font.size = Pt(9)
         p.font.color.rgb = RGBColor(0x55, 0x55, 0x55)
+        if font_body:
+            p.font.name = font_body
+
+    def polish_slide(slide, bg: RGBColor):
+        _remove_large_background_pictures(slide, prs)
+        _apply_slide_background_solid(slide, bg)
 
     # title
     s0 = prs.slides.add_slide(title_layout)
+    polish_slide(s0, bg_rgb)
     if getattr(s0.shapes, "title", None):
-        s0.shapes.title.text = data.get("title") or "Presentazione"
+        _style_title_shape(s0.shapes.title, data.get("title") or "Presentazione", text_rgb, font_title, 32)
     else:
         t = s0.shapes.add_textbox(Inches(0.9), Inches(1.2), Inches(11.5), Inches(1.4))
-        t.text_frame.text = data.get("title") or "Presentazione"
+        _style_title_shape(t, data.get("title") or "Presentazione", text_rgb, font_title, 32)
     body0 = _first_body_placeholder(s0)
     if body0:
-        body0.text = data.get("subtitle") or ""
+        _fill_body_plain(body0.text_frame, data.get("subtitle") or "", subtitle_rgb, font_body, 17)
     else:
         b = s0.shapes.add_textbox(Inches(1.1), Inches(2.7), Inches(11.0), Inches(1.5))
-        b.text_frame.text = data.get("subtitle") or ""
+        _fill_body_plain(b.text_frame, data.get("subtitle") or "", subtitle_rgb, font_body, 17)
     add_watermark(s0)
 
     for slide in data.get("slides", []):
         st = (slide.get("type") or "text").lower()
         s = prs.slides.add_slide(content_layout if st in ("text", "bullets") else blank_layout)
+        polish_slide(s, slide_bg_rgb)
 
         title = slide.get("title") or ""
         content = slide.get("content")
         if getattr(s.shapes, "title", None):
-            s.shapes.title.text = title
+            _style_title_shape(s.shapes.title, title, accent_rgb, font_title, 26)
         else:
             tb = s.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(0.7))
-            tb.text_frame.text = title
+            _style_title_shape(tb, title, accent_rgb, font_title, 26)
 
         body = _first_body_placeholder(s)
         if st == "bullets":
             items = content if isinstance(content, list) else [str(content or "")]
+            items = [str(x).strip() for x in items if str(x).strip()]
             if body:
-                tf = body.text_frame
-                tf.clear()
-                for i, item in enumerate(items):
-                    p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-                    p.text = str(item)
-                    p.level = 0
+                _fill_body_paragraphs(
+                    body.text_frame,
+                    items,
+                    text_rgb=text_rgb,
+                    font_body=font_body,
+                    body_pt=17 if len(items) > 8 else 18,
+                    bullet=True,
+                )
             else:
                 box = s.shapes.add_textbox(Inches(1.0), Inches(1.5), Inches(11.0), Inches(5.2))
-                tf = box.text_frame
-                tf.clear()
-                for i, item in enumerate(items):
-                    p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-                    p.text = f"• {str(item)}"
+                _fill_body_paragraphs(
+                    box.text_frame,
+                    items,
+                    text_rgb=text_rgb,
+                    font_body=font_body,
+                    body_pt=17 if len(items) > 8 else 18,
+                    bullet=True,
+                )
         else:
             text = str(content or "")
             if body:
-                body.text = text
+                _fill_body_plain(body.text_frame, text, text_rgb, font_body, 19)
             else:
                 box = s.shapes.add_textbox(Inches(1.0), Inches(1.5), Inches(11.0), Inches(5.2))
-                box.text_frame.text = text
+                _fill_body_plain(box.text_frame, text, text_rgb, font_body, 19)
         add_watermark(s)
 
     # summary
     ss = prs.slides.add_slide(content_layout)
+    polish_slide(ss, slide_bg_rgb)
     summary_title = data.get("summary_title", "Riepilogo")
     summary_text = data.get("summary", "")
     if getattr(ss.shapes, "title", None):
-        ss.shapes.title.text = summary_title
+        _style_title_shape(ss.shapes.title, summary_title, accent_rgb, font_title, 26)
     body_s = _first_body_placeholder(ss)
     if body_s:
-        body_s.text = str(summary_text or "")
+        _fill_body_plain(body_s.text_frame, str(summary_text or ""), text_rgb, font_body, 19)
     else:
         box = ss.shapes.add_textbox(Inches(1.0), Inches(1.5), Inches(11.0), Inches(5.2))
-        box.text_frame.text = str(summary_text or "")
+        _fill_body_plain(box.text_frame, str(summary_text or ""), text_rgb, font_body, 19)
     add_watermark(ss)
 
     filename = f"{OUTPUT_DIR}/{uuid.uuid4()}.pptx"
