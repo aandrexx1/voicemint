@@ -167,14 +167,10 @@ export default function LandingPage({
 
         <section
           id="how-it-works"
-          className="relative scroll-mt-28 overflow-hidden border-t border-white/10 py-16 md:py-24"
+          className="scroll-mt-28 border-t border-white/10 bg-transparent py-16 md:py-24"
         >
-          <div
-            className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_90%_60%_at_50%_0%,rgba(99,102,241,0.12),transparent_55%)]"
-            aria-hidden
-          />
-          <div className="relative mx-auto max-w-5xl px-4 md:px-6">
-            <p className="text-center text-xs font-semibold uppercase tracking-[0.22em] text-primary/90">
+          <div className="mx-auto max-w-5xl px-4 md:px-6">
+            <p className="text-center text-xs font-semibold uppercase tracking-[0.22em] text-white/45">
               {t("how_it_works_eyebrow")}
             </p>
             <h2 className="mt-3 text-center text-3xl font-bold tracking-tight text-white sm:text-4xl">
@@ -190,7 +186,7 @@ export default function LandingPage({
                   className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] transition duration-300 hover:border-white/15 hover:from-white/[0.08] md:p-7"
                 >
                   <div className="mb-4 flex items-center gap-3">
-                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-sm font-bold tabular-nums text-primary">
+                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-sm font-bold tabular-nums text-white/90">
                       {String(i + 1).padStart(2, "0")}
                     </span>
                     <span className="h-px flex-1 bg-gradient-to-r from-white/25 to-transparent" aria-hidden />
