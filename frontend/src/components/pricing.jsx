@@ -242,7 +242,7 @@ function PricingCard({
   index,
   onPlanButtonClick,
 }) {
-  const { isMonthly } = useContext(PricingContext);
+  const { isMonthly, uiLabels } = useContext(PricingContext);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const custom = isCustomPrice(plan, isMonthly);
   const numericPrice = custom
