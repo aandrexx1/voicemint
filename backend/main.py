@@ -29,6 +29,7 @@ from slowapi.errors import RateLimitExceeded
 import json
 import re
 import secrets
+from urllib.parse import urlparse
 
 resend.api_key = os.getenv("RESEND_API_KEY")
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -59,8 +60,25 @@ def _cors_allowed_origin(origin: str) -> str | None:
     return None
 
 
+def _effective_cors_origin(request: Request) -> str | None:
+    """Origin dalla richiesta; se manca (browser/extension), prova a dedurlo dal Referer."""
+    raw = (request.headers.get("origin") or "").strip().rstrip("/")
+    if raw:
+        return _cors_allowed_origin(raw)
+    ref = (request.headers.get("referer") or "").strip()
+    if not ref:
+        return None
+    try:
+        u = urlparse(ref)
+        if u.scheme and u.netloc:
+            return _cors_allowed_origin(f"{u.scheme}://{u.netloc}")
+    except Exception:
+        pass
+    return None
+
+
 def _apply_cors_headers(request: Request, response: Response) -> Response:
-    origin = _cors_allowed_origin(request.headers.get("origin") or "")
+    origin = _effective_cors_origin(request)
     if origin and not response.headers.get("access-control-allow-origin"):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
@@ -85,15 +103,8 @@ def startup():
 SESSION_SECRET = os.getenv("SESSION_SECRET", SECRET_KEY)
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=list(CORS_ALLOW_ORIGINS),
-    allow_origin_regex=CORS_ORIGIN_REGEX,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["Content-Disposition"],
-)
+# CORS: un solo CORSMiddleware in coda al file (dopo tutti i @middleware), così è lo strato
+# più esterno e non serve duplicare qui (evita doppi header).
 
 app.include_router(oauth_router, prefix="/auth", tags=["oauth"])
 
@@ -705,8 +716,14 @@ def cancel_subscription(db: Session = Depends(get_db), current_user: User = Depe
     return {"message": "Abbonamento annullato"}
 
 
-@app.middleware("http")
-async def cors_fallback(request: Request, call_next):
-    """Garantisce header CORS se una risposta (403, proxy, ecc.) non li ha già."""
-    response = await call_next(request)
-    return _apply_cors_headers(request, response)
+# Secondo CORSMiddleware in coda = più esterno nello stack: copre anche 403 dal CSRF senza
+# usare BaseHTTPMiddleware (che bufferizza FileResponse grandi e può dare ERR_FAILED + falso CORS).
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=list(CORS_ALLOW_ORIGINS),
+    allow_origin_regex=CORS_ORIGIN_REGEX,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
+)
