@@ -11,6 +11,10 @@ const resources = {
       hero_title_2: "la tua voce in",
       hero_title_3: "pronti all'uso.",
       hero_desc: "Parla liberamente. VoiceMint genera presentazioni PowerPoint in pochi secondi, grazie all'AI.",
+      nav_how_it_works: "Come funziona",
+      nav_faq: "FAQ",
+      nav_profile: "Profilo",
+      how_it_works_eyebrow: "In pratica",
       how_it_works_title: "Come funziona",
       how_it_works_intro:
         "Non serve un nuovo metodo di studio. Ripeti ad alta voce come fai sempre: nel frattempo VoiceMint prepara una presentazione (o appunti ordinati) con cui puoi ripassare o presentare, se serve.",
@@ -207,6 +211,10 @@ const resources = {
       hero_title_2: "your voice into",
       hero_title_3: "ready to use.",
       hero_desc: "Speak freely. VoiceMint generates PowerPoint presentations in seconds, powered by AI.",
+      nav_how_it_works: "How it works",
+      nav_faq: "FAQ",
+      nav_profile: "Profile",
+      how_it_works_eyebrow: "In practice",
       how_it_works_title: "How it works",
       how_it_works_intro:
         "You don't need a new study habit. Talk through your notes out loud like you always have—meanwhile VoiceMint builds a presentation (or neat notes) you can review or use when you need to present.",

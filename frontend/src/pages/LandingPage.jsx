@@ -5,7 +5,6 @@ import { FAQSection } from "@/components/ui/faqsection"
 import { Footer } from "@/components/ui/footer-section"
 import axios from "axios"
 import { PricingSection } from "@/components/ui/pricing"
-import { Check } from "lucide-react"
 
 const API = "https://voicemint-backend.onrender.com"
 
@@ -129,6 +128,11 @@ export default function LandingPage({
         onSignup={onGetStarted}
         onProfile={onOpenProfile}
         isLoggedIn={!!token}
+        navLabels={{
+          howItWorks: t("nav_how_it_works"),
+          faq: t("nav_faq"),
+          profile: t("nav_profile"),
+        }}
       />
       <div className="relative z-10">
         <HeroWave
@@ -161,24 +165,40 @@ export default function LandingPage({
           }}
         />
 
-        <section id="how-it-works" className="scroll-mt-28 border-t border-white/10 py-12 md:py-20">
-          <div className="mx-auto max-w-3xl px-4 md:px-6">
-            <h2 className="text-center text-3xl font-bold tracking-tight text-white sm:text-4xl">
+        <section
+          id="how-it-works"
+          className="relative scroll-mt-28 overflow-hidden border-t border-white/10 py-16 md:py-24"
+        >
+          <div
+            className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_90%_60%_at_50%_0%,rgba(99,102,241,0.12),transparent_55%)]"
+            aria-hidden
+          />
+          <div className="relative mx-auto max-w-5xl px-4 md:px-6">
+            <p className="text-center text-xs font-semibold uppercase tracking-[0.22em] text-primary/90">
+              {t("how_it_works_eyebrow")}
+            </p>
+            <h2 className="mt-3 text-center text-3xl font-bold tracking-tight text-white sm:text-4xl">
               {t("how_it_works_title")}
             </h2>
-            <p className="mx-auto mt-5 max-w-2xl text-center text-base leading-relaxed text-white/65 md:text-lg">
+            <p className="mx-auto mt-5 max-w-2xl text-center text-base leading-relaxed text-white/60 md:text-lg">
               {t("how_it_works_intro")}
             </p>
-            <ul className="mt-10 space-y-5 md:space-y-6">
+            <div className="mt-12 grid gap-5 sm:grid-cols-2 sm:gap-6">
               {howBullets.map((text, i) => (
-                <li key={i} className="flex gap-4 text-left">
-                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-primary">
-                    <Check className="h-4 w-4" strokeWidth={2.5} aria-hidden />
-                  </span>
-                  <span className="text-[15px] leading-relaxed text-white/85 md:text-base">{text}</span>
-                </li>
+                <div
+                  key={i}
+                  className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] transition duration-300 hover:border-white/15 hover:from-white/[0.08] md:p-7"
+                >
+                  <div className="mb-4 flex items-center gap-3">
+                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-sm font-bold tabular-nums text-primary">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className="h-px flex-1 bg-gradient-to-r from-white/25 to-transparent" aria-hidden />
+                  </div>
+                  <p className="text-[15px] leading-relaxed text-white/[0.88] md:text-base">{text}</p>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         </section>
 

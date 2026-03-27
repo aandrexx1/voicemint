@@ -18,7 +18,18 @@ const NavButton = ({ onClick, children }) => (
   </button>
 );
 
-export function Navbar({ onLogin, onSignup, onProfile, isLoggedIn = false }) {
+export function Navbar({
+  onLogin,
+  onSignup,
+  onProfile,
+  isLoggedIn = false,
+  navLabels,
+}) {
+  const labels = {
+    howItWorks: navLabels?.howItWorks ?? "How it works",
+    faq: navLabels?.faq ?? "FAQ",
+    profile: navLabels?.profile ?? "Profile",
+  }
   const [isOpen, setIsOpen] = useState(false);
   const [headerShapeClass, setHeaderShapeClass] = useState('rounded-full');
   const shapeTimeoutRef = useRef(null);
@@ -57,9 +68,10 @@ export function Navbar({ onLogin, onSignup, onProfile, isLoggedIn = false }) {
   );
 
   const navLinksData = [
-    { label: 'FAQ', onClick: () => scrollToId("faq") },
-    { label: 'Profile', onClick: onProfile || onSignup },
-  ];
+    { label: labels.howItWorks, onClick: () => scrollToId("how-it-works") },
+    { label: labels.faq, onClick: () => scrollToId("faq") },
+    { label: labels.profile, onClick: onProfile || onSignup },
+  ]
 
   const loginButtonElement = (
     <button
@@ -85,7 +97,7 @@ export function Navbar({ onLogin, onSignup, onProfile, isLoggedIn = false }) {
     <header className={`fixed top-6 left-1/2 z-[100] flex -translate-x-1/2 transform flex-col items-center border border-[#333] bg-[#1f1f1f57] py-3 pl-6 pr-6 backdrop-blur-sm transition-[border-radius] duration-0 ease-in-out sm:w-auto w-[calc(100%-2rem)] ${headerShapeClass}`}>
       <div className="flex items-center justify-between w-full gap-x-6 sm:gap-x-8">
         <div className="flex items-center">{logoElement}</div>
-        <nav className="hidden sm:flex items-center space-x-4 sm:space-x-6 text-sm">
+        <nav className="hidden sm:flex items-center space-x-3 sm:space-x-5 text-[13px] sm:text-sm">
           {navLinksData.map((link) => (
             <NavButton key={link.label} onClick={link.onClick}>
               {link.label}
