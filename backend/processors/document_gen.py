@@ -8,11 +8,145 @@ from pptx.dml.color import RGBColor
 from playwright.sync_api import sync_playwright
 import math
 import hashlib
+from pathlib import Path
 
 OUTPUT_DIR = "outputs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif"
+TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates" / "pptx"
+
+def _valid_template_path(p: Path) -> bool:
+    if p.suffix.lower() != ".pptx":
+        return False
+    if p.name.startswith("~$") or p.name.startswith("._"):
+        return False
+    if "__MACOSX" in p.parts:
+        return False
+    return True
+
+def _discover_templates():
+    if not TEMPLATES_DIR.exists():
+        return []
+    return sorted([p for p in TEMPLATES_DIR.rglob("*.pptx") if _valid_template_path(p)])
+
+def _pick_template(data: dict):
+    templates = _discover_templates()
+    if not templates:
+        return None
+    seed = (data.get("title") or "") + "|" + (data.get("subtitle") or "")
+    idx = int(hashlib.sha256(seed.encode("utf-8")).hexdigest(), 16) % len(templates)
+    return templates[idx]
+
+def _clear_all_slides(prs: Presentation):
+    # python-pptx non espone delete slide pubblico: usiamo API interna in modo sicuro
+    while len(prs.slides) > 0:
+        r_id = prs.slides._sldIdLst[0].rId
+        prs.part.drop_rel(r_id)
+        del prs.slides._sldIdLst[0]
+
+def _first_body_placeholder(slide):
+    for sh in slide.placeholders:
+        try:
+            ph_type = sh.placeholder_format.type
+            # BODY(2) / OBJECT(7) / TEXT(14) / CONTENT(19)
+            if int(ph_type) in (2, 7, 14, 19):
+                return sh
+        except Exception:
+            continue
+    return None
+
+def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path) -> str:
+    prs = Presentation(str(template_path))
+    if len(prs.slides) > 0:
+        _clear_all_slides(prs)
+
+    # layout fallback robusto
+    title_layout = prs.slide_layouts[0] if len(prs.slide_layouts) > 0 else prs.slide_layouts[6]
+    content_layout = prs.slide_layouts[1] if len(prs.slide_layouts) > 1 else prs.slide_layouts[6]
+    blank_layout = prs.slide_layouts[6] if len(prs.slide_layouts) > 6 else prs.slide_layouts[0]
+
+    def add_watermark(slide):
+        if user_tier not in ("free", "starter"):
+            return
+        tx = slide.shapes.add_textbox(Inches(0.35), Inches(7.05), Inches(3.2), Inches(0.4))
+        tf = tx.text_frame
+        tf.clear()
+        p = tf.paragraphs[0]
+        p.text = "made with VoiceMint"
+        p.font.size = Pt(9)
+        p.font.color.rgb = RGBColor(0x55, 0x55, 0x55)
+
+    # title
+    s0 = prs.slides.add_slide(title_layout)
+    if getattr(s0.shapes, "title", None):
+        s0.shapes.title.text = data.get("title") or "Presentazione"
+    else:
+        t = s0.shapes.add_textbox(Inches(0.9), Inches(1.2), Inches(11.5), Inches(1.4))
+        t.text_frame.text = data.get("title") or "Presentazione"
+    body0 = _first_body_placeholder(s0)
+    if body0:
+        body0.text = data.get("subtitle") or ""
+    else:
+        b = s0.shapes.add_textbox(Inches(1.1), Inches(2.7), Inches(11.0), Inches(1.5))
+        b.text_frame.text = data.get("subtitle") or ""
+    add_watermark(s0)
+
+    for slide in data.get("slides", []):
+        st = (slide.get("type") or "text").lower()
+        s = prs.slides.add_slide(content_layout if st in ("text", "bullets") else blank_layout)
+
+        title = slide.get("title") or ""
+        content = slide.get("content")
+        if getattr(s.shapes, "title", None):
+            s.shapes.title.text = title
+        else:
+            tb = s.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(0.7))
+            tb.text_frame.text = title
+
+        body = _first_body_placeholder(s)
+        if st == "bullets":
+            items = content if isinstance(content, list) else [str(content or "")]
+            if body:
+                tf = body.text_frame
+                tf.clear()
+                for i, item in enumerate(items):
+                    p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+                    p.text = str(item)
+                    p.level = 0
+            else:
+                box = s.shapes.add_textbox(Inches(1.0), Inches(1.5), Inches(11.0), Inches(5.2))
+                tf = box.text_frame
+                tf.clear()
+                for i, item in enumerate(items):
+                    p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+                    p.text = f"• {str(item)}"
+        else:
+            text = str(content or "")
+            if body:
+                body.text = text
+            else:
+                box = s.shapes.add_textbox(Inches(1.0), Inches(1.5), Inches(11.0), Inches(5.2))
+                box.text_frame.text = text
+        add_watermark(s)
+
+    # summary
+    ss = prs.slides.add_slide(content_layout)
+    summary_title = data.get("summary_title", "Riepilogo")
+    summary_text = data.get("summary", "")
+    if getattr(ss.shapes, "title", None):
+        ss.shapes.title.text = summary_title
+    body_s = _first_body_placeholder(ss)
+    if body_s:
+        body_s.text = str(summary_text or "")
+    else:
+        box = ss.shapes.add_textbox(Inches(1.0), Inches(1.5), Inches(11.0), Inches(5.2))
+        box.text_frame.text = str(summary_text or "")
+    add_watermark(ss)
+
+    filename = f"{OUTPUT_DIR}/{uuid.uuid4()}.pptx"
+    prs.save(filename)
+    return filename
 
 def hex_to_rgb(hex_str):
     hex_str = hex_str.lstrip("#")
@@ -149,6 +283,14 @@ body {{ width:1280px; height:720px; overflow:hidden; background: linear-gradient
 
 
 def generate_ppt(data: dict, user_tier: str = "free") -> str:
+    template_path = _pick_template(data)
+    if template_path is not None:
+        try:
+            return _generate_ppt_with_template(data, user_tier=user_tier, template_path=template_path)
+        except Exception as e:
+            # fallback robusto al renderer classico se un template specifico non è compatibile
+            print(f"template fallback ({template_path.name}): {e}")
+
     theme = data.get("theme", {}) or {}
 
     # Theme colors: input viene da nlp_parser come stringhe hex senza '#'
