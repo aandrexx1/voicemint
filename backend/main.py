@@ -155,6 +155,10 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
+class GenerateRequest(BaseModel):
+    transcription: str
+    output_type: str = "ppt"
+
 # --- Registrazione ---
 @app.post("/register")
 @limiter.limit("5/minute")
@@ -339,32 +343,41 @@ def get_me(current_user: User = Depends(get_current_user)):
 @limiter.limit("20/minute")
 def generate(
     request: Request,
-    transcription: str,
-    output_type: str = "ppt",  # supported: "ppt"
+    data: GenerateRequest | None = None,
+    transcription: str | None = None,
+    output_type: str = "ppt",  # legacy query param
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if len(transcription or "") > int(os.getenv("MAX_TRANSCRIPTION_CHARS", "8000")):
+    text = ""
+    out = output_type
+    if data is not None:
+        text = (data.transcription or "").strip()
+        out = (data.output_type or output_type or "ppt")
+    else:
+        text = (transcription or "").strip()
+
+    if len(text) > int(os.getenv("MAX_TRANSCRIPTION_CHARS", "20000")):
         raise HTTPException(status_code=413, detail="Testo troppo lungo")
     # Controlla limite utenti free
     if current_user.tier == "free" and current_user.monthly_usage >= 180:
         raise HTTPException(status_code=403, detail="Limite mensile raggiunto. Passa a Pro!")
     
     # Struttura il testo con GPT-4o
-    data = parse_transcription(transcription)
+    parsed = parse_transcription(text)
     
     # Genera il file richiesto
-    if output_type == "ppt":
-        file_path = generate_ppt(data, user_tier=current_user.tier)
+    if out == "ppt":
+        file_path = generate_ppt(parsed, user_tier=current_user.tier)
     else:
         raise HTTPException(status_code=400, detail="Tipo non valido. Usa solo: ppt (PowerPoint)")
     
     # Salva la conversione nel database
     conversion = Conversion(
         user_id=current_user.id,
-        transcription=transcription,
-        title=data["title"],
-        output_type=output_type,
+        transcription=text,
+        title=parsed["title"],
+        output_type=out,
         file_path=file_path,
     )
     db.add(conversion)

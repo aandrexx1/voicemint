@@ -166,7 +166,7 @@ export default function LandingPage({
                 token && token !== "cookie"
                   ? { headers: { Authorization: `Bearer ${token}` }, responseType: "blob", withCredentials: true }
                   : { responseType: "blob", withCredentials: true }
-              const res = await axios.post(`${API}/generate?transcription=${encodeURIComponent(text)}&output_type=ppt`, {}, config)
+              const res = await axios.post(`${API}/generate`, { transcription: text, output_type: "ppt" }, config)
               const url = URL.createObjectURL(res.data)
               const a = document.createElement("a")
               a.href = url

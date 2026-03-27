@@ -83,8 +83,8 @@ export default function Dashboard({
     setLoading(true)
     try {
       const res = await axios.post(
-        `${API}/generate?transcription=${encodeURIComponent(transcription)}&output_type=${outputType}`,
-        {},
+        `${API}/generate`,
+        { transcription, output_type: outputType },
         token && token !== "cookie"
           ? { headers: { Authorization: `Bearer ${token}` }, responseType: "blob", withCredentials: true }
           : { responseType: "blob", withCredentials: true }
