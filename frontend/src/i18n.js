@@ -527,7 +527,8 @@ i18n
     resources,
     lng: safeGetItem("lang", "it") || "it",
     fallbackLng: "it",
-    interpolation: { escapeValue: false }
+    interpolation: { escapeValue: false },
+    react: { useSuspense: false },
   })
 
 export default i18n
