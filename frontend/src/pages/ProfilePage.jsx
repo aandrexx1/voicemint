@@ -13,7 +13,7 @@ function formatDate(value) {
 }
 
 export default function ProfilePage({ token, user, setUser, onLogout, onGoHome }) {
-  const [lang, setLang] = useState(localStorage.getItem("lang") || "it")
+  const [lang, setLang] = useState(() => safeGetItem("lang", "it") || "it")
   const t = useMemo(() => (it, en) => (lang === "it" ? it : en), [lang])
 
   const [profileForm, setProfileForm] = useState({ first_name: "", last_name: "" })

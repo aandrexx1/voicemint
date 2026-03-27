@@ -7,7 +7,10 @@ from sqlalchemy.orm import Session
 from models import User, get_db
 import os
 
-SECRET_KEY = os.getenv("SECRET_KEY", "voicemint-secret-key-cambiami")
+_DEFAULT_SECRET = "voicemint-secret-key-cambiami"
+SECRET_KEY = os.getenv("SECRET_KEY", _DEFAULT_SECRET)
+if SECRET_KEY == _DEFAULT_SECRET and os.getenv("ENV", "").lower() in ("prod", "production"):
+    raise RuntimeError("SECRET_KEY mancante: imposta SECRET_KEY in produzione")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 giorni
 

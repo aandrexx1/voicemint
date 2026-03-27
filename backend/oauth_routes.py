@@ -51,14 +51,15 @@ _configure_oauth()
 
 def _redirect_frontend_token(token: str) -> RedirectResponse:
     return RedirectResponse(
-        url=f"{FRONTEND_URL}/?oauth_token={quote(token, safe='')}",
+        # usa fragment (#) per ridurre leak via referrer/logs di querystring
+        url=f"{FRONTEND_URL}/#oauth_token={quote(token, safe='')}",
         status_code=302,
     )
 
 
 def _redirect_frontend_error(code: str) -> RedirectResponse:
     return RedirectResponse(
-        url=f"{FRONTEND_URL}/?oauth_error={quote(code, safe='')}",
+        url=f"{FRONTEND_URL}/#oauth_error={quote(code, safe='')}",
         status_code=302,
     )
 

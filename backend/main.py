@@ -62,6 +62,9 @@ async def upload_audio(file: UploadFile = File(...)):
     # Salva il file temporaneamente
     with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp:
         content = await file.read()
+        max_bytes = int(os.getenv("MAX_AUDIO_BYTES", str(10 * 1024 * 1024)))  # default 10MB
+        if len(content) > max_bytes:
+            raise HTTPException(status_code=413, detail="File audio troppo grande")
         tmp.write(content)
         tmp_path = tmp.name
 
@@ -259,6 +262,8 @@ def generate(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    if len(transcription or "") > int(os.getenv("MAX_TRANSCRIPTION_CHARS", "8000")):
+        raise HTTPException(status_code=413, detail="Testo troppo lungo")
     # Controlla limite utenti free
     if current_user.tier == "free" and current_user.monthly_usage >= 180:
         raise HTTPException(status_code=403, detail="Limite mensile raggiunto. Passa a Pro!")
@@ -489,7 +494,11 @@ async def stripe_webhook(request: Request):
     return {"status": "ok"}
 
 @app.get("/e5426679666b")
-def admin_stats(db: Session = Depends(get_db)):
+def admin_stats(request: Request, db: Session = Depends(get_db)):
+    admin_token = os.getenv("ADMIN_TOKEN")
+    if admin_token:
+        if request.headers.get("x-admin-token") != admin_token:
+            raise HTTPException(status_code=404, detail="Not found")
     total_users = db.query(User).count()
     free_users = db.query(User).filter(User.tier == "free").count()
     starter_users = db.query(User).filter(User.tier == "starter").count()

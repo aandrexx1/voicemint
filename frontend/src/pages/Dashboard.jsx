@@ -23,7 +23,7 @@ export default function Dashboard({
   const [mediaRecorder, setMediaRecorder] = useState(null)
   const [profileOpen, setProfileOpen] = useState(false)
   const [modal, setModal] = useState(null) // "settings" | "plans"
-  const [lang, setLang] = useState(localStorage.getItem("lang") || "it")
+  const [lang, setLang] = useState(() => safeGetItem("lang", "it") || "it")
   const profileRef = useRef(null)
 
   // Chiudi menu profilo cliccando fuori

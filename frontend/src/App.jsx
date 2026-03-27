@@ -49,9 +49,12 @@ function App() {
   const [user, setUser] = useState(null)
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const ot = params.get("oauth_token")
-    const oe = params.get("oauth_error")
+    const searchParams = new URLSearchParams(window.location.search)
+    const hash = (window.location.hash || "").replace(/^#/, "")
+    const hashParams = new URLSearchParams(hash)
+
+    const ot = searchParams.get("oauth_token") || hashParams.get("oauth_token")
+    const oe = searchParams.get("oauth_error") || hashParams.get("oauth_error")
     if (oe) sessionStorage.setItem("oauth_error", oe)
     if (ot) {
       safeSetItem("token", ot)
@@ -62,6 +65,8 @@ function App() {
       const u = new URL(window.location.href)
       u.searchParams.delete("oauth_token")
       u.searchParams.delete("oauth_error")
+      // pulisci hash token/error
+      u.hash = ""
       const qs = u.searchParams.toString()
       window.history.replaceState({}, "", u.pathname + (qs ? `?${qs}` : ""))
     }
