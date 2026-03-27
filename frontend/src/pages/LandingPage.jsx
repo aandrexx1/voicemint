@@ -5,6 +5,7 @@ import { Navbar } from "../components/ui/mini-navbar"
 import { FAQSection } from "@/components/ui/faqsection"
 import { Footer } from "@/components/ui/footer-section"
 import axios from "axios"
+import { safeSetItem } from "../lib/safe-storage"
 import { PricingSection } from "@/components/ui/pricing"
 
 const API = "https://voicemint-backend.onrender.com"
@@ -23,7 +24,7 @@ export default function LandingPage({
 
   const changeLang = (lang) => {
     i18n.changeLanguage(lang)
-    localStorage.setItem("lang", lang)
+    safeSetItem("lang", lang)
   }
 
   const words = t("words", { returnObjects: true })

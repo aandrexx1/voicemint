@@ -1,5 +1,6 @@
 import i18n from "i18next"
 import { initReactI18next } from "react-i18next"
+import { safeGetItem } from "./lib/safe-storage"
 
 const resources = {
   it: {
@@ -524,7 +525,7 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: localStorage.getItem("lang") || "it",
+    lng: safeGetItem("lang", "it") || "it",
     fallbackLng: "it",
     interpolation: { escapeValue: false }
   })

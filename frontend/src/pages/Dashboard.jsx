@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react"
 import { Mic, Download, LogOut, FileText, User, X, ChevronDown } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import axios from "axios"
+import { safeGetItem, safeSetItem } from "../lib/safe-storage"
 
 const API = "https://voicemint-backend.onrender.com"
 
@@ -105,10 +106,10 @@ export default function Dashboard({
         <div className="flex items-center gap-4">
           {/* Lang switcher */}
           <div className="flex items-center gap-2 text-sm">
-            <button onClick={() => { setLang("it"); localStorage.setItem("lang", "it") }}
+            <button onClick={() => { setLang("it"); safeSetItem("lang", "it") }}
               className={lang === "it" ? "text-white" : "text-white/30 hover:text-white transition-all"}>IT</button>
             <span className="text-white/20">|</span>
-            <button onClick={() => { setLang("en"); localStorage.setItem("lang", "en") }}
+            <button onClick={() => { setLang("en"); safeSetItem("lang", "en") }}
               className={lang === "en" ? "text-white" : "text-white/30 hover:text-white transition-all"}>EN</button>
           </div>
 

@@ -13,6 +13,7 @@ import ContactSalesPage from "./pages/ContactSalesPage"
 import { SiteParticlesBackground } from "./components/ui/site-particles-background"
 import { CookieConsentBanner } from "./components/cookie-consent-banner"
 import { readCookieConsent, writeCookieConsent } from "./lib/cookie-consent"
+import { safeGetItem, safeRemoveItem, safeSetItem } from "./lib/safe-storage"
 import axios from "axios"
 
 const API = "https://voicemint-backend.onrender.com"
@@ -58,7 +59,7 @@ function App() {
         })
         .catch(() => {
           setToken(null)
-          localStorage.removeItem("token")
+          safeRemoveItem("token")
         })
     }
   }, [token])
@@ -71,7 +72,7 @@ function App() {
 
   const handleSetToken = (t) => {
     setToken(t)
-    localStorage.setItem("token", t)
+    safeSetItem("token", t)
     window.history.pushState({}, "", "/")
     setPage("landing")
   }
@@ -79,7 +80,7 @@ function App() {
   const handleLogout = () => {
     setToken(null)
     setUser(null)
-    localStorage.removeItem("token")
+    safeRemoveItem("token")
     setPage("landing")
   }
 

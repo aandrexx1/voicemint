@@ -1,13 +1,15 @@
+import { safeGetItem, safeRemoveItem, safeSetItem } from "./safe-storage"
+
 const STORAGE_KEY = "cookie_consent"
 const LEGACY_KEY = "cookie_accepted"
 
 /** @returns {null | "accepted" | "rejected"} */
 export function readCookieConsent() {
-  const v = localStorage.getItem(STORAGE_KEY)
+  const v = safeGetItem(STORAGE_KEY)
   if (v === "accepted" || v === "rejected") return v
-  if (localStorage.getItem(LEGACY_KEY) === "true") {
-    localStorage.setItem(STORAGE_KEY, "accepted")
-    localStorage.removeItem(LEGACY_KEY)
+  if (safeGetItem(LEGACY_KEY) === "true") {
+    safeSetItem(STORAGE_KEY, "accepted")
+    safeRemoveItem(LEGACY_KEY)
     return "accepted"
   }
   return null
@@ -15,6 +17,6 @@ export function readCookieConsent() {
 
 /** @param {"accepted" | "rejected"} value */
 export function writeCookieConsent(value) {
-  localStorage.setItem(STORAGE_KEY, value)
-  localStorage.removeItem(LEGACY_KEY)
+  safeSetItem(STORAGE_KEY, value)
+  safeRemoveItem(LEGACY_KEY)
 }

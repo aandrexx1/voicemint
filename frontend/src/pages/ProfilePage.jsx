@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import axios from "axios"
+import { safeGetItem, safeSetItem } from "../lib/safe-storage"
 import { LogOut, Eye, EyeOff } from "lucide-react"
 
 const API = "https://voicemint-backend.onrender.com"
@@ -154,7 +155,7 @@ export default function ProfilePage({ token, user, setUser, onLogout, onGoHome }
               type="button"
               onClick={() => {
                 setLang("it")
-                localStorage.setItem("lang", "it")
+                safeSetItem("lang", "it")
               }}
               className={lang === "it" ? "text-white" : "text-white/30 hover:text-white transition-all"}
             >
@@ -165,7 +166,7 @@ export default function ProfilePage({ token, user, setUser, onLogout, onGoHome }
               type="button"
               onClick={() => {
                 setLang("en")
-                localStorage.setItem("lang", "en")
+                safeSetItem("lang", "en")
               }}
               className={lang === "en" ? "text-white" : "text-white/30 hover:text-white transition-all"}
             >
