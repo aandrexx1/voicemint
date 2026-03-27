@@ -9,12 +9,16 @@ from playwright.sync_api import sync_playwright
 import math
 import hashlib
 from pathlib import Path
+import json
+import httpx
 
 OUTPUT_DIR = "outputs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif"
 TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates" / "pptx"
+TEMPLATES_CACHE_DIR = Path(__file__).resolve().parents[1] / "templates" / ".cache"
+TEMPLATES_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 def _valid_template_path(p: Path) -> bool:
     if p.suffix.lower() != ".pptx":
@@ -30,8 +34,69 @@ def _discover_templates():
         return []
     return sorted([p for p in TEMPLATES_DIR.rglob("*.pptx") if _valid_template_path(p)])
 
+def _safe_template_filename(name: str) -> str:
+    cleaned = "".join(ch for ch in (name or "template") if ch.isalnum() or ch in ("-", "_", "."))
+    if not cleaned.lower().endswith(".pptx"):
+        cleaned += ".pptx"
+    return cleaned or "template.pptx"
+
+def _download_remote_template(url: str, template_id: str) -> Path | None:
+    if not url:
+        return None
+    try:
+        ext = ".pptx" if not url.lower().endswith(".pptx") else ""
+        local_name = _safe_template_filename(f"{template_id}{ext}")
+        local_path = TEMPLATES_CACHE_DIR / local_name
+        if local_path.exists() and local_path.stat().st_size > 0:
+            return local_path
+        with httpx.Client(timeout=30.0, follow_redirects=True) as client:
+            r = client.get(url)
+            r.raise_for_status()
+            local_path.write_bytes(r.content)
+        return local_path if local_path.stat().st_size > 0 else None
+    except Exception as e:
+        print(f"remote template download failed ({template_id}): {e}")
+        return None
+
+def _discover_remote_templates():
+    """
+    Legge un manifest JSON remoto (es. Cloudflare R2 public URL) con formato:
+    { "templates": [ { "id": "boxvie", "url": "https://.../boxvie.pptx" }, ... ] }
+    oppure lista diretta [{...}, {...}]
+    """
+    manifest_url = os.getenv("TEMPLATE_MANIFEST_URL", "").strip()
+    if not manifest_url:
+        return []
+    try:
+        with httpx.Client(timeout=20.0, follow_redirects=True) as client:
+            r = client.get(manifest_url)
+            r.raise_for_status()
+            payload = r.json()
+    except Exception as e:
+        print(f"template manifest fetch failed: {e}")
+        return []
+
+    items = payload.get("templates", []) if isinstance(payload, dict) else payload
+    out = []
+    if not isinstance(items, list):
+        return out
+    for i, item in enumerate(items):
+        if not isinstance(item, dict):
+            continue
+        tid = str(item.get("id") or f"tpl_{i}")
+        url = str(item.get("url") or "").strip()
+        if not url:
+            continue
+        p = _download_remote_template(url, tid)
+        if p and _valid_template_path(p):
+            out.append(p)
+    return out
+
 def _pick_template(data: dict):
-    templates = _discover_templates()
+    # Priorità: Cloudflare/R2 manifest remoto, poi fallback ai template locali
+    templates = _discover_remote_templates()
+    if not templates:
+        templates = _discover_templates()
     if not templates:
         return None
     seed = (data.get("title") or "") + "|" + (data.get("subtitle") or "")
