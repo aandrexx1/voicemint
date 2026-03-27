@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { HeroWave } from "../components/ui/ai-input-hero"
 import { Navbar } from "../components/ui/mini-navbar"
@@ -41,58 +42,60 @@ export default function LandingPage({
   const howItWorksBullets = t("how_it_works_bullets", { returnObjects: true })
   const howBullets = Array.isArray(howItWorksBullets) ? howItWorksBullets : []
 
-  const pricingPlans = [
-    {
-      name: "Starter",
-      checkoutPlan: "starter",
-      price: "2.99",
-      yearlyPrice: "28",
-      period: "month",
-      features: [
-        "Up to 15 presentations / month",
-        "Standard PowerPoint Generation",
-        "Standard Templates",
-        "Export to PPT",
-        "With Voicemint watermark",
-      ],
-      description: "Perfect for studends and occasional creators.",
-      buttonText: "Start Free Trial",
-      href: "#",
-    },
-    {
-      name: "Professional",
-      checkoutPlan: "professional",
-      price: "4.99",
-      yearlyPrice: "47.99",
-      period: "month",
-      features: [
-        "Unlimited presentations",
-        "Advanced AI Engine (Faster & Smarter)",
-        "Premium Templates & Custom Branding",
-        "White-label (No watermark)",
-        "Priority support",
-      ],
-      description: "Ideal for consultants, marketers, and professionals.",
-      buttonText: "Get Started",
-      href: "#",
-      isPopular: true,
-    },
-    {
-      name: "Enterprise",
-      price: "Custom",
-      yearlyPrice: "Custom",
-      period: "month",
-      features: [
-        "Everything in Professional",
-        "Collaborative Team Workspaces",
-        "Custom AI style & templates integration",
-        "SSO Authentication & Advanced security",
-      ],
-      description: "Tailored solutions for large teams and organizations.",
-      buttonText: "Contact Sales",
-      contactPath: "/contact-sales",
-    },
-  ]
+  const pricingPlans = useMemo(() => {
+    const sf = t("pricing_starter_features", { returnObjects: true })
+    const pf = t("pricing_pro_features", { returnObjects: true })
+    const ef = t("pricing_enterprise_features", { returnObjects: true })
+    return [
+      {
+        name: t("pricing_plan_starter_name"),
+        checkoutPlan: "starter",
+        price: "2.99",
+        yearlyPrice: "28",
+        period: "month",
+        features: Array.isArray(sf) ? sf : [],
+        description: t("pricing_plan_starter_desc"),
+        buttonText: t("pricing_plan_starter_cta"),
+        href: "#",
+      },
+      {
+        name: t("pricing_plan_pro_name"),
+        checkoutPlan: "professional",
+        price: "4.99",
+        yearlyPrice: "47.99",
+        period: "month",
+        features: Array.isArray(pf) ? pf : [],
+        description: t("pricing_plan_pro_desc"),
+        buttonText: t("pricing_plan_pro_cta"),
+        href: "#",
+        isPopular: true,
+      },
+      {
+        name: t("pricing_plan_enterprise_name"),
+        price: "Custom",
+        yearlyPrice: "Custom",
+        period: "month",
+        features: Array.isArray(ef) ? ef : [],
+        description: t("pricing_plan_enterprise_desc"),
+        buttonText: t("pricing_plan_enterprise_cta"),
+        contactPath: "/contact-sales",
+      },
+    ]
+  }, [t, i18n.language])
+
+  const pricingUiLabels = useMemo(
+    () => ({
+      monthly: t("pricing_toggle_monthly"),
+      annual: t("pricing_toggle_annual"),
+      saveAnnual: t("pricing_save_annual"),
+      billedMonthly: t("pricing_billed_monthly"),
+      billedAnnually: t("pricing_billed_annually"),
+      mostPopular: t("pricing_most_popular"),
+      priceCustom: t("pricing_price_custom"),
+      periodMonth: t("pricing_period_month"),
+    }),
+    [t, i18n.language]
+  )
 
   const handlePricingPlan = async (plan, { interval }) => {
     if (plan.contactPath) {
@@ -113,11 +116,7 @@ export default function LandingPage({
       )
       if (res.data?.url) window.location.href = res.data.url
     } catch (e) {
-      alert(
-        i18n.language === "it"
-          ? "Impossibile avviare il pagamento. Riprova o controlla la configurazione Stripe."
-          : "Could not start checkout. Try again or verify Stripe configuration."
-      )
+      alert(t("alert_checkout_error"))
     }
   }
 
@@ -132,6 +131,8 @@ export default function LandingPage({
           howItWorks: t("nav_how_it_works"),
           faq: t("nav_faq"),
           profile: t("nav_profile"),
+          login: t("footer_link_login"),
+          signup: t("free_cta"),
         }}
       />
       <div className="relative z-10">
@@ -139,7 +140,7 @@ export default function LandingPage({
           title={heroTitle}
           subtitle={t("hero_desc")}
           placeholder={i18n.language === "it" ? "Descrivi l'argomento..." : "Describe your topic..."}
-          buttonText={i18n.language === "it" ? "Genera" : "Generate"}
+          buttonText={t("hero_generate")}
           onPromptSubmit={async (prompt) => {
             const text = (prompt || "").trim()
             if (!text) return
@@ -160,7 +161,7 @@ export default function LandingPage({
               a.click()
               URL.revokeObjectURL(url)
             } catch (e) {
-              alert(i18n.language === "it" ? "Errore nella generazione" : "Generation error")
+              alert(t("alert_generation_error"))
             }
           }}
         />
@@ -201,12 +202,9 @@ export default function LandingPage({
         <section id="pricing" className="scroll-mt-28">
           <PricingSection
             plans={pricingPlans}
-            title={i18n.language === "it" ? "Trova il piano perfetto" : "Find the Perfect Plan"}
-            description={
-              i18n.language === "it"
-                ? "Scegli la soluzione ideale per le tue esigenze e inizia oggi."
-                : "Select the ideal package for your needs and start building today."
-            }
+            title={t("pricing_landing_title")}
+            description={t("pricing_landing_desc")}
+            uiLabels={pricingUiLabels}
             onPlanButtonClick={handlePricingPlan}
           />
         </section>

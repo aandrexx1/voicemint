@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 
 const API = "https://voicemint-backend.onrender.com";
 
@@ -14,21 +15,23 @@ export function HeroWave({
   buttonText = "Genera",
   onPromptSubmit,
 }) {
+  const { t, i18n } = useTranslation();
+  const basePlaceholder = t("hero_animated_base");
+  const suggestions = useMemo(() => {
+    const arr = t("hero_suggestions", { returnObjects: true });
+    return Array.isArray(arr) ? arr : [];
+  }, [t, i18n.language]);
+
   const [prompt, setPrompt] = useState("");
   const [recording, setRecording] = useState(false);
   const recorderRef = useRef(null);
+  const suggestionsRef = useRef(suggestions);
 
-  const basePlaceholder = "Riassumi ";
-  const suggestionsRef = useRef([
-    " l'esame di diritto privato",
-    " il capitolo di anatomia",
-    " gli appunti di marketing",
-    " la lezione di storia medievale",
-    " l'introduzione alla fisica quantistica",
-    " il ripasso di letteratura",
-  ]);
+  useEffect(() => {
+    suggestionsRef.current = suggestions;
+  }, [suggestions]);
 
-  const [animatedPlaceholder, setAnimatedPlaceholder] = useState(basePlaceholder);
+  const [animatedPlaceholder, setAnimatedPlaceholder] = useState(() => basePlaceholder);
   const typingStateRef = useRef({
     suggestionIndex: 0,
     charIndex: 0,
@@ -38,7 +41,13 @@ export function HeroWave({
   const timersRef = useRef([]);
 
   useEffect(() => {
-    typingStateRef.current.running = true;
+    typingStateRef.current = {
+      suggestionIndex: 0,
+      charIndex: 0,
+      deleting: false,
+      running: true,
+    };
+    setAnimatedPlaceholder(basePlaceholder);
     const typeSpeed = 70;
     const deleteSpeed = 40;
     const pauseAtEnd = 1200;
@@ -64,7 +73,12 @@ export function HeroWave({
 
       const state = typingStateRef.current;
       const suggestions = suggestionsRef.current;
-      const current = suggestions[state.suggestionIndex % suggestions.length] || "";
+      const len = suggestions.length;
+      if (!len) {
+        setAnimatedPlaceholder(basePlaceholder);
+        return;
+      }
+      const current = suggestions[state.suggestionIndex % len] || "";
 
       if (!state.deleting) {
         const nextIndex = state.charIndex + 1;
@@ -100,7 +114,7 @@ export function HeroWave({
       typingStateRef.current.running = false;
       clearTimers();
     };
-  }, [prompt]);
+  }, [prompt, basePlaceholder, i18n.language, suggestions]);
 
   const toggleRecording = async () => {
     if (recording) {

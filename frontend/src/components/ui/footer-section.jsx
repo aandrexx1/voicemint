@@ -6,9 +6,9 @@ import { useTranslation } from "react-i18next";
 
 const footerLinks = {
   product: [
-    { title: "Features", href: "pricing" },
-    { title: "Pricing", href: "pricing" },
-    { title: "Integration", href: "pricing" },
+    { titleKey: "footer_product_features", href: "pricing" },
+    { titleKey: "footer_product_pricing", href: "pricing" },
+    { titleKey: "footer_product_integration", href: "pricing" },
   ],
   social: [
     { title: "Facebook", href: "#", icon: FacebookIcon },
@@ -54,16 +54,16 @@ export function Footer({ onLogin, onOpenTerms, onOpenPrivacy, lang, onChangeLang
         <div className="mt-6 grid grid-cols-2 gap-8 md:grid-cols-3 xl:col-span-2 xl:mt-0">
           <AnimatedContainer delay={0.2}>
             <div>
-              <h3 className="text-xs uppercase tracking-[0.18em] text-white/50">Product</h3>
+              <h3 className="text-xs uppercase tracking-[0.18em] text-white/50">{t("footer_column_product")}</h3>
               <ul className="mt-4 space-y-2 text-sm text-white/65">
                 {footerLinks.product.map((link) => (
-                  <li key={link.title}>
+                  <li key={link.titleKey}>
                     <button
                       type="button"
                       onClick={() => scrollToId(link.href)}
                       className="inline-flex items-center transition-colors hover:text-white"
                     >
-                      {link.title}
+                      {t(link.titleKey)}
                     </button>
                   </li>
                 ))}
@@ -73,7 +73,7 @@ export function Footer({ onLogin, onOpenTerms, onOpenPrivacy, lang, onChangeLang
 
           <AnimatedContainer delay={0.3}>
             <div>
-              <h3 className="text-xs uppercase tracking-[0.18em] text-white/50">Social Links</h3>
+              <h3 className="text-xs uppercase tracking-[0.18em] text-white/50">{t("footer_column_social")}</h3>
               <ul className="mt-4 space-y-2 text-sm text-white/65">
                 {footerLinks.social.map((link) => (
                   <li key={link.title}>

@@ -81,10 +81,22 @@ const Button = React.forwardRef(({ className, variant, size, asChild = false, ..
 });
 Button.displayName = "Button";
 
+const DEFAULT_PRICING_UI = {
+  monthly: "Monthly",
+  annual: "Annual",
+  saveAnnual: "(Save 20%)",
+  billedMonthly: "Billed Monthly",
+  billedAnnually: "Billed Annually",
+  mostPopular: "Most Popular",
+  priceCustom: "Custom",
+  periodMonth: "month",
+};
+
 // Context for state management
 const PricingContext = createContext({
   isMonthly: true,
   setIsMonthly: () => {},
+  uiLabels: DEFAULT_PRICING_UI,
 });
 
 // Main PricingSection Component
@@ -93,11 +105,13 @@ export function PricingSection({
   title = "Simple, Transparent Pricing",
   description = "Choose the plan that's right for you. All plans include our core features and support.",
   onPlanButtonClick,
+  uiLabels,
 }) {
   const [isMonthly, setIsMonthly] = useState(true);
+  const mergedUi = { ...DEFAULT_PRICING_UI, ...uiLabels };
 
   return (
-    <PricingContext.Provider value={{ isMonthly, setIsMonthly }}>
+    <PricingContext.Provider value={{ isMonthly, setIsMonthly, uiLabels: mergedUi }}>
       <div className="relative w-full bg-transparent py-20 sm:py-24">
         <div className="relative z-10 container mx-auto px-4 md:px-6">
           <div className="max-w-3xl mx-auto text-center space-y-4 mb-12">
@@ -128,7 +142,7 @@ export function PricingSection({
 
 // Pricing Toggle Component
 function PricingToggle() {
-  const { isMonthly, setIsMonthly } = useContext(PricingContext);
+  const { isMonthly, setIsMonthly, uiLabels } = useContext(PricingContext);
   const confettiRef = useRef(null);
   const monthlyBtnRef = useRef(null);
   const annualBtnRef = useRef(null);
@@ -191,7 +205,7 @@ function PricingToggle() {
               ? "text-primary-foreground"
               : "text-muted-foreground hover:text-foreground"
           )}>
-          Monthly
+          {uiLabels.monthly}
         </button>
         <button
           ref={annualBtnRef}
@@ -202,11 +216,11 @@ function PricingToggle() {
               ? "text-primary-foreground"
               : "text-muted-foreground hover:text-foreground"
           )}>
-          Annual
+          {uiLabels.annual}
           <span
             className={cn("hidden sm:inline", !isMonthly ? "text-primary-foreground/80" : "")}>
             {" "}
-            (Save 20%)
+            {uiLabels.saveAnnual}
           </span>
         </button>
       </div>
@@ -261,7 +275,7 @@ function PricingCard({
           <div className="bg-primary py-1.5 px-4 rounded-full flex items-center gap-1.5">
             <LucideStar className="text-primary-foreground h-4 w-4 fill-current" />
             <span className="text-primary-foreground text-sm font-semibold">
-              Most Popular
+              {uiLabels.mostPopular}
             </span>
           </div>
         </div>
@@ -274,7 +288,7 @@ function PricingCard({
         <div className="mt-6 flex items-baseline justify-center gap-x-1 flex-wrap">
           {custom ? (
             <span className="text-5xl font-bold tracking-tight text-foreground">
-              Custom
+              {uiLabels.priceCustom}
             </span>
           ) : (
             <>
@@ -290,14 +304,14 @@ function PricingCard({
                 />
               </span>
               <span className="text-sm font-semibold leading-6 tracking-wide text-muted-foreground">
-                / {plan.period}
+                / {uiLabels.periodMonth}
               </span>
             </>
           )}
         </div>
         {!custom && (
           <p className="text-xs text-muted-foreground mt-2">
-            {isMonthly ? "Billed Monthly" : "Billed Annually"}
+            {isMonthly ? uiLabels.billedMonthly : uiLabels.billedAnnually}
           </p>
         )}
 
