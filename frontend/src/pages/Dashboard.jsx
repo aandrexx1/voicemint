@@ -6,6 +6,17 @@ import { safeGetItem, safeSetItem } from "../lib/safe-storage"
 
 const API = import.meta.env.VITE_API_URL || "https://voicemint-backend.onrender.com"
 
+function filenameFromContentDisposition(cd) {
+  if (!cd) return null
+  const m = /filename\*?=(?:UTF-8''|\"?)([^\";]+)/i.exec(cd)
+  if (!m) return null
+  try {
+    return decodeURIComponent(m[1])
+  } catch {
+    return m[1]
+  }
+}
+
 export default function Dashboard({
   token,
   user,
@@ -81,7 +92,7 @@ export default function Dashboard({
       const url = URL.createObjectURL(res.data)
       const a = document.createElement("a")
       a.href = url
-      a.download = "voicemint.pptx"
+      a.download = filenameFromContentDisposition(res.headers?.["content-disposition"]) || "voicemint.pptx"
       a.click()
       setConversions(prev => [{ title: transcription.slice(0, 50) + "...", type: outputType, url }, ...prev])
     } catch {

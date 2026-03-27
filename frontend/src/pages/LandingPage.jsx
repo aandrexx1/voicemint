@@ -10,6 +10,17 @@ import { PricingSection } from "@/components/ui/pricing"
 
 const API = import.meta.env.VITE_API_URL || "https://voicemint-backend.onrender.com"
 
+function filenameFromContentDisposition(cd) {
+  if (!cd) return null
+  const m = /filename\*?=(?:UTF-8''|\"?)([^\";]+)/i.exec(cd)
+  if (!m) return null
+  try {
+    return decodeURIComponent(m[1])
+  } catch {
+    return m[1]
+  }
+}
+
 export default function LandingPage({
   token,
   user,
@@ -159,7 +170,7 @@ export default function LandingPage({
               const url = URL.createObjectURL(res.data)
               const a = document.createElement("a")
               a.href = url
-              a.download = "voicemint.pptx"
+              a.download = filenameFromContentDisposition(res.headers?.["content-disposition"]) || "voicemint.pptx"
               a.click()
               URL.revokeObjectURL(url)
             } catch (e) {

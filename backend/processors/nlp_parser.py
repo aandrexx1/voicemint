@@ -1,26 +1,28 @@
 import os
 from groq import Groq
 import json
+import re
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def parse_transcription(transcription: str) -> dict:
-    # Conta le sezioni per guidare Llama
-    lines = [l.strip() for l in transcription.split('\n') if l.strip()]
-    estimated_sections = max(3, min(8, len([l for l in lines if len(l) > 30])))
+    text_in = (transcription or "").strip()
+    words = re.findall(r"\w+", text_in)
+    wc = len(words)
+    # Stima complessità: più parole → più slide. Clamp per evitare output enormi.
+    target_content_slides = max(4, min(12, (wc // 120) + 4))
 
     prompt = f"""
-Analizza questo testo e crea una presentazione professionale con MOLTE slide tematiche.
+Analizza questo testo e crea una presentazione professionale VARIA e specifica per l'argomento.
 
-Testo: "{transcription}"
+Testo: "{text_in}"
 
 REGOLE FONDAMENTALI:
-- Il testo fornito ha circa {estimated_sections} sezioni/argomenti distinti
-- Crea ESATTAMENTE {estimated_sections} slide intermedie, una per ogni sezione
-- Ogni slide copre UN solo argomento specifico del testo
-- Tipo "bullets" per elenchi di punti concreti, "text" per concetti narrativi
-- MAI due slide bullets consecutive sullo stesso argomento
-- Usa TUTTO il contenuto, non saltare sezioni
+- Crea circa {target_content_slides} slide di contenuto (oltre a titolo e riepilogo). Se il testo è molto breve, fanne almeno 4; se è lungo, fino a 12.
+- Ogni slide deve introdurre un punto diverso (no ripetizioni).
+- Alterna i tipi: usa "bullets" quando ha senso (3-6 bullet concreti), e "text" per spiegazioni brevi e chiare (max 3-5 frasi).
+- Non usare titoli generici (tipo "Introduzione", "Conclusione") a meno che il testo lo richieda: rendili specifici.
+- Il titolo principale deve riflettere davvero l'argomento.
 
 Scegli il tema visivo più adatto:
 - Business/finance → dark blu navy, accenti oro
@@ -45,6 +47,7 @@ Rispondi SOLO con JSON valido, zero testo extra:
       "content": "Testo narrativo della slide"
     }}
   ],
+  "summary_title": "Riepilogo",
   "summary": "Riepilogo in 2-3 frasi.",
   "theme": {{
     "style": "dark",
@@ -66,4 +69,12 @@ Rispondi SOLO con JSON valido, zero testo extra:
     
     text = response.choices[0].message.content
     text = text.replace("```json", "").replace("```", "").strip()
-    return json.loads(text)
+    # Estrai JSON robustamente (a volte il modello aggiunge testo)
+    try:
+        return json.loads(text)
+    except Exception:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            return json.loads(text[start : end + 1])
+        raise
