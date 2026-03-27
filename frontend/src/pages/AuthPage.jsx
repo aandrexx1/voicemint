@@ -102,6 +102,23 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin, onOp
     }
   }
 
+  const startOAuth = async (provider) => {
+    setError("")
+    setOauthLoading(provider)
+    try {
+      const ok = await waitForApiReady(API)
+      if (!ok) {
+        setError(t("auth_oauth_server_timeout"))
+        setOauthLoading(null)
+        return
+      }
+      window.location.href = `${API}/auth/${provider}/login`
+    } catch {
+      setError(t("auth_error_connection"))
+      setOauthLoading(null)
+    }
+  }
+
   return (
     <MinimalAuthPage
       onBack={onBack}
