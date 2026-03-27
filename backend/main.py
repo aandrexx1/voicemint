@@ -398,7 +398,7 @@ def generate(
     return FileResponse(
         file_path,
         # generate_ppt() salva come .pptx: qui usiamo l'estensione corretta
-        filename=f"voicemint_{data['title'][:20]}.pptx",
+        filename=f"voicemint_{str(parsed.get('title') or 'presentazione')[:20]}.pptx",
         media_type="application/octet-stream"
     )
 
