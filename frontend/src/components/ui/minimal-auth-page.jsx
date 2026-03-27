@@ -21,7 +21,8 @@ export function MinimalAuthPage({
   googleLabel = "Continue with Google",
   githubLabel = "Continue with GitHub",
   orEmailLabel = "or with email",
-  socialDisabledTitle = "",
+  onGoogleClick,
+  onGithubClick,
   children,
   footer,
 }) {
@@ -52,8 +53,8 @@ export function MinimalAuthPage({
               type="button"
               size="lg"
               className="w-full"
-              disabled
-              title={socialDisabledTitle}
+              disabled={!onGoogleClick}
+              onClick={onGoogleClick}
             >
               <GoogleIcon className="me-2 size-4" />
               {googleLabel}
@@ -63,8 +64,8 @@ export function MinimalAuthPage({
               size="lg"
               variant="outline"
               className="w-full"
-              disabled
-              title={socialDisabledTitle}
+              disabled={!onGithubClick}
+              onClick={onGithubClick}
             >
               <GithubIcon strokeWidth={2.5} className="me-2 size-4" />
               {githubLabel}

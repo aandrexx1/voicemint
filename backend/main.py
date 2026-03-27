@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from processors.nlp_parser import parse_transcription
 from processors.document_gen import generate_ppt
 from fastapi.responses import FileResponse
-from models import create_tables, get_db, User, Conversion, Waitlist, SessionLocal
+from models import create_tables, migrate_oauth_columns, get_db, User, Conversion, Waitlist, SessionLocal
 import resend
 import stripe
 from groq import Groq
@@ -21,6 +21,8 @@ groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 from datetime import datetime, timedelta
 
 from auth import SECRET_KEY, ALGORITHM
+from starlette.middleware.sessions import SessionMiddleware
+from oauth_routes import router as oauth_router
 
 resend.api_key = os.getenv("RESEND_API_KEY")
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -32,6 +34,10 @@ app = FastAPI(title="VoiceMint API")
 @app.on_event("startup")
 def startup():
     create_tables()
+    migrate_oauth_columns()
+
+SESSION_SECRET = os.getenv("SESSION_SECRET", SECRET_KEY)
+app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
 
 app.add_middleware(
     CORSMiddleware,
@@ -40,6 +46,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(oauth_router, prefix="/auth", tags=["oauth"])
 
 @app.get("/")
 def root():
@@ -131,7 +139,9 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
 def login(data: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email).first()
     
-    if not user or not verify_password(data.password, user.hashed_password):
+    if not user or not user.hashed_password or not verify_password(
+        data.password, user.hashed_password
+    ):
         raise HTTPException(status_code=401, detail="Credenziali non valide")
     
     token = create_token({"sub": user.email})

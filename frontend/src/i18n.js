@@ -259,6 +259,19 @@ const resources = {
       auth_terms_and: "e la",
       auth_privacy_link: "Privacy Policy",
       auth_error_connection: "Errore di connessione",
+      auth_oauth_generic: "Accesso non riuscito. Riprova.",
+      auth_oauth_not_configured: "Accesso social non configurato sul server.",
+      auth_oauth_google_denied: "Accesso Google annullato.",
+      auth_oauth_google_profile: "Impossibile leggere il profilo Google.",
+      auth_oauth_google_email: "Google non ha fornito l'email.",
+      auth_oauth_google_user: "Impossibile completare la registrazione.",
+      auth_oauth_github_denied: "Accesso GitHub annullato.",
+      auth_oauth_github_token: "Risposta da GitHub non valida.",
+      auth_oauth_github_profile: "Impossibile leggere il profilo GitHub.",
+      auth_oauth_github_id: "Profilo GitHub non valido.",
+      auth_oauth_github_no_email:
+        "GitHub non ha fornito un'email. Aggiungi un'email pubblica nel profilo GitHub o consenti l'accesso alle email.",
+      auth_oauth_github_user: "Impossibile completare la registrazione.",
     }
   },
   en: {
@@ -517,6 +530,19 @@ const resources = {
       auth_terms_and: "and",
       auth_privacy_link: "Privacy Policy",
       auth_error_connection: "Connection error",
+      auth_oauth_generic: "Sign-in failed. Please try again.",
+      auth_oauth_not_configured: "Social sign-in is not configured on the server.",
+      auth_oauth_google_denied: "Google sign-in was cancelled.",
+      auth_oauth_google_profile: "Could not read your Google profile.",
+      auth_oauth_google_email: "Google did not provide an email address.",
+      auth_oauth_google_user: "Could not complete registration.",
+      auth_oauth_github_denied: "GitHub sign-in was cancelled.",
+      auth_oauth_github_token: "Invalid response from GitHub.",
+      auth_oauth_github_profile: "Could not read your GitHub profile.",
+      auth_oauth_github_id: "Invalid GitHub profile.",
+      auth_oauth_github_no_email:
+        "GitHub did not provide an email. Add a public email on GitHub or allow email access.",
+      auth_oauth_github_user: "Could not complete registration.",
     }
   }
 }

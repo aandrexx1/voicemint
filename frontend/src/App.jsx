@@ -16,7 +16,7 @@ import { readCookieConsent, writeCookieConsent } from "./lib/cookie-consent"
 import { safeGetItem, safeRemoveItem, safeSetItem } from "./lib/safe-storage"
 import axios from "axios"
 
-const API = "https://voicemint-backend.onrender.com"
+const API = import.meta.env.VITE_API_URL || "https://voicemint-backend.onrender.com"
 
 function getInitialPage() {
   const path = window.location.pathname.replace(/\/$/, "") || "/"
@@ -45,8 +45,27 @@ function App() {
   const [page, setPage] = useState(getInitialPage)
   const [legalReturn, setLegalReturn] = useState("landing")
   const [cookieConsent, setCookieConsent] = useState(readCookieConsent)
-  const [token, setToken] = useState(localStorage.getItem("token") || null)
+  const [token, setToken] = useState(() => safeGetItem("token"))
   const [user, setUser] = useState(null)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const ot = params.get("oauth_token")
+    const oe = params.get("oauth_error")
+    if (oe) sessionStorage.setItem("oauth_error", oe)
+    if (ot) {
+      safeSetItem("token", ot)
+      setToken(ot)
+      setUser(null)
+    }
+    if (ot || oe) {
+      const u = new URL(window.location.href)
+      u.searchParams.delete("oauth_token")
+      u.searchParams.delete("oauth_error")
+      const qs = u.searchParams.toString()
+      window.history.replaceState({}, "", u.pathname + (qs ? `?${qs}` : ""))
+    }
+  }, [])
 
   useEffect(() => {
     if (token && !user) {

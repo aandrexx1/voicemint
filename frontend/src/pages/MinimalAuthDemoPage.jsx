@@ -12,7 +12,6 @@ export default function MinimalAuthDemoPage() {
       googleLabel="Continue with Google"
       githubLabel="Continue with GitHub"
       orEmailLabel="or with email"
-      socialDisabledTitle="Coming soon"
       footer={
         <p>
           By continuing you agree to our{" "}

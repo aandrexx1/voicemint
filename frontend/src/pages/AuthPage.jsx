@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import axios from "axios"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
@@ -19,6 +19,13 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin, onOp
   const [forgotMessage, setForgotMessage] = useState("")
 
   const handle = (e) => setForm({ ...form, [e.target.name]: e.target.value })
+
+  useEffect(() => {
+    const code = sessionStorage.getItem("oauth_error")
+    if (!code) return
+    sessionStorage.removeItem("oauth_error")
+    setError(t(`auth_oauth_${code}`, { defaultValue: t("auth_oauth_generic") }))
+  }, [t])
 
   const submit = async () => {
     setLoading(true)
@@ -102,7 +109,12 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin, onOp
       googleLabel={t("auth_google")}
       githubLabel={t("auth_github")}
       orEmailLabel={t("auth_or_email")}
-      socialDisabledTitle={t("auth_social_soon")}
+      onGoogleClick={() => {
+        window.location.href = `${API}/auth/google/login`
+      }}
+      onGithubClick={() => {
+        window.location.href = `${API}/auth/github/login`
+      }}
       footer={footer}
     >
       <div className="space-y-3">

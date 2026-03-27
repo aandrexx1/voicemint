@@ -34,6 +34,8 @@ class User(Base):
     pro_until = Column(DateTime, nullable=True)  # per utenti 51-100
     lifetime_pro = Column(Boolean, default=False)  # per primi 50
     registration_number = Column(Integer, nullable=True)  # numero progressivo
+    google_sub = Column(String, unique=True, nullable=True, index=True)
+    github_id = Column(String, unique=True, nullable=True, index=True)
 
 class Conversion(Base):
     __tablename__ = "conversions"
@@ -56,6 +58,29 @@ class Waitlist(Base):
 
 def create_tables():
     Base.metadata.create_all(bind=engine)
+
+
+def migrate_oauth_columns():
+    """Aggiunge colonne OAuth su DB già esistenti (SQLite / PostgreSQL)."""
+    from sqlalchemy import inspect, text
+
+    try:
+        insp = inspect(engine)
+        if not insp.has_table("users"):
+            return
+        names = {c["name"] for c in insp.get_columns("users")}
+    except Exception as e:
+        print(f"migrate_oauth_columns inspect: {e}")
+        return
+
+    try:
+        with engine.begin() as conn:
+            if "google_sub" not in names:
+                conn.execute(text("ALTER TABLE users ADD COLUMN google_sub VARCHAR"))
+            if "github_id" not in names:
+                conn.execute(text("ALTER TABLE users ADD COLUMN github_id VARCHAR"))
+    except Exception as e:
+        print(f"migrate_oauth_columns alter: {e}")
 
 def get_db():
     db = SessionLocal()
