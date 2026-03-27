@@ -101,15 +101,26 @@ def _clear_auth_cookie(response: Response):
 
 @app.middleware("http")
 async def csrf_protect(request: Request, call_next):
-    # Protegge solo quando si usa cookie auth (nessun Bearer)
+    # Protegge solo quando si usa cookie auth (nessun Bearer).
+    # In setup cross-domain (frontend su voicemint.it, backend su onrender.com)
+    # JS non può leggere cookie backend per inviare X-CSRF-Token: usiamo allowlist Origin/Referer.
     if request.method in ("POST", "PUT", "PATCH", "DELETE"):
         has_cookie = bool(request.cookies.get("vm_token"))
         has_bearer = bool(request.headers.get("authorization"))
         if has_cookie and not has_bearer:
-            csrf_cookie = request.cookies.get("vm_csrf")
-            csrf_header = request.headers.get("x-csrf-token")
-            if not csrf_cookie or not csrf_header or csrf_cookie != csrf_header:
-                return JSONResponse({"detail": "CSRF check failed"}, status_code=403)
+            allowed = {
+                "https://voicemint.it",
+                "https://www.voicemint.it",
+                "https://voicemint.vercel.app",
+                "http://localhost:5173",
+            }
+            origin = (request.headers.get("origin") or "").rstrip("/")
+            referer = request.headers.get("referer") or ""
+            referer_ok = any(referer.startswith(a + "/") or referer == a for a in allowed)
+            if origin and origin not in allowed:
+                return JSONResponse({"detail": "CSRF origin blocked"}, status_code=403)
+            if not origin and not referer_ok:
+                return JSONResponse({"detail": "CSRF referer blocked"}, status_code=403)
     return await call_next(request)
 
 @app.get("/")
