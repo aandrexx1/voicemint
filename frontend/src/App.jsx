@@ -18,6 +18,8 @@ import axios from "axios"
 
 const API = import.meta.env.VITE_API_URL || "https://voicemint-backend.onrender.com"
 
+axios.defaults.withCredentials = true
+
 function getInitialPage() {
   const path = window.location.pathname.replace(/\/$/, "") || "/"
   if (path === "/e5426679666b") return "admin"
@@ -55,6 +57,7 @@ function App() {
 
     const ot = searchParams.get("oauth_token") || hashParams.get("oauth_token")
     const oe = searchParams.get("oauth_error") || hashParams.get("oauth_error")
+    const oauthSuccess = hashParams.get("oauth") === "success"
     if (oe) sessionStorage.setItem("oauth_error", oe)
     if (ot) {
       safeSetItem("token", ot)
@@ -70,16 +73,22 @@ function App() {
       const qs = u.searchParams.toString()
       window.history.replaceState({}, "", u.pathname + (qs ? `?${qs}` : ""))
     }
+    if (oauthSuccess) {
+      const u = new URL(window.location.href)
+      u.hash = ""
+      window.history.replaceState({}, "", u.pathname + u.search)
+    }
   }, [])
 
   useEffect(() => {
-    if (token && !user) {
+    if (!user) {
       axios
         .get(`${API}/me`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: token && token !== "cookie" ? { Authorization: `Bearer ${token}` } : {},
         })
         .then((res) => {
           setUser(res.data)
+          if (!token) setToken("cookie")
         })
         .catch(() => {
           setToken(null)
@@ -96,7 +105,7 @@ function App() {
 
   const handleSetToken = (t) => {
     setToken(t)
-    safeSetItem("token", t)
+    // prefer cookie HttpOnly: teniamo il token solo in memoria
     window.history.pushState({}, "", "/")
     setPage("landing")
   }
@@ -105,6 +114,7 @@ function App() {
     setToken(null)
     setUser(null)
     safeRemoveItem("token")
+    axios.post(`${API}/logout`).catch(() => {})
     setPage("landing")
   }
 

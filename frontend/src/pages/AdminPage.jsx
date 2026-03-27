@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import axios from "axios"
 import { motion } from "framer-motion"
 
-const API = "https://voicemint-backend.onrender.com"
+const API = import.meta.env.VITE_API_URL || "https://voicemint-backend.onrender.com"
 const SECRET_PASSWORD = "6g@tteRitte"
 
 export default function AdminPage() {

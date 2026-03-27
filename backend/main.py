@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import html
@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from processors.nlp_parser import parse_transcription
 from processors.document_gen import generate_ppt
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from models import create_tables, migrate_oauth_columns, get_db, User, Conversion, Waitlist, SessionLocal
 import resend
 import stripe
@@ -23,6 +23,10 @@ from datetime import datetime, timedelta
 from auth import SECRET_KEY, ALGORITHM
 from starlette.middleware.sessions import SessionMiddleware
 from oauth_routes import router as oauth_router
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+import json
 
 resend.api_key = os.getenv("RESEND_API_KEY")
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -30,6 +34,10 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 app = FastAPI(title="VoiceMint API")
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.on_event("startup")
 def startup():
@@ -49,12 +57,40 @@ app.add_middleware(
 
 app.include_router(oauth_router, prefix="/auth", tags=["oauth"])
 
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), geolocation=(), microphone=()")
+    return response
+
+def _set_auth_cookie(response: Response, token: str):
+    secure = os.getenv("COOKIE_SECURE", "1") != "0"
+    samesite = os.getenv("COOKIE_SAMESITE", "lax").lower()
+    if samesite not in ("lax", "strict", "none"):
+        samesite = "lax"
+    response.set_cookie(
+        key="vm_token",
+        value=token,
+        httponly=True,
+        secure=secure,
+        samesite=samesite,
+        max_age=60 * 60 * 24 * 7,
+        path="/",
+    )
+
+def _clear_auth_cookie(response: Response):
+    response.delete_cookie(key="vm_token", path="/")
+
 @app.get("/")
 def root():
     return {"message": "VoiceMint API is running!"}
 
 @app.post("/upload-audio")
-async def upload_audio(file: UploadFile = File(...)):
+@limiter.limit("10/minute")
+async def upload_audio(request: Request, file: UploadFile = File(...)):
     # Controlla che sia un file audio
     if not file.content_type.startswith("audio/"):
         raise HTTPException(status_code=400, detail="Il file deve essere audio")
@@ -93,7 +129,8 @@ class LoginRequest(BaseModel):
 
 # --- Registrazione ---
 @app.post("/register")
-def register(data: RegisterRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def register(request: Request, data: RegisterRequest, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=400, detail="Email già registrata")
     
@@ -128,16 +165,20 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     db.refresh(user)
     
     token = create_token({"sub": user.email})
-    return {
+    payload = {
         "token": token,
         "username": user.username,
         "tier": user.tier,
         "lifetime_pro": user.lifetime_pro,
     }
+    response = JSONResponse(payload)
+    _set_auth_cookie(response, token)
+    return response
 
 # --- Login ---
 @app.post("/login")
-def login(data: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email).first()
     
     if not user or not user.hashed_password or not verify_password(
@@ -146,7 +187,16 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Credenziali non valide")
     
     token = create_token({"sub": user.email})
-    return {"token": token, "username": user.username, "tier": user.tier}
+    payload = {"token": token, "username": user.username, "tier": user.tier}
+    response = JSONResponse(payload)
+    _set_auth_cookie(response, token)
+    return response
+
+@app.post("/logout")
+def logout():
+    response = Response(content='{"ok":true}', media_type="application/json")
+    _clear_auth_cookie(response)
+    return response
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -165,7 +215,8 @@ def create_reset_token(email: str) -> str:
 
 
 @app.post("/forgot-password")
-def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def forgot_password(request: Request, data: ForgotPasswordRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email).first()
 
     # Messaggio generico per non rivelare se l'email esiste
@@ -208,7 +259,8 @@ def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
 
 
 @app.post("/reset-password")
-def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def reset_password(request: Request, data: ResetPasswordRequest, db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(data.token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
@@ -256,7 +308,9 @@ def get_me(current_user: User = Depends(get_current_user)):
 
 # --- Genera documento da testo ---
 @app.post("/generate")
+@limiter.limit("20/minute")
 def generate(
+    request: Request,
     transcription: str,
     output_type: str = "ppt",  # supported: "ppt"
     db: Session = Depends(get_db),
@@ -345,7 +399,8 @@ CONTACT_SALES_TOPICS = frozenset({"enterprise", "support", "partnership"})
 
 
 @app.post("/contact-sales")
-def contact_sales(data: ContactSalesRequest):
+@limiter.limit("5/minute")
+def contact_sales(request: Request, data: ContactSalesRequest):
     """Public form: notifies sales inbox via Resend."""
     email = (data.work_email or "").strip()
     topic = (data.topic or "").strip().lower()
@@ -395,7 +450,8 @@ class WaitlistRequest(BaseModel):
     email: str
 
 @app.post("/waitlist")
-def join_waitlist(data: WaitlistRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def join_waitlist(request: Request, data: WaitlistRequest, db: Session = Depends(get_db)):
     existing = db.query(Waitlist).filter(Waitlist.email == data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email già registrata alla waitlist")

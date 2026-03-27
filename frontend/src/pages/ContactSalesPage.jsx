@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import axios from "axios"
 
-const API = "https://voicemint-backend.onrender.com"
+const API = import.meta.env.VITE_API_URL || "https://voicemint-backend.onrender.com"
 
 export default function ContactSalesPage({ onBack }) {
   const { t } = useTranslation()

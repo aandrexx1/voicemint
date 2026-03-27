@@ -8,7 +8,7 @@ import axios from "axios"
 import { safeSetItem } from "../lib/safe-storage"
 import { PricingSection } from "@/components/ui/pricing"
 
-const API = "https://voicemint-backend.onrender.com"
+const API = import.meta.env.VITE_API_URL || "https://voicemint-backend.onrender.com"
 
 export default function LandingPage({
   token,
@@ -21,6 +21,7 @@ export default function LandingPage({
   onContactSales,
 }) {
   const { t, i18n } = useTranslation()
+  const isAuthed = !!user || !!token
 
   const changeLang = (lang) => {
     i18n.changeLanguage(lang)
@@ -105,16 +106,16 @@ export default function LandingPage({
       return
     }
     if (!plan.checkoutPlan) return
-    if (!token) {
+    if (!isAuthed) {
       onGetStarted()
       return
     }
     try {
-      const res = await axios.post(
-        `${API}/create-checkout-session`,
-        { plan: plan.checkoutPlan, interval },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      const config =
+        token && token !== "cookie"
+          ? { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
+          : { withCredentials: true }
+      const res = await axios.post(`${API}/create-checkout-session`, { plan: plan.checkoutPlan, interval }, config)
       if (res.data?.url) window.location.href = res.data.url
     } catch (e) {
       alert(t("alert_checkout_error"))
@@ -127,7 +128,7 @@ export default function LandingPage({
         onLogin={onLogin}
         onSignup={onGetStarted}
         onProfile={onOpenProfile}
-        isLoggedIn={!!token}
+        isLoggedIn={isAuthed}
         navLabels={{
           howItWorks: t("nav_how_it_works"),
           faq: t("nav_faq"),
@@ -145,16 +146,16 @@ export default function LandingPage({
           onPromptSubmit={async (prompt) => {
             const text = (prompt || "").trim()
             if (!text) return
-            if (!token) {
+            if (!isAuthed) {
               onGetStarted()
               return
             }
             try {
-              const res = await axios.post(
-                `${API}/generate?transcription=${encodeURIComponent(text)}&output_type=ppt`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" }
-              )
+              const config =
+                token && token !== "cookie"
+                  ? { headers: { Authorization: `Bearer ${token}` }, responseType: "blob", withCredentials: true }
+                  : { responseType: "blob", withCredentials: true }
+              const res = await axios.post(`${API}/generate?transcription=${encodeURIComponent(text)}&output_type=ppt`, {}, config)
               const url = URL.createObjectURL(res.data)
               const a = document.createElement("a")
               a.href = url

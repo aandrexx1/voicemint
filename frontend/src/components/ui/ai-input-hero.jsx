@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
 
-const API = "https://voicemint-backend.onrender.com";
+const API = import.meta.env.VITE_API_URL || "https://voicemint-backend.onrender.com";
 
 export function HeroWave({
   className,

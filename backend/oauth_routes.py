@@ -50,11 +50,25 @@ _configure_oauth()
 
 
 def _redirect_frontend_token(token: str) -> RedirectResponse:
-    return RedirectResponse(
+    response = RedirectResponse(
         # usa fragment (#) per ridurre leak via referrer/logs di querystring
-        url=f"{FRONTEND_URL}/#oauth_token={quote(token, safe='')}",
+        url=f"{FRONTEND_URL}/#oauth=success",
         status_code=302,
     )
+    secure = os.getenv("COOKIE_SECURE", "1") != "0"
+    samesite = os.getenv("COOKIE_SAMESITE", "lax").lower()
+    if samesite not in ("lax", "strict", "none"):
+        samesite = "lax"
+    response.set_cookie(
+        key="vm_token",
+        value=token,
+        httponly=True,
+        secure=secure,
+        samesite=samesite,
+        max_age=60 * 60 * 24 * 7,
+        path="/",
+    )
+    return response
 
 
 def _redirect_frontend_error(code: str) -> RedirectResponse:

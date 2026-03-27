@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import axios from "axios"
 import { safeGetItem, safeSetItem } from "../lib/safe-storage"
 
-const API = "https://voicemint-backend.onrender.com"
+const API = import.meta.env.VITE_API_URL || "https://voicemint-backend.onrender.com"
 
 export default function Dashboard({
   token,
@@ -15,6 +15,10 @@ export default function Dashboard({
   onOpenPrivacy,
   onNavigateProfile,
 }) {
+  const authConfig =
+    token && token !== "cookie"
+      ? { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
+      : { withCredentials: true }
   const [recording, setRecording] = useState(false)
   const [transcription, setTranscription] = useState("")
   const [outputType] = useState("ppt") // Genera solo presentazioni PowerPoint
@@ -47,9 +51,7 @@ export default function Dashboard({
       const formData = new FormData()
       formData.append("file", blob, "recording.webm")
       try {
-        const res = await axios.post(`${API}/upload-audio`, formData, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        const res = await axios.post(`${API}/upload-audio`, formData, authConfig)
         setTranscription(res.data.transcription)
       } catch {
         setTranscription("Errore nella trascrizione")
@@ -72,7 +74,9 @@ export default function Dashboard({
       const res = await axios.post(
         `${API}/generate?transcription=${encodeURIComponent(transcription)}&output_type=${outputType}`,
         {},
-        { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" }
+        token && token !== "cookie"
+          ? { headers: { Authorization: `Bearer ${token}` }, responseType: "blob", withCredentials: true }
+          : { responseType: "blob", withCredentials: true }
       )
       const url = URL.createObjectURL(res.data)
       const a = document.createElement("a")
@@ -333,10 +337,14 @@ function SettingsModal({ user, token, setUser, onClose, lang }) {
   const [msg, setMsg] = useState("")
   const [pwMsg, setPwMsg] = useState("")
   const t = (it, en) => lang === "it" ? it : en
+  const authConfig =
+    token && token !== "cookie"
+      ? { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
+      : { withCredentials: true }
 
   const saveProfile = async () => {
     try {
-      await axios.put(`${API}/me/profile`, form, { headers: { Authorization: `Bearer ${token}` } })
+      await axios.put(`${API}/me/profile`, form, authConfig)
       setUser({ ...user, ...form })
       setMsg(t("Profilo aggiornato!", "Profile updated!"))
     } catch {
@@ -346,7 +354,7 @@ function SettingsModal({ user, token, setUser, onClose, lang }) {
 
   const changePassword = async () => {
     try {
-      await axios.put(`${API}/me/password`, pwForm, { headers: { Authorization: `Bearer ${token}` } })
+      await axios.put(`${API}/me/password`, pwForm, authConfig)
       setPwMsg(t("Password aggiornata!", "Password updated!"))
       setPwForm({ old_password: "", new_password: "" })
     } catch (err) {
@@ -357,7 +365,7 @@ function SettingsModal({ user, token, setUser, onClose, lang }) {
   const cancelSub = async () => {
     if (!window.confirm(t("Sei sicuro di voler annullare l'abbonamento?", "Are you sure you want to cancel?"))) return
     try {
-      await axios.delete(`${API}/me/subscription`, { headers: { Authorization: `Bearer ${token}` } })
+      await axios.delete(`${API}/me/subscription`, authConfig)
       setUser({ ...user, tier: "free", pro_until: null })
       onClose()
     } catch (err) {
@@ -451,13 +459,17 @@ function PlansModal({ user, token, setUser, onClose, lang }) {
   const t = (it, en) => lang === "it" ? it : en
   const isLifetimePro = user?.lifetime_pro
   const isPro = user?.tier === "pro"
+  const authConfig =
+    token && token !== "cookie"
+      ? { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
+      : { withCredentials: true }
 
   const checkout = async () => {
     try {
       const res = await axios.post(
         `${API}/create-checkout-session`,
         { plan: "professional", interval: "month" },
-        { headers: { Authorization: `Bearer ${token}` } }
+        authConfig
       )
       if (res.data?.url) window.location.href = res.data.url
     } catch {

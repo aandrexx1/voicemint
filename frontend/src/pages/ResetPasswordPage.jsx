@@ -2,7 +2,7 @@ import { useState } from "react"
 import axios from "axios"
 import { Button } from "@/components/ui/button"
 
-const API = "https://voicemint-backend.onrender.com"
+const API = import.meta.env.VITE_API_URL || "https://voicemint-backend.onrender.com"
 
 const inputClass =
   "flex h-11 w-full rounded-full border border-input bg-background/50 px-4 py-2 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"

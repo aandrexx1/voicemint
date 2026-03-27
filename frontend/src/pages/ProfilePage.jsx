@@ -3,7 +3,7 @@ import axios from "axios"
 import { safeGetItem, safeSetItem } from "../lib/safe-storage"
 import { LogOut, Eye, EyeOff } from "lucide-react"
 
-const API = "https://voicemint-backend.onrender.com"
+const API = import.meta.env.VITE_API_URL || "https://voicemint-backend.onrender.com"
 
 function formatDate(value) {
   if (!value) return ""
@@ -15,6 +15,10 @@ function formatDate(value) {
 export default function ProfilePage({ token, user, setUser, onLogout, onGoHome }) {
   const [lang, setLang] = useState(() => safeGetItem("lang", "it") || "it")
   const t = useMemo(() => (it, en) => (lang === "it" ? it : en), [lang])
+  const authConfig =
+    token && token !== "cookie"
+      ? { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
+      : { withCredentials: true }
 
   const [profileForm, setProfileForm] = useState({ first_name: "", last_name: "" })
   const [pwForm, setPwForm] = useState({ old_password: "", new_password: "" })
@@ -59,7 +63,7 @@ export default function ProfilePage({ token, user, setUser, onLogout, onGoHome }
       await axios.put(
         `${API}/me/profile`,
         profileForm,
-        { headers: { Authorization: `Bearer ${token}` } }
+        authConfig
       )
       setUser({ ...user, first_name: profileForm.first_name, last_name: profileForm.last_name })
       setMsg(t("Profilo aggiornato", "Profile updated"))
@@ -74,7 +78,7 @@ export default function ProfilePage({ token, user, setUser, onLogout, onGoHome }
       await axios.put(
         `${API}/me/password`,
         pwForm,
-        { headers: { Authorization: `Bearer ${token}` } }
+        authConfig
       )
       setPwMsg(t("Password aggiornata", "Password updated"))
       setPwForm({ old_password: "", new_password: "" })
@@ -87,7 +91,7 @@ export default function ProfilePage({ token, user, setUser, onLogout, onGoHome }
     const res = await axios.post(
       `${API}/create-checkout-session`,
       { plan: "professional", interval: "month" },
-      { headers: { Authorization: `Bearer ${token}` } }
+      authConfig
     )
     if (res.data?.url) window.location.href = res.data.url
   }
@@ -95,14 +99,14 @@ export default function ProfilePage({ token, user, setUser, onLogout, onGoHome }
   const cancelSubscription = async () => {
     if (!window.confirm(t("Sei sicuro di voler annullare l'abbonamento?", "Are you sure you want to cancel?"))) return
     try {
-      await axios.delete(`${API}/me/subscription`, { headers: { Authorization: `Bearer ${token}` } })
+      await axios.delete(`${API}/me/subscription`, authConfig)
       setUser({ ...user, tier: "free", lifetime_pro: false, pro_until: null })
     } catch (err) {
       alert(err.response?.data?.detail || t("Errore annullando l'abbonamento", "Error cancelling subscription"))
     }
   }
 
-  if (!token) {
+  if (!token && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 py-16 text-white">
         <div className="max-w-md text-center space-y-3">
