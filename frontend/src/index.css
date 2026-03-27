@@ -100,8 +100,6 @@
     }
   }
   --color-destructive-foreground: oklch(1 0 0);
-  --color-color-destructive-foreground: var(----color-destructive-foreground);
-  --color-color-color-destructive-foreground: var(----color-color-destructive-foreground)
 }
 
 :root {
@@ -180,7 +178,8 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    /* Stesso nero dello sfondo particelle (evita alone grigio da --background) */
+    @apply bg-[#050508] text-foreground;
   }
   html {
     @apply font-sans scroll-smooth;

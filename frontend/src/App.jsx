@@ -35,7 +35,7 @@ function AppShell({ children }) {
   return (
     <>
       <SiteParticlesBackground />
-      <div className="relative z-10 min-h-screen">{children}</div>
+      <div className="relative z-10 min-h-screen bg-transparent">{children}</div>
     </>
   )
 }
