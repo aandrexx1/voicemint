@@ -44,7 +44,6 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin, onOp
         username: res.data.username,
         tier: res.data.tier,
         lifetime_pro: res.data.lifetime_pro,
-        registration_number: res.data.registration_number,
       })
     } catch (err) {
       setError(err.response?.data?.detail || t("auth_error_connection"))

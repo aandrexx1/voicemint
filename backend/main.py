@@ -96,14 +96,14 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     
     # Conta utenti registrati finora
     user_count = db.query(User).count()
-    registration_number = user_count + 1
+    registration_rank = user_count + 1
     
     # Assegna tier in base al numero
-    if registration_number <= 50:
+    if registration_rank <= 50:
         tier = "pro"
         lifetime_pro = True
         pro_until = None
-    elif registration_number <= 100:
+    elif registration_rank <= 100:
         tier = "pro"
         lifetime_pro = False
         pro_until = datetime.utcnow() + timedelta(days=30)
@@ -119,7 +119,6 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
         tier=tier,
         lifetime_pro=lifetime_pro,
         pro_until=pro_until,
-        registration_number=registration_number
     )
     db.add(user)
     db.commit()
@@ -131,7 +130,6 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
         "username": user.username,
         "tier": user.tier,
         "lifetime_pro": user.lifetime_pro,
-        "registration_number": user.registration_number
     }
 
 # --- Login ---
@@ -251,7 +249,6 @@ def get_me(current_user: User = Depends(get_current_user)):
         "lifetime_pro": current_user.lifetime_pro,
         "pro_until": current_user.pro_until,
         "monthly_usage": current_user.monthly_usage,
-        "registration_number": current_user.registration_number
     }
 
 # --- Genera documento da testo ---

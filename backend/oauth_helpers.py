@@ -51,12 +51,12 @@ def find_or_create_oauth_user(
         return by_email
 
     user_count = db.query(User).count()
-    registration_number = user_count + 1
-    if registration_number <= 50:
+    registration_rank = user_count + 1
+    if registration_rank <= 50:
         tier = "pro"
         lifetime_pro = True
         pro_until = None
-    elif registration_number <= 100:
+    elif registration_rank <= 100:
         tier = "pro"
         lifetime_pro = False
         pro_until = datetime.utcnow() + timedelta(days=30)
@@ -75,7 +75,6 @@ def find_or_create_oauth_user(
         tier=tier,
         lifetime_pro=lifetime_pro,
         pro_until=pro_until,
-        registration_number=registration_number,
         google_sub=provider_sub if provider == "google" else None,
         github_id=provider_sub if provider == "github" else None,
     )

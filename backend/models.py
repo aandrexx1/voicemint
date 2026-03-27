@@ -33,7 +33,6 @@ class User(Base):
     last_name = Column(String, nullable=True)
     pro_until = Column(DateTime, nullable=True)  # per utenti 51-100
     lifetime_pro = Column(Boolean, default=False)  # per primi 50
-    registration_number = Column(Integer, nullable=True)  # numero progressivo
     google_sub = Column(String, unique=True, nullable=True, index=True)
     github_id = Column(String, unique=True, nullable=True, index=True)
 

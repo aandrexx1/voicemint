@@ -128,24 +128,15 @@ export default function ProfilePage({ token, user, setUser, onLogout, onGoHome }
           <button
             type="button"
             onClick={onGoHome}
-            className="flex min-w-0 items-center rounded-md py-1 -ml-1 pl-1 pr-2 hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+            className="flex min-w-0 cursor-pointer items-center rounded-md py-1 -ml-1 pl-1 pr-2 hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
             aria-label={t("Torna alla home", "Back to home")}
           >
             <img
               src="/text_logo.png"
               alt="VoiceMint"
-              className="h-7 w-auto max-w-[200px] object-contain object-left"
+              className="h-7 w-auto max-w-[200px] cursor-pointer object-contain object-left"
             />
           </button>
-          {onGoHome ? (
-            <button
-              type="button"
-              onClick={onGoHome}
-              className="hidden sm:inline shrink-0 text-xs font-medium text-white/45 hover:text-white transition-colors"
-            >
-              {t("Home", "Home")}
-            </button>
-          ) : null}
         </div>
 
         <div className="flex items-center gap-4">
@@ -220,9 +211,6 @@ export default function ProfilePage({ token, user, setUser, onLogout, onGoHome }
                     </span>
                   </div>
                   <p className="text-white/60 text-sm">{user?.email}</p>
-                  <p className="text-white/50 text-sm">
-                    {t("Numero registrazione", "Registration number")}: {user?.registration_number ?? "-"}
-                  </p>
                   {isPro && !isLifetimePro ? (
                     <p className="text-white/50 text-sm">
                       {t("Scade", "Expires")}: {formatDate(user?.pro_until)}
