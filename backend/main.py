@@ -86,6 +86,64 @@ def _apply_cors_headers(request: Request, response: Response) -> Response:
     return response
 
 
+def _origin_from_scope(scope: dict) -> str | None:
+    """Legge Origin/Referer dagli header ASGI (bytes) per il middleware puro ASGI."""
+    origin = None
+    for k, v in scope.get("headers") or []:
+        if k.lower() == b"origin":
+            try:
+                origin = v.decode("latin-1").strip()
+            except Exception:
+                pass
+            break
+    if origin:
+        return _cors_allowed_origin(origin)
+    referer = None
+    for k, v in scope.get("headers") or []:
+        if k.lower() == b"referer":
+            try:
+                referer = v.decode("latin-1").strip()
+            except Exception:
+                pass
+            break
+    if referer:
+        u = urlparse(referer)
+        if u.scheme and u.netloc:
+            return _cors_allowed_origin(f"{u.scheme}://{u.netloc}")
+    return None
+
+
+class OutermostCORSInjection:
+    """
+    ASGI puro: aggiunge ACAO sulla risposta se manca, senza bufferizzare il body
+    (a differenza di BaseHTTPMiddleware). Copre casi in cui il proxy o errori
+    intermedi lasciano la risposta senza header CORS.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        origin_ok = _origin_from_scope(scope)
+
+        async def send_wrapper(message):
+            if message["type"] == "http.response.start":
+                hdrs = list(message.get("headers") or [])
+                has_acao = any(k.lower() == b"access-control-allow-origin" for k, _ in hdrs)
+                if not has_acao and origin_ok:
+                    hdrs.append((b"access-control-allow-origin", origin_ok.encode("utf-8")))
+                    hdrs.append((b"access-control-allow-credentials", b"true"))
+                    hdrs.append((b"access-control-expose-headers", b"Content-Disposition"))
+                    message = {**message, "headers": hdrs}
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
+
+
 def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> Response:
     resp = _rate_limit_exceeded_handler(request, exc)
     return _apply_cors_headers(request, resp)
@@ -716,8 +774,7 @@ def cancel_subscription(db: Session = Depends(get_db), current_user: User = Depe
     return {"message": "Abbonamento annullato"}
 
 
-# Secondo CORSMiddleware in coda = più esterno nello stack: copre anche 403 dal CSRF senza
-# usare BaseHTTPMiddleware (che bufferizza FileResponse grandi e può dare ERR_FAILED + falso CORS).
+# CORSMiddleware standard (preflight, ecc.)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(CORS_ALLOW_ORIGINS),
@@ -727,3 +784,5 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["Content-Disposition"],
 )
+# Ultimo add_middleware = strato più esterno: iniezione CORS senza buffer (streaming PPT ok).
+app.add_middleware(OutermostCORSInjection)
