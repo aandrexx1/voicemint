@@ -27,6 +27,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import json
+import re
 import secrets
 
 resend.api_key = os.getenv("RESEND_API_KEY")
@@ -36,9 +37,45 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 app = FastAPI(title="VoiceMint API")
 
+# Origini CORS (usate anche da CSRF e fallback: le risposte 403/429 a volte non passano dal CORSMiddleware)
+CORS_ALLOW_ORIGINS = frozenset(
+    {
+        "http://localhost:5173",
+        "https://voicemint.vercel.app",
+        "https://voicemint.it",
+        "https://www.voicemint.it",
+    }
+)
+# Qualsiasi sottodominio *.voicemint.it (preview Vercel, app, ecc.)
+CORS_ORIGIN_REGEX = r"^https://([a-z0-9-]+\.)*voicemint\.it$"
+
+
+def _cors_allowed_origin(origin: str) -> str | None:
+    o = (origin or "").strip().rstrip("/")
+    if o in CORS_ALLOW_ORIGINS:
+        return o
+    if re.fullmatch(CORS_ORIGIN_REGEX, o):
+        return o
+    return None
+
+
+def _apply_cors_headers(request: Request, response: Response) -> Response:
+    origin = _cors_allowed_origin(request.headers.get("origin") or "")
+    if origin and not response.headers.get("access-control-allow-origin"):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers.setdefault("Access-Control-Expose-Headers", "Content-Disposition")
+    return response
+
+
+def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> Response:
+    resp = _rate_limit_exceeded_handler(request, exc)
+    return _apply_cors_headers(request, resp)
+
+
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
 @app.on_event("startup")
 def startup():
@@ -50,7 +87,8 @@ app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://voicemint.vercel.app", "https://voicemint.it", "https://www.voicemint.it"] ,
+    allow_origins=list(CORS_ALLOW_ORIGINS),
+    allow_origin_regex=CORS_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -118,9 +156,15 @@ async def csrf_protect(request: Request, call_next):
             referer = request.headers.get("referer") or ""
             referer_ok = any(referer.startswith(a + "/") or referer == a for a in allowed)
             if origin and origin not in allowed:
-                return JSONResponse({"detail": "CSRF origin blocked"}, status_code=403)
+                return _apply_cors_headers(
+                    request,
+                    JSONResponse({"detail": "CSRF origin blocked"}, status_code=403),
+                )
             if not origin and not referer_ok:
-                return JSONResponse({"detail": "CSRF referer blocked"}, status_code=403)
+                return _apply_cors_headers(
+                    request,
+                    JSONResponse({"detail": "CSRF referer blocked"}, status_code=403),
+                )
     return await call_next(request)
 
 @app.get("/")
@@ -659,3 +703,10 @@ def cancel_subscription(db: Session = Depends(get_db), current_user: User = Depe
     db.add(current_user)
     db.commit()
     return {"message": "Abbonamento annullato"}
+
+
+@app.middleware("http")
+async def cors_fallback(request: Request, call_next):
+    """Garantisce header CORS se una risposta (403, proxy, ecc.) non li ha già."""
+    response = await call_next(request)
+    return _apply_cors_headers(request, response)
