@@ -272,6 +272,10 @@ const resources = {
       auth_oauth_github_no_email:
         "GitHub non ha fornito un'email. Aggiungi un'email pubblica nel profilo GitHub o consenti l'accesso alle email.",
       auth_oauth_github_user: "Impossibile completare la registrazione.",
+      auth_oauth_warming:
+        "Avvio del server in corso (su Render gratuito può richiedere fino a 1–2 minuti). Non chiudere la pagina…",
+      auth_oauth_server_timeout:
+        "Il server non risponde in tempo. Riprova tra un minuto o aggiorna la pagina.",
     }
   },
   en: {
@@ -543,6 +547,10 @@ const resources = {
       auth_oauth_github_no_email:
         "GitHub did not provide an email. Add a public email on GitHub or allow email access.",
       auth_oauth_github_user: "Could not complete registration.",
+      auth_oauth_warming:
+        "Starting the server (free Render can take 1–2 minutes). Please keep this page open…",
+      auth_oauth_server_timeout:
+        "The server did not respond in time. Wait a minute and try again.",
     }
   }
 }

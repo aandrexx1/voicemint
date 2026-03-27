@@ -3,8 +3,9 @@ import axios from "axios"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { MinimalAuthPage } from "@/components/ui/minimal-auth-page"
+import { waitForApiReady } from "@/lib/wait-for-api"
 
-const API = "https://voicemint-backend.onrender.com"
+const API = import.meta.env.VITE_API_URL || "https://voicemint-backend.onrender.com"
 
 const inputClass =
   "flex h-11 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
@@ -17,6 +18,7 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin, onOp
   const [loading, setLoading] = useState(false)
   const [forgotLoading, setForgotLoading] = useState(false)
   const [forgotMessage, setForgotMessage] = useState("")
+  const [oauthLoading, setOauthLoading] = useState(null)
 
   const handle = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
@@ -109,12 +111,10 @@ export default function AuthPage({ setToken, setUser, onBack, defaultLogin, onOp
       googleLabel={t("auth_google")}
       githubLabel={t("auth_github")}
       orEmailLabel={t("auth_or_email")}
-      onGoogleClick={() => {
-        window.location.href = `${API}/auth/google/login`
-      }}
-      onGithubClick={() => {
-        window.location.href = `${API}/auth/github/login`
-      }}
+      oauthLoading={oauthLoading}
+      oauthStatusMessage={oauthLoading ? t("auth_oauth_warming") : ""}
+      onGoogleClick={() => startOAuth("google")}
+      onGithubClick={() => startOAuth("github")}
       footer={footer}
     >
       <div className="space-y-3">

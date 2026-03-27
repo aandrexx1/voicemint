@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ChevronLeftIcon, GithubIcon } from "lucide-react";
+import { ChevronLeftIcon, GithubIcon, Loader2 } from "lucide-react";
 
 function GoogleIcon(props) {
   return (
@@ -23,6 +23,8 @@ export function MinimalAuthPage({
   orEmailLabel = "or with email",
   onGoogleClick,
   onGithubClick,
+  oauthLoading = null,
+  oauthStatusMessage = "",
   children,
   footer,
 }) {
@@ -49,14 +51,23 @@ export function MinimalAuthPage({
           </div>
 
           <div className="space-y-2">
+            {oauthStatusMessage ? (
+              <p className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                {oauthStatusMessage}
+              </p>
+            ) : null}
             <Button
               type="button"
               size="lg"
               className="w-full"
-              disabled={!onGoogleClick}
+              disabled={!onGoogleClick || oauthLoading}
               onClick={onGoogleClick}
             >
-              <GoogleIcon className="me-2 size-4" />
+              {oauthLoading === "google" ? (
+                <Loader2 className="me-2 size-4 shrink-0 animate-spin" aria-hidden />
+              ) : (
+                <GoogleIcon className="me-2 size-4" />
+              )}
               {googleLabel}
             </Button>
             <Button
@@ -64,10 +75,14 @@ export function MinimalAuthPage({
               size="lg"
               variant="outline"
               className="w-full"
-              disabled={!onGithubClick}
+              disabled={!onGithubClick || oauthLoading}
               onClick={onGithubClick}
             >
-              <GithubIcon strokeWidth={2.5} className="me-2 size-4" />
+              {oauthLoading === "github" ? (
+                <Loader2 className="me-2 size-4 shrink-0 animate-spin" aria-hidden />
+              ) : (
+                <GithubIcon strokeWidth={2.5} className="me-2 size-4" />
+              )}
               {githubLabel}
             </Button>
           </div>
