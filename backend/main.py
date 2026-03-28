@@ -1,6 +1,9 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 import html
 import openai
 import os
@@ -16,7 +19,6 @@ import resend
 import stripe
 from groq import Groq
 from jose import jwt, JWTError
-load_dotenv()
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 from datetime import datetime, timedelta
 

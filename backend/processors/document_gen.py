@@ -21,6 +21,11 @@ TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates" / "pptx"
 TEMPLATES_CACHE_DIR = Path(__file__).resolve().parents[1] / "templates" / ".cache"
 TEMPLATES_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
+# Evita GET ripetuti al manifest R2 nella stessa richiesta / worker.
+_remote_tpl_cache: list[Path] | None = None
+_remote_tpl_cache_key: str | None = None
+
+
 def _valid_template_path(p: Path) -> bool:
     if p.suffix.lower() != ".pptx":
         return False
@@ -80,6 +85,24 @@ def _download_remote_template(url: str, template_id: str) -> Path | None:
         print(f"remote template download failed ({template_id}): {e}")
         return None
 
+
+def _is_from_remote_cache(p: Path) -> bool:
+    """True se il .pptx è nella cartella cache del manifest (scaricato da R2)."""
+    try:
+        return p.resolve().parent == TEMPLATES_CACHE_DIR.resolve()
+    except Exception:
+        return False
+
+
+def _prefer_named_template_match(paths: list[Path]) -> Path | None:
+    """Se ci sono più candidati (es. locale + R2), preferisci il file scaricato dal manifest."""
+    if not paths:
+        return None
+    remote = [p for p in paths if _is_from_remote_cache(p)]
+    pool = remote if remote else paths
+    return min(pool, key=lambda x: len(x.name))
+
+
 def _discover_remote_templates():
     """
     Legge un manifest JSON remoto (es. Cloudflare R2 public URL) con formato:
@@ -87,9 +110,13 @@ def _discover_remote_templates():
     oppure lista diretta [{...}, {...}]
     Più voci con lo stesso "id" sono ok se le URL hanno nomi file diversi (cache per nome file nell'URL).
     """
+    global _remote_tpl_cache, _remote_tpl_cache_key
     manifest_url = os.getenv("TEMPLATE_MANIFEST_URL", "").strip()
     if not manifest_url:
         return []
+    if _remote_tpl_cache is not None and _remote_tpl_cache_key == manifest_url:
+        return list(_remote_tpl_cache)
+
     try:
         with httpx.Client(timeout=20.0, follow_redirects=True) as client:
             r = client.get(manifest_url)
@@ -113,7 +140,10 @@ def _discover_remote_templates():
         p = _download_remote_template(url, tid)
         if p and _valid_template_path(p):
             out.append(p)
+    _remote_tpl_cache = out
+    _remote_tpl_cache_key = manifest_url
     return out
+
 
 def _find_named_deck_template(study: bool) -> Path | None:
     """
@@ -130,7 +160,7 @@ def _find_named_deck_template(study: bool) -> Path | None:
             ok = False
         if ok:
             matches.append(p)
-    return min(matches, key=lambda x: len(x.name)) if matches else None
+    return _prefer_named_template_match(matches)
 
 
 def _is_presentation_template_filename(name: str) -> bool:
@@ -153,9 +183,6 @@ def _find_presentation_template(data: dict) -> Path | None:
     if not all_p:
         return None
 
-    def shortest(paths: list[Path]) -> Path:
-        return min(paths, key=lambda x: len(x.name))
-
     def has_work(nm: str) -> bool:
         stem = Path(nm).stem.lower()
         return "_template_presentation" in stem and stem.endswith("_work")
@@ -169,17 +196,17 @@ def _find_presentation_template(data: dict) -> Path | None:
     if audience == "work":
         w = [p for p in all_p if has_work(p.name)]
         if w:
-            return shortest(w)
+            return _prefer_named_template_match(w)
         if neutral:
-            return shortest(neutral)
-        return shortest(all_p)
+            return _prefer_named_template_match(neutral)
+        return _prefer_named_template_match(all_p)
 
     s = [p for p in all_p if has_school(p.name)]
     if s:
-        return shortest(s)
+        return _prefer_named_template_match(s)
     if neutral:
-        return shortest(neutral)
-    return shortest(all_p)
+        return _prefer_named_template_match(neutral)
+    return _prefer_named_template_match(all_p)
 
 
 def _pick_template(data: dict):
@@ -199,7 +226,13 @@ def _pick_template(data: dict):
         if named is not None:
             return named
 
-    templates = _discover_all_template_paths()
+    # Con manifest R2 configurato e download ok: il fallback non deve pescare template vecchi solo locali.
+    manifest_url = os.getenv("TEMPLATE_MANIFEST_URL", "").strip()
+    remote_only = _discover_remote_templates()
+    if manifest_url and remote_only:
+        templates = remote_only
+    else:
+        templates = _discover_all_template_paths()
     if not templates:
         return None
     seed = (
@@ -839,6 +872,8 @@ body {{ width:1280px; height:720px; overflow:hidden; background: linear-gradient
 def generate_ppt(data: dict, user_tier: str = "free") -> str:
     template_path = _pick_template(data)
     if template_path is not None:
+        src = "R2 cache" if _is_from_remote_cache(template_path) else "locale"
+        print(f"pptx template: {template_path.name} ({src})")
         try:
             return _generate_ppt_with_template(data, user_tier=user_tier, template_path=template_path)
         except Exception as e:
