@@ -45,7 +45,14 @@ REGOLE FONDAMENTALI:
 - Devi creare tra {min_content_slides} e {max_content_slides} slide di contenuto (oltre a titolo e riepilogo). Obiettivo: {target_content_slides}.
 - Non restituire mai meno di {min_content_slides} slide di contenuto.
 - Ogni slide deve introdurre un punto diverso (no ripetizioni).
-- Alterna i tipi: usa "bullets" quando ha senso (3-6 bullet concreti), e "text" per spiegazioni brevi e chiare (max 3-5 frasi).
+- VARIETÀ STRUTTURALE (obbligatorio): non limitarti a alternare solo "text" e "bullets". Includi nella presentazione:
+  · "section" — slide di sezione (solo titolo grande + opzionale sottotitolo breve; spezza il discorso in capitoli)
+  · "quote" — una citazione o idea forte (content = testo della citazione, 1-3 frasi)
+  · "split" — confronto o due idee affiancate (content = array di ESATTAMENTE 2 stringhe, sinistra e destra)
+  · "numbered" — passi ordinati o priorità (content = array di stringhe; verranno numerati 1. 2. 3.)
+  · "bullets" — elenco puntato (3-6 punti concreti)
+  · "text" — paragrafo unico o spiegazione fluida (max 4-5 frasi)
+- Usa almeno 1 "section", 1 "quote" o "split", e alterna gli altri tipi in modo che non ci siano mai più di 2 slide consecutive dello stesso tipo.
 - Non usare titoli generici (tipo "Introduzione", "Conclusione") a meno che il testo lo richieda: rendili specifici.
 - Il titolo principale deve riflettere davvero l'argomento.
 {"- Se il testo è una richiesta breve (es. \"fammi un riassunto di...\") devi comunque produrre slide utili: definizioni chiave, struttura del programma, concetti fondamentali, errori comuni, esempi, mini-casi, e un piano di studio rapido." if short_prompt else ""}
@@ -63,13 +70,33 @@ Rispondi SOLO con JSON valido, zero testo extra:
   "subtitle": "Sottotitolo breve e incisivo",
   "slides": [
     {{
+      "type": "section",
+      "title": "Titolo sezione (capitolo)",
+      "content": "Sottotitolo opzionale oppure stringa vuota"
+    }},
+    {{
+      "type": "quote",
+      "title": "Etichetta breve",
+      "content": "Citazione o messaggio chiave in 1-3 frasi."
+    }},
+    {{
+      "type": "split",
+      "title": "Due idee a confronto",
+      "content": ["Paragrafo colonna sinistra", "Paragrafo colonna destra"]
+    }},
+    {{
+      "type": "numbered",
+      "title": "Passi o priorità",
+      "content": ["primo passo", "secondo passo", "terzo passo"]
+    }},
+    {{
       "type": "bullets",
-      "title": "Titolo slide 1",
+      "title": "Titolo slide elenco",
       "content": ["punto 1", "punto 2", "punto 3"]
     }},
     {{
       "type": "text",
-      "title": "Titolo slide 2",
+      "title": "Titolo slide testo",
       "content": "Testo narrativo della slide"
     }}
   ],
@@ -114,6 +141,7 @@ JSON ATTUALE:
 COMPITO:
 - Espandi la presentazione fino ad avere tra {min_content_slides} e {max_content_slides} slide di contenuto.
 - Mantieni titolo e tema.
+- Usa tipi slide vari (section, quote, split, numbered, bullets, text) come nello schema; evita solo text/bullet alternati.
 - Aggiungi nuove slide con titoli specifici e contenuti concreti.
 - Rispondi SOLO con JSON valido (stesso schema).
 """

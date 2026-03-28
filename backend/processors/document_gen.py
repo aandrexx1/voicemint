@@ -269,6 +269,28 @@ def _style_title_shape(shape, text: str, color_rgb: RGBColor, font_title: str | 
         p.font.name = font_title
 
 
+def _normalize_slide_type(raw: str | None) -> str:
+    s = (raw or "text").lower().strip()
+    allowed = frozenset({"text", "bullets", "section", "quote", "split", "numbered"})
+    if s in allowed:
+        return s
+    if s in ("bullet", "list"):
+        return "bullets"
+    return "text"
+
+
+def _split_content_two_columns(content) -> tuple[str, str] | None:
+    """Per type split: due stringhe affiancate."""
+    if isinstance(content, list) and len(content) >= 2:
+        return str(content[0]).strip(), str(content[1]).strip()
+    if isinstance(content, dict):
+        a = content.get("left") or content.get("a") or content.get("sinistra")
+        b = content.get("right") or content.get("b") or content.get("destra")
+        if a is not None and b is not None:
+            return str(a).strip(), str(b).strip()
+    return None
+
+
 def _fill_body_paragraphs(
     tf,
     lines: list[str],
@@ -277,8 +299,9 @@ def _fill_body_paragraphs(
     font_body: str | None,
     body_pt: int = 18,
     bullet: bool = False,
+    numbered: bool = False,
 ):
-    """Riempie il text frame con paragrafi, word wrap e (opz.) elenco puntato."""
+    """Riempie il text frame con paragrafi, word wrap e (opz.) elenco puntato o numerato."""
     tf.clear()
     tf.word_wrap = True
     try:
@@ -292,14 +315,17 @@ def _fill_body_paragraphs(
         tf.auto_size = MSO_AUTO_SIZE.NONE
     except Exception:
         pass
+    clean_lines = [x.strip() for x in lines if (x or "").strip()]
     first = True
-    for line in lines:
-        line = (line or "").strip()
-        if not line:
-            continue
+    for i, line in enumerate(clean_lines):
         p = tf.paragraphs[0] if first else tf.add_paragraph()
         first = False
-        p.text = (f"• {line}" if bullet else line)
+        if numbered:
+            p.text = f"{i + 1}. {line}"
+        elif bullet:
+            p.text = f"• {line}"
+        else:
+            p.text = line
         p.level = 0
         p.font.size = Pt(body_pt)
         p.font.color.rgb = text_rgb
@@ -375,23 +401,137 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
         _fill_body_plain(b.text_frame, data.get("subtitle") or "", subtitle_rgb, font_body, 17)
     add_watermark(s0)
 
-    for slide in data.get("slides", []):
-        st = (slide.get("type") or "text").lower()
-        s = prs.slides.add_slide(content_layout if st in ("text", "bullets") else blank_layout)
-        polish_slide(s, slide_bg_rgb)
-
-        title = slide.get("title") or ""
-        content = slide.get("content")
+    def _default_title_and_body(s, title: str):
         if getattr(s.shapes, "title", None):
             _style_title_shape(s.shapes.title, title, accent_rgb, font_title, 26)
         else:
             tb = s.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(0.7))
             _style_title_shape(tb, title, accent_rgb, font_title, 26)
+        return _first_body_placeholder(s)
 
-        body = _first_body_placeholder(s)
-        if st == "bullets":
+    for slide in data.get("slides", []):
+        st = _normalize_slide_type(slide.get("type"))
+        title = slide.get("title") or ""
+        content = slide.get("content")
+
+        if st in ("section", "quote", "split"):
+            layout = blank_layout
+        elif st in ("text", "bullets", "numbered"):
+            layout = content_layout
+        else:
+            layout = blank_layout
+
+        s = prs.slides.add_slide(layout)
+        polish_slide(s, slide_bg_rgb)
+
+        if st == "section":
+            bar = s.shapes.add_shape(
+                MSO_SHAPE.RECTANGLE,
+                Inches(0.75),
+                Inches(2.05),
+                Inches(2.8),
+                Inches(0.09),
+            )
+            bar.fill.solid()
+            bar.fill.fore_color.rgb = accent_rgb
+            bar.line.width = Pt(0)
+            tit = s.shapes.add_textbox(Inches(0.75), Inches(2.25), Inches(11.8), Inches(1.35))
+            ttf = tit.text_frame
+            ttf.clear()
+            tp = ttf.paragraphs[0]
+            tp.text = title or "Sezione"
+            tp.font.bold = True
+            tp.font.size = Pt(34)
+            tp.font.color.rgb = text_rgb
+            if font_title:
+                tp.font.name = font_title
+            sub = str(content or "").strip()
+            if sub:
+                stb = s.shapes.add_textbox(Inches(0.75), Inches(3.75), Inches(11.5), Inches(1.1))
+                _fill_body_plain(stb.text_frame, sub, subtitle_rgb, font_body, 18)
+
+        elif st == "quote":
+            if title:
+                hdr = s.shapes.add_textbox(Inches(0.75), Inches(0.45), Inches(11.5), Inches(0.55))
+                _style_title_shape(hdr, title, accent_rgb, font_title, 22)
+            qtxt = str(content or "").strip() or "—"
+            qbox = s.shapes.add_textbox(Inches(1.0), Inches(1.65), Inches(11.3), Inches(4.6))
+            qtf = qbox.text_frame
+            qtf.clear()
+            qp = qtf.paragraphs[0]
+            qp.text = f"“{qtxt}”"
+            qp.font.size = Pt(21)
+            qp.font.italic = True
+            qp.font.color.rgb = text_rgb
+            qp.alignment = PP_ALIGN.CENTER
+            if font_body:
+                qp.font.name = font_body
+            qline = s.shapes.add_shape(
+                MSO_SHAPE.RECTANGLE,
+                Inches(5.4),
+                Inches(6.35),
+                Inches(2.5),
+                Inches(0.06),
+            )
+            qline.fill.solid()
+            qline.fill.fore_color.rgb = accent_rgb
+            qline.line.width = Pt(0)
+
+        elif st == "split":
+            pair = _split_content_two_columns(content)
+            body = _default_title_and_body(s, title)
+            if pair:
+                left, right = pair
+                vbar = s.shapes.add_shape(
+                    MSO_SHAPE.RECTANGLE,
+                    Inches(6.58),
+                    Inches(1.35),
+                    Inches(0.05),
+                    Inches(5.85),
+                )
+                vbar.fill.solid()
+                vbar.fill.fore_color.rgb = accent_rgb
+                vbar.line.width = Pt(0)
+                lb = s.shapes.add_textbox(Inches(0.65), Inches(1.35), Inches(5.75), Inches(5.85))
+                _fill_body_plain(lb.text_frame, left, text_rgb, font_body, 17)
+                rb = s.shapes.add_textbox(Inches(6.78), Inches(1.35), Inches(5.85), Inches(5.85))
+                _fill_body_plain(rb.text_frame, right, text_rgb, font_body, 17)
+            else:
+                text = str(content or "")
+                if body:
+                    _fill_body_plain(body.text_frame, text, text_rgb, font_body, 19)
+                else:
+                    box = s.shapes.add_textbox(Inches(1.0), Inches(1.5), Inches(11.0), Inches(5.2))
+                    _fill_body_plain(box.text_frame, text, text_rgb, font_body, 19)
+
+        elif st == "numbered":
             items = content if isinstance(content, list) else [str(content or "")]
             items = [str(x).strip() for x in items if str(x).strip()]
+            body = _default_title_and_body(s, title)
+            if body:
+                _fill_body_paragraphs(
+                    body.text_frame,
+                    items,
+                    text_rgb=text_rgb,
+                    font_body=font_body,
+                    body_pt=17 if len(items) > 8 else 18,
+                    numbered=True,
+                )
+            else:
+                box = s.shapes.add_textbox(Inches(1.0), Inches(1.5), Inches(11.0), Inches(5.2))
+                _fill_body_paragraphs(
+                    box.text_frame,
+                    items,
+                    text_rgb=text_rgb,
+                    font_body=font_body,
+                    body_pt=17 if len(items) > 8 else 18,
+                    numbered=True,
+                )
+
+        elif st == "bullets":
+            items = content if isinstance(content, list) else [str(content or "")]
+            items = [str(x).strip() for x in items if str(x).strip()]
+            body = _default_title_and_body(s, title)
             if body:
                 _fill_body_paragraphs(
                     body.text_frame,
@@ -411,13 +551,16 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
                     body_pt=17 if len(items) > 8 else 18,
                     bullet=True,
                 )
+
         else:
             text = str(content or "")
+            body = _default_title_and_body(s, title)
             if body:
                 _fill_body_plain(body.text_frame, text, text_rgb, font_body, 19)
             else:
                 box = s.shapes.add_textbox(Inches(1.0), Inches(1.5), Inches(11.0), Inches(5.2))
                 _fill_body_plain(box.text_frame, text, text_rgb, font_body, 19)
+
         add_watermark(s)
 
     # summary
@@ -642,7 +785,9 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
 
     slide_configs = [("title", data.get("title", ""), data.get("subtitle", ""))]
     for slide in data.get("slides", []):
-        slide_configs.append((slide.get("type"), slide.get("title", ""), slide.get("content")))
+        slide_configs.append(
+            (_normalize_slide_type(slide.get("type")), slide.get("title", ""), slide.get("content"))
+        )
     slide_configs.append(("summary", data.get("summary_title", "Riepilogo"), data.get("summary", "")))
 
     for slide_type, title, content in slide_configs:
@@ -685,6 +830,141 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
                 bold=False,
                 font_name=font_body,
             )
+
+        elif slide_type == "section":
+            bar = slide.shapes.add_shape(
+                MSO_SHAPE.RECTANGLE,
+                Inches(0.75),
+                Inches(2.05),
+                Inches(2.8),
+                Inches(0.09),
+            )
+            bar.fill.solid()
+            bar.fill.fore_color.rgb = accent_rgb
+            bar.line.width = Pt(0)
+            tbox = slide.shapes.add_textbox(Inches(0.75), Inches(2.25), Inches(11.8), Inches(1.35))
+            tf = tbox.text_frame
+            tf.clear()
+            p = tf.paragraphs[0]
+            p.text = title or "Sezione"
+            p.font.bold = True
+            p.font.size = Pt(34)
+            p.font.color.rgb = text_rgb
+            p.font.name = font_title
+            sub = str(content or "").strip()
+            if sub:
+                sbox = slide.shapes.add_textbox(Inches(0.75), Inches(3.75), Inches(11.5), Inches(1.1))
+                _fill_body_plain(sbox.text_frame, sub, subtitle_rgb, font_body, 18)
+
+        elif slide_type == "quote":
+            if title:
+                hdr = slide.shapes.add_textbox(Inches(0.75), Inches(0.45), Inches(11.5), Inches(0.55))
+                tf = hdr.text_frame
+                tf.clear()
+                p = tf.paragraphs[0]
+                p.text = title
+                p.font.bold = True
+                p.font.size = Pt(22)
+                p.font.color.rgb = accent_rgb
+                p.font.name = font_title
+            qtxt = str(content or "").strip() or "—"
+            qbox = slide.shapes.add_textbox(Inches(1.0), Inches(1.65), Inches(11.3), Inches(4.6))
+            qtf = qbox.text_frame
+            qtf.clear()
+            qp = qtf.paragraphs[0]
+            qp.text = f"“{qtxt}”"
+            qp.font.size = Pt(21)
+            qp.font.italic = True
+            qp.font.color.rgb = text_rgb
+            qp.alignment = PP_ALIGN.CENTER
+            qp.font.name = font_body
+            qline = slide.shapes.add_shape(
+                MSO_SHAPE.RECTANGLE,
+                Inches(5.4),
+                Inches(6.35),
+                Inches(2.5),
+                Inches(0.06),
+            )
+            qline.fill.solid()
+            qline.fill.fore_color.rgb = accent_rgb
+            qline.line.width = Pt(0)
+
+        elif slide_type == "split":
+            pair = _split_content_two_columns(content)
+            title_box = slide.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(0.6))
+            tf = title_box.text_frame
+            tf.clear()
+            p = tf.paragraphs[0]
+            p.text = title or ""
+            p.font.size = Pt(26)
+            p.font.bold = True
+            p.font.color.rgb = accent_rgb
+            p.font.name = font_title
+            p.alignment = PP_ALIGN.LEFT
+            if pair:
+                left, right = pair
+                vbar = slide.shapes.add_shape(
+                    MSO_SHAPE.RECTANGLE,
+                    Inches(6.58),
+                    Inches(1.35),
+                    Inches(0.05),
+                    Inches(5.85),
+                )
+                vbar.fill.solid()
+                vbar.fill.fore_color.rgb = accent_rgb
+                vbar.line.width = Pt(0)
+                lb = slide.shapes.add_textbox(Inches(0.65), Inches(1.35), Inches(5.75), Inches(5.85))
+                _fill_body_plain(lb.text_frame, left, text_rgb, font_body, 17)
+                rb = slide.shapes.add_textbox(Inches(6.78), Inches(1.35), Inches(5.85), Inches(5.85))
+                _fill_body_plain(rb.text_frame, right, text_rgb, font_body, 17)
+            else:
+                body_box = slide.shapes.add_textbox(Inches(1.15), Inches(1.5), Inches(11.9), Inches(5.8))
+                _fill_body_plain(body_box.text_frame, str(content or ""), text_rgb, font_body, 19)
+
+        elif slide_type == "numbered":
+            bullets = content if isinstance(content, list) else [str(content)]
+            bullets = [str(b).strip() for b in bullets if str(b).strip()]
+            title_box = slide.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(0.6))
+            tf = title_box.text_frame
+            tf.clear()
+            p = tf.paragraphs[0]
+            p.text = title or ""
+            p.font.size = Pt(26)
+            p.font.bold = True
+            p.font.color.rgb = accent_rgb
+            p.font.name = font_title
+            p.alignment = PP_ALIGN.LEFT
+            n = len(bullets)
+            columns = 2 if n >= 8 else 1
+            top_y = 1.35
+            left_margin = 0.95 if variant == 1 else 0.85
+            col_gap = 0.55
+            col_w = (13.33 - left_margin - 0.75 - (col_gap if columns == 2 else 0)) / columns
+            row_h = 0.55 if n <= 8 else 0.48
+            for idx, bullet in enumerate(bullets[:12]):
+                col = 0 if columns == 1 else (idx // 6)
+                row = idx if columns == 1 else (idx % 6)
+                x = left_margin + col * (col_w + (col_gap if columns == 2 else 0))
+                y = top_y + row * row_h
+                num_box = slide.shapes.add_textbox(Inches(x), Inches(y + 0.02), Inches(0.35), Inches(0.35))
+                ntf = num_box.text_frame
+                ntf.clear()
+                np = ntf.paragraphs[0]
+                np.text = f"{idx + 1}."
+                np.font.size = Pt(14)
+                np.font.bold = True
+                np.font.color.rgb = accent_rgb
+                np.font.name = font_body
+                box = slide.shapes.add_textbox(Inches(x + 0.38), Inches(y), Inches(col_w - 0.4), Inches(row_h))
+                btf = box.text_frame
+                btf.clear()
+                btf.word_wrap = True
+                bp = btf.paragraphs[0]
+                bp.text = str(bullet)
+                bp.font.size = Pt(18 if n <= 6 else 16)
+                bp.font.color.rgb = text_rgb
+                bp.font.name = font_body
+                bp.alignment = PP_ALIGN.LEFT
 
         elif slide_type == "bullets":
             bullets = content if isinstance(content, list) else [str(content)]
