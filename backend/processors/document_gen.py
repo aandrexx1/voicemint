@@ -398,6 +398,57 @@ def _strip_template_visual_noise(slide, prs: Presentation):
     _remove_large_background_pictures(slide, prs)
 
 
+def _count_picture_placeholders_on_layout(layout) -> int:
+    n = 0
+    for shape in layout.shapes:
+        try:
+            if not shape.is_placeholder:
+                continue
+            ph_t = int(shape.placeholder_format.type)
+            if ph_t in _PH_TYPES_TO_STRIP:
+                n += 1
+        except Exception:
+            continue
+    return n
+
+
+def _layout_has_text_body_placeholder(layout) -> bool:
+    for shape in layout.shapes:
+        try:
+            if not shape.is_placeholder:
+                continue
+            ph_t = int(shape.placeholder_format.type)
+            if ph_t in (2, 7, 14, 19):
+                return True
+        except Exception:
+            continue
+    return False
+
+
+def _pick_text_friendly_layout(prs: Presentation):
+    """
+    Non usare sempre slide_layouts[1]: spesso è una griglia con molti placeholder immagine vuoti.
+    Scegli un layout con corpo testo e al massimo un placeholder foto; se solo griglie (≥2 foto), layout vuoto.
+    """
+    layouts = list(prs.slide_layouts)
+    if not layouts:
+        return None
+    blank = layouts[6] if len(layouts) > 6 else layouts[0]
+    candidates: list[tuple[int, object]] = []
+    for lo in layouts:
+        if not _layout_has_text_body_placeholder(lo):
+            continue
+        pics = _count_picture_placeholders_on_layout(lo)
+        candidates.append((pics, lo))
+    if not candidates:
+        return blank
+    candidates.sort(key=lambda x: (x[0], 0))
+    min_pics, best = candidates[0]
+    if min_pics >= 2:
+        return blank
+    return best
+
+
 def _style_title_shape(shape, text: str, color_rgb: RGBColor, font_title: str | None, size_pt: int = 30):
     if not getattr(shape, "text_frame", None):
         return
@@ -509,10 +560,10 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
     font_title = (theme.get("font_title") or "").strip() or None
     font_body = (theme.get("font_body") or "").strip() or None
 
-    # layout fallback robusto
+    # layout fallback robusto (text_content_layout evita griglie con N placeholder immagine vuoti)
     title_layout = prs.slide_layouts[0] if len(prs.slide_layouts) > 0 else prs.slide_layouts[6]
-    content_layout = prs.slide_layouts[1] if len(prs.slide_layouts) > 1 else prs.slide_layouts[6]
     blank_layout = prs.slide_layouts[6] if len(prs.slide_layouts) > 6 else prs.slide_layouts[0]
+    text_content_layout = _pick_text_friendly_layout(prs) or blank_layout
 
     def add_watermark(slide):
         if user_tier not in ("free", "starter"):
@@ -570,7 +621,7 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
         if st in ("section", "quote", "split"):
             layout = blank_layout
         elif st in ("text", "bullets", "numbered"):
-            layout = content_layout
+            layout = text_content_layout
         else:
             layout = blank_layout
 
@@ -717,7 +768,7 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
         add_watermark(s)
 
     # summary
-    ss = prs.slides.add_slide(content_layout)
+    ss = prs.slides.add_slide(text_content_layout)
     polish_slide(ss, slide_bg_rgb)
     summary_title = data.get("summary_title", "Riepilogo")
     summary_text = data.get("summary", "")
