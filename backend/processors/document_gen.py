@@ -338,7 +338,7 @@ def _fill_body_paragraphs(
             pass
 
 
-def _fill_body_plain(tf, text: str, text_rgb: RGBColor, font_body: str | None, body_pt: int = 19):
+def _fill_body_plain(tf, text: str, text_rgb: RGBColor, font_body: str | None, body_pt: int = 17):
     """Testo lungo: spezza su righe vuote per paragrafi multipli."""
     raw = str(text or "").replace("\r\n", "\n")
     if "\n\n" in raw:
@@ -455,12 +455,12 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
                 hdr = s.shapes.add_textbox(Inches(0.75), Inches(0.45), Inches(11.5), Inches(0.55))
                 _style_title_shape(hdr, title, accent_rgb, font_title, 22)
             qtxt = str(content or "").strip() or "—"
-            qbox = s.shapes.add_textbox(Inches(1.0), Inches(1.65), Inches(11.3), Inches(4.6))
+            qbox = s.shapes.add_textbox(Inches(1.0), Inches(1.55), Inches(11.3), Inches(5.75))
             qtf = qbox.text_frame
             qtf.clear()
             qp = qtf.paragraphs[0]
             qp.text = f"“{qtxt}”"
-            qp.font.size = Pt(21)
+            qp.font.size = Pt(18)
             qp.font.italic = True
             qp.font.color.rgb = text_rgb
             qp.alignment = PP_ALIGN.CENTER
@@ -487,22 +487,22 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
                     Inches(6.58),
                     Inches(1.35),
                     Inches(0.05),
-                    Inches(5.85),
+                    Inches(6.25),
                 )
                 vbar.fill.solid()
                 vbar.fill.fore_color.rgb = accent_rgb
                 vbar.line.width = Pt(0)
-                lb = s.shapes.add_textbox(Inches(0.65), Inches(1.35), Inches(5.75), Inches(5.85))
-                _fill_body_plain(lb.text_frame, left, text_rgb, font_body, 17)
-                rb = s.shapes.add_textbox(Inches(6.78), Inches(1.35), Inches(5.85), Inches(5.85))
-                _fill_body_plain(rb.text_frame, right, text_rgb, font_body, 17)
+                lb = s.shapes.add_textbox(Inches(0.65), Inches(1.35), Inches(5.75), Inches(6.25))
+                _fill_body_plain(lb.text_frame, left, text_rgb, font_body, 16)
+                rb = s.shapes.add_textbox(Inches(6.78), Inches(1.35), Inches(5.85), Inches(6.25))
+                _fill_body_plain(rb.text_frame, right, text_rgb, font_body, 16)
             else:
                 text = str(content or "")
                 if body:
-                    _fill_body_plain(body.text_frame, text, text_rgb, font_body, 19)
+                    _fill_body_plain(body.text_frame, text, text_rgb, font_body, 17)
                 else:
-                    box = s.shapes.add_textbox(Inches(1.0), Inches(1.5), Inches(11.0), Inches(5.2))
-                    _fill_body_plain(box.text_frame, text, text_rgb, font_body, 19)
+                    box = s.shapes.add_textbox(Inches(1.0), Inches(1.45), Inches(11.0), Inches(6.05))
+                    _fill_body_plain(box.text_frame, text, text_rgb, font_body, 17)
 
         elif st == "numbered":
             items = content if isinstance(content, list) else [str(content or "")]
@@ -518,7 +518,7 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
                     numbered=True,
                 )
             else:
-                box = s.shapes.add_textbox(Inches(1.0), Inches(1.5), Inches(11.0), Inches(5.2))
+                box = s.shapes.add_textbox(Inches(1.0), Inches(1.45), Inches(11.0), Inches(6.05))
                 _fill_body_paragraphs(
                     box.text_frame,
                     items,
@@ -542,7 +542,7 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
                     bullet=True,
                 )
             else:
-                box = s.shapes.add_textbox(Inches(1.0), Inches(1.5), Inches(11.0), Inches(5.2))
+                box = s.shapes.add_textbox(Inches(1.0), Inches(1.45), Inches(11.0), Inches(6.05))
                 _fill_body_paragraphs(
                     box.text_frame,
                     items,
@@ -556,10 +556,10 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
             text = str(content or "")
             body = _default_title_and_body(s, title)
             if body:
-                _fill_body_plain(body.text_frame, text, text_rgb, font_body, 19)
+                _fill_body_plain(body.text_frame, text, text_rgb, font_body, 17)
             else:
-                box = s.shapes.add_textbox(Inches(1.0), Inches(1.5), Inches(11.0), Inches(5.2))
-                _fill_body_plain(box.text_frame, text, text_rgb, font_body, 19)
+                box = s.shapes.add_textbox(Inches(1.0), Inches(1.45), Inches(11.0), Inches(6.05))
+                _fill_body_plain(box.text_frame, text, text_rgb, font_body, 17)
 
         add_watermark(s)
 
@@ -572,10 +572,10 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
         _style_title_shape(ss.shapes.title, summary_title, accent_rgb, font_title, 26)
     body_s = _first_body_placeholder(ss)
     if body_s:
-        _fill_body_plain(body_s.text_frame, str(summary_text or ""), text_rgb, font_body, 19)
+        _fill_body_plain(body_s.text_frame, str(summary_text or ""), text_rgb, font_body, 17)
     else:
-        box = ss.shapes.add_textbox(Inches(1.0), Inches(1.5), Inches(11.0), Inches(5.2))
-        _fill_body_plain(box.text_frame, str(summary_text or ""), text_rgb, font_body, 19)
+        box = ss.shapes.add_textbox(Inches(1.0), Inches(1.45), Inches(11.0), Inches(6.05))
+        _fill_body_plain(box.text_frame, str(summary_text or ""), text_rgb, font_body, 17)
     add_watermark(ss)
 
     filename = f"{OUTPUT_DIR}/{uuid.uuid4()}.pptx"
@@ -825,7 +825,7 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
                 Inches(2.85),
                 Inches(9.3),
                 Inches(0.9),
-                Pt(20),
+                Pt(18),
                 subtitle_rgb,
                 bold=False,
                 font_name=font_body,
@@ -868,12 +868,12 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
                 p.font.color.rgb = accent_rgb
                 p.font.name = font_title
             qtxt = str(content or "").strip() or "—"
-            qbox = slide.shapes.add_textbox(Inches(1.0), Inches(1.65), Inches(11.3), Inches(4.6))
+            qbox = slide.shapes.add_textbox(Inches(1.0), Inches(1.65), Inches(11.3), Inches(5.75))
             qtf = qbox.text_frame
             qtf.clear()
             qp = qtf.paragraphs[0]
             qp.text = f"“{qtxt}”"
-            qp.font.size = Pt(21)
+            qp.font.size = Pt(18)
             qp.font.italic = True
             qp.font.color.rgb = text_rgb
             qp.alignment = PP_ALIGN.CENTER
@@ -908,18 +908,18 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
                     Inches(6.58),
                     Inches(1.35),
                     Inches(0.05),
-                    Inches(5.85),
+                    Inches(6.25),
                 )
                 vbar.fill.solid()
                 vbar.fill.fore_color.rgb = accent_rgb
                 vbar.line.width = Pt(0)
-                lb = slide.shapes.add_textbox(Inches(0.65), Inches(1.35), Inches(5.75), Inches(5.85))
-                _fill_body_plain(lb.text_frame, left, text_rgb, font_body, 17)
-                rb = slide.shapes.add_textbox(Inches(6.78), Inches(1.35), Inches(5.85), Inches(5.85))
-                _fill_body_plain(rb.text_frame, right, text_rgb, font_body, 17)
+                lb = slide.shapes.add_textbox(Inches(0.65), Inches(1.35), Inches(5.75), Inches(6.25))
+                _fill_body_plain(lb.text_frame, left, text_rgb, font_body, 16)
+                rb = slide.shapes.add_textbox(Inches(6.78), Inches(1.35), Inches(5.85), Inches(6.25))
+                _fill_body_plain(rb.text_frame, right, text_rgb, font_body, 16)
             else:
-                body_box = slide.shapes.add_textbox(Inches(1.15), Inches(1.5), Inches(11.9), Inches(5.8))
-                _fill_body_plain(body_box.text_frame, str(content or ""), text_rgb, font_body, 19)
+                body_box = slide.shapes.add_textbox(Inches(1.15), Inches(1.45), Inches(11.9), Inches(6.05))
+                _fill_body_plain(body_box.text_frame, str(content or ""), text_rgb, font_body, 17)
 
         elif slide_type == "numbered":
             bullets = content if isinstance(content, list) else [str(content)]
@@ -1040,14 +1040,14 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
                 Inches(0.95),
                 Inches(1.35),
                 Inches(0.06),
-                Inches(5.8),
+                Inches(6.05),
             )
             border.fill.solid()
             border.fill.fore_color.rgb = accent_rgb
             border.line.color.rgb = accent_rgb
             border.line.width = Pt(0.0)
 
-            body_box = slide.shapes.add_textbox(Inches(1.15), Inches(1.35), Inches(11.9), Inches(5.8))
+            body_box = slide.shapes.add_textbox(Inches(1.15), Inches(1.35), Inches(11.9), Inches(6.05))
             tf = body_box.text_frame
             tf.clear()
             tf.word_wrap = True
@@ -1056,7 +1056,7 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
             # Keep it readable (wrap by slide width)
             p = tf.paragraphs[0]
             p.text = str(content or "")
-            p.font.size = Pt(20)
+            p.font.size = Pt(17)
             p.font.color.rgb = text_rgb
             p.font.name = font_body
             p.alignment = PP_ALIGN.LEFT
@@ -1104,13 +1104,13 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
             p.font.name = font_title
             p.alignment = PP_ALIGN.LEFT
 
-            body_box = slide.shapes.add_textbox(Inches(1.15), Inches(1.5), Inches(11.9), Inches(5.8))
+            body_box = slide.shapes.add_textbox(Inches(1.15), Inches(1.45), Inches(11.9), Inches(6.05))
             tf = body_box.text_frame
             tf.clear()
             tf.word_wrap = True
             p = tf.paragraphs[0]
             p.text = str(content or "")
-            p.font.size = Pt(20)
+            p.font.size = Pt(17)
             p.font.color.rgb = text_rgb
             p.font.name = font_body
             p.alignment = PP_ALIGN.LEFT
