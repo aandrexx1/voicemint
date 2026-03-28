@@ -1,18 +1,20 @@
 "use client";
 
 import React from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 /**
  * deckMode: "study" | "presentation"
+ * Portal su document.body + z alto: altrimenti resta sotto la Navbar (z-[100]) e il wrapper landing (z-10).
  */
 export function DeckModeModal({ open, onClose, onSelect }) {
   const { t } = useTranslation();
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="deck-mode-title"
@@ -56,6 +58,7 @@ export function DeckModeModal({ open, onClose, onSelect }) {
           {t("deck_mode_cancel")}
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
