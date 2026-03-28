@@ -97,7 +97,6 @@ def _find_named_deck_template(study: bool) -> Path | None:
     Trova un .pptx il cui nome contiene il marker della modalità, es.:
     - Nome_Template_Study.pptx (sottostringa '_Template_Study')
     - oppure Template_Study.pptx (inizia per 'Template_Study')
-    Stesso schema per Presentation con '_Template_Presentation' / 'Template_Presentation'.
     """
     matches = []
     for p in _discover_templates():
@@ -105,17 +104,66 @@ def _find_named_deck_template(study: bool) -> Path | None:
         if study:
             ok = "_template_study" in n or n.startswith("template_study")
         else:
-            ok = "_template_presentation" in n or n.startswith("template_presentation")
+            ok = False
         if ok:
             matches.append(p)
     return min(matches, key=lambda x: len(x.name)) if matches else None
 
 
+def _is_presentation_template_filename(name: str) -> bool:
+    n = name.lower()
+    return "_template_presentation" in n or n.startswith("template_presentation")
+
+
+def _find_presentation_template(data: dict) -> Path | None:
+    """
+    Presentazione: distingue template lavoro vs scolastico dal nome file.
+    - …_Template_Presentation_Work… — contesto lavoro/aziendale
+    - …_Template_Presentation_School… — scuola/università
+    - …_Template_Presentation… senza Work/School — neutro (fallback per entrambi)
+    """
+    audience = (data.get("presentation_audience") or "school").strip().lower()
+    if audience not in ("work", "school"):
+        audience = "school"
+
+    all_p = [p for p in _discover_templates() if _is_presentation_template_filename(p.name)]
+    if not all_p:
+        return None
+
+    def shortest(paths: list[Path]) -> Path:
+        return min(paths, key=lambda x: len(x.name))
+
+    def has_work(nm: str) -> bool:
+        stem = Path(nm).stem.lower()
+        return "_template_presentation" in stem and stem.endswith("_work")
+
+    def has_school(nm: str) -> bool:
+        stem = Path(nm).stem.lower()
+        return "_template_presentation" in stem and stem.endswith("_school")
+
+    neutral = [p for p in all_p if not has_work(p.name) and not has_school(p.name)]
+
+    if audience == "work":
+        w = [p for p in all_p if has_work(p.name)]
+        if w:
+            return shortest(w)
+        if neutral:
+            return shortest(neutral)
+        return shortest(all_p)
+
+    s = [p for p in all_p if has_school(p.name)]
+    if s:
+        return shortest(s)
+    if neutral:
+        return shortest(neutral)
+    return shortest(all_p)
+
+
 def _pick_template(data: dict):
     """
     Seleziona il .pptx in base a deck_mode:
-    - study → file con '_Template_Study' nel nome (es. Affantie_Template_Study.pptx) o Template_Study.pptx
-    - presentation → '_Template_Presentation' o Template_Presentation.pptx
+    - study → '_Template_Study' / Template_Study
+    - presentation → audience work/school → Template_Presentation_Work / _School, altrimenti neutro
     Poi: manifest remoto, altrimenti qualsiasi template locale (hash deterministico).
     """
     mode = (data.get("deck_mode") or "presentation").strip().lower()
@@ -124,7 +172,7 @@ def _pick_template(data: dict):
         if named is not None:
             return named
     else:
-        named = _find_named_deck_template(study=False)
+        named = _find_presentation_template(data)
         if named is not None:
             return named
 
@@ -133,7 +181,15 @@ def _pick_template(data: dict):
         templates = _discover_templates()
     if not templates:
         return None
-    seed = (data.get("title") or "") + "|" + (data.get("subtitle") or "") + "|" + mode
+    seed = (
+        (data.get("title") or "")
+        + "|"
+        + (data.get("subtitle") or "")
+        + "|"
+        + mode
+        + "|"
+        + str(data.get("presentation_audience") or "")
+    )
     idx = int(hashlib.sha256(seed.encode("utf-8")).hexdigest(), 16) % len(templates)
     return templates[idx]
 

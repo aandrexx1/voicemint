@@ -20,6 +20,75 @@ def _clamp(n: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, int(n)))
 
 
+def _infer_presentation_audience_heuristic(text: str) -> str:
+    """Se il modello non restituisce presentation_audience, stima work vs school dal lessico."""
+    t = (text or "").lower()
+    work_kw = (
+        "cliente",
+        "kpi",
+        "azienda",
+        "board",
+        "revenue",
+        "stakeholder",
+        "quarter",
+        "business",
+        "pitch",
+        "roi",
+        "meeting",
+        "corporate",
+        "budget",
+        "fatturato",
+        "shareholder",
+        "mercato",
+        "vendite",
+        "b2b",
+        "investitori",
+        "quarterly",
+        "sales",
+        "report",
+    )
+    school_kw = (
+        "esame",
+        "professore",
+        "lezione",
+        "università",
+        "compito",
+        "materia",
+        "classe",
+        "tesina",
+        "voto",
+        "studente",
+        "corso",
+        "laurea",
+        "scuola",
+        "interrogazione",
+        "dipartimento",
+        "cfu",
+        "appunti",
+        "ripasso",
+        "homework",
+        "midterm",
+        "thesis",
+    )
+    ws = sum(1 for k in work_kw if k in t)
+    ss = sum(1 for k in school_kw if k in t)
+    if ws > ss:
+        return "work"
+    if ss > ws:
+        return "school"
+    return "school"
+
+
+def _normalize_presentation_audience(data: dict, text_in: str, study: bool) -> None:
+    if study:
+        data.pop("presentation_audience", None)
+        return
+    pa = str(data.get("presentation_audience") or "").strip().lower()
+    if pa not in ("work", "school"):
+        pa = _infer_presentation_audience_heuristic(text_in)
+    data["presentation_audience"] = pa
+
+
 def _word_count(text: str) -> int:
     return len(re.findall(r"\w+", (text or "").strip()))
 
@@ -245,6 +314,17 @@ MODALITÀ: PRESENTAZIONE ORALE (scuola/lavoro): contenuti da esporre a voce — 
 """
     )
 
+    audience_rules = ""
+    json_audience_line = ""
+    if not study:
+        audience_rules = """
+- CONTESTO PRESENTAZIONE (obbligatorio): nel JSON includi il campo "presentation_audience" con valore ESATTAMENTE "work" oppure "school":
+  · "work" — contesto lavorativo/aziendale: riunioni, clienti, pitch, report, strategia, KPI, progetto professionale, corporate, board.
+  · "school" — contesto scolastico o accademico: lezione, esame, compito, materia, corso, tesina, professore, università.
+  Decidi in base al testo e al lessico. Non usare lo stesso stile per un pitch aziendale e per una tesina: classifica correttamente.
+"""
+        json_audience_line = '\n  "presentation_audience": "school",'
+
     prompt = f"""
 Analizza questo testo e crea una presentazione professionale VARIA, specifica per l'argomento e NON generica.
 {mode_intro}
@@ -259,7 +339,7 @@ REGOLE FONDAMENTALI:
 - Non usare titoli generici (tipo "Introduzione", "Conclusione") a meno che il testo lo richieda: rendili specifici.
 - Il titolo principale deve riflettere davvero l'argomento.
 {"- Se il testo è una richiesta breve (es. \"fammi un riassunto di...\") devi comunque produrre slide utili: definizioni chiave, struttura del programma, concetti fondamentali, errori comuni, esempi, mini-casi, e un piano di studio rapido." if short_prompt else ""}
-
+{audience_rules}
 Scegli il tema visivo più adatto:
 - Business/finance → dark blu navy, accenti oro
 - Tech/AI/startup → dark nero, accenti ciano
@@ -270,7 +350,7 @@ Scegli il tema visivo più adatto:
 Rispondi SOLO con JSON valido, zero testo extra:
 {{
   "title": "Titolo principale",
-  "subtitle": "Sottotitolo breve e incisivo",
+  "subtitle": "Sottotitolo breve e incisivo",{json_audience_line}
   "slides": [
     {{
       "type": "section",
@@ -338,6 +418,11 @@ Rispondi SOLO con JSON valido, zero testo extra:
             if study
             else "Modalità PRESENTAZIONE: contenuti per esposizione orale; paragrafi e punti sviluppati."
         )
+        fix_audience = (
+            ""
+            if study
+            else '- Mantieni "presentation_audience" ("work" o "school") coerente con il testo.\n'
+        )
         fix_prompt = f"""
 Hai generato solo {len(slides)} slide di contenuto, ma ne servono almeno {min_content_slides}.
 
@@ -352,7 +437,7 @@ JSON ATTUALE:
 COMPITO:
 - Espandi la presentazione fino ad avere tra {min_content_slides} e {max_content_slides} slide di contenuto.
 - Mantieni titolo e tema.
-- Usa tipi slide vari (section, quote, split, numbered, bullets, text) come nello schema; evita solo text/bullet alternati.
+{fix_audience}- Usa tipi slide vari (section, quote, split, numbered, bullets, text) come nello schema; evita solo text/bullet alternati.
 - Per OGNI slide: moltiplica il contenuto testuale (stesse regole di DENSITÀ della modalità). Non lasciare campi "content" corti.
 - Aggiungi nuove slide con titoli specifici e contenuti concreti.
 - Rispondi SOLO con JSON valido (stesso schema).
@@ -386,4 +471,5 @@ COMPITO:
 
     if isinstance(data, dict):
         data["deck_mode"] = deck_mode
+        _normalize_presentation_audience(data, text_in, study)
     return data
