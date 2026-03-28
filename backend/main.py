@@ -282,6 +282,8 @@ class LoginRequest(BaseModel):
 class GenerateRequest(BaseModel):
     transcription: str
     output_type: str = "ppt"
+    # "study" = appunti/schemi; "presentation" = esposizione orale (template con placeholder foto se presenti)
+    deck_mode: str = "presentation"
 
 # --- Registrazione ---
 @app.post("/register")
@@ -475,9 +477,12 @@ def generate(
 ):
     text = ""
     out = output_type
+    deck_mode = "presentation"
     if data is not None:
         text = (data.transcription or "").strip()
         out = (data.output_type or output_type or "ppt")
+        dm = (getattr(data, "deck_mode", None) or "presentation").strip().lower()
+        deck_mode = "study" if dm == "study" else "presentation"
     else:
         text = (transcription or "").strip()
 
@@ -487,9 +492,8 @@ def generate(
     if current_user.tier == "free" and current_user.monthly_usage >= 180:
         raise HTTPException(status_code=403, detail="Limite mensile raggiunto. Passa a Pro!")
     
-    # Struttura il testo con GPT-4o
-    parsed = parse_transcription(text)
-    
+    parsed = parse_transcription(text, deck_mode=deck_mode)
+
     # Genera il file richiesto
     if out == "ppt":
         file_path = generate_ppt(parsed, user_tier=current_user.tier)

@@ -92,14 +92,42 @@ def _discover_remote_templates():
             out.append(p)
     return out
 
+def _find_template_by_prefix(prefix: str) -> Path | None:
+    """File tipo Template_Study.pptx o Template_Presentation.pptx (prefisso case-insensitive)."""
+    pl = (prefix or "").strip().lower()
+    if not pl:
+        return None
+    matches = [
+        p
+        for p in _discover_templates()
+        if p.name.lower().startswith(pl) and p.name.lower().endswith(".pptx")
+    ]
+    return min(matches, key=lambda x: len(x.name)) if matches else None
+
+
 def _pick_template(data: dict):
-    # Priorità: Cloudflare/R2 manifest remoto, poi fallback ai template locali
+    """
+    Seleziona il .pptx in base a deck_mode:
+    - study → Template_Study*.pptx
+    - presentation → Template_Presentation*.pptx
+    Poi: manifest remoto, altrimenti qualsiasi template locale (hash deterministico).
+    """
+    mode = (data.get("deck_mode") or "presentation").strip().lower()
+    if mode == "study":
+        named = _find_template_by_prefix("Template_Study")
+        if named is not None:
+            return named
+    else:
+        named = _find_template_by_prefix("Template_Presentation")
+        if named is not None:
+            return named
+
     templates = _discover_remote_templates()
     if not templates:
         templates = _discover_templates()
     if not templates:
         return None
-    seed = (data.get("title") or "") + "|" + (data.get("subtitle") or "")
+    seed = (data.get("title") or "") + "|" + (data.get("subtitle") or "") + "|" + mode
     idx = int(hashlib.sha256(seed.encode("utf-8")).hexdigest(), 16) % len(templates)
     return templates[idx]
 
@@ -338,7 +366,7 @@ def _fill_body_paragraphs(
             pass
 
 
-def _fill_body_plain(tf, text: str, text_rgb: RGBColor, font_body: str | None, body_pt: int = 17):
+def _fill_body_plain(tf, text: str, text_rgb: RGBColor, font_body: str | None, body_pt: int = 19):
     """Testo lungo: spezza su righe vuote per paragrafi multipli."""
     raw = str(text or "").replace("\r\n", "\n")
     if "\n\n" in raw:
@@ -351,6 +379,8 @@ def _fill_body_plain(tf, text: str, text_rgb: RGBColor, font_body: str | None, b
 
 def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path) -> str:
     prs = Presentation(str(template_path))
+    # Le slide di esempio nel file template non vengono riutilizzate: si svuota il deck e si creano
+    # solo slide dai layout master. Eventuali pagine superflue nel .pptx originale non compaiono in output.
     if len(prs.slides) > 0:
         _clear_all_slides(prs)
 
@@ -381,9 +411,16 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
         if font_body:
             p.font.name = font_body
 
+    deck_mode = (data.get("deck_mode") or "presentation").strip().lower()
+
     def polish_slide(slide, bg: RGBColor):
-        _strip_template_visual_noise(slide, prs)
-        _apply_slide_background_solid(slide, bg)
+        # Studio: solo testo — rimuovi riquadri immagine stock e uniforma sfondo al tema.
+        # Presentazione: conserva placeholder foto e grafica del template per l’utente.
+        if deck_mode == "study":
+            _strip_template_visual_noise(slide, prs)
+            _apply_slide_background_solid(slide, bg)
+        else:
+            pass
 
     # title
     s0 = prs.slides.add_slide(title_layout)
@@ -499,10 +536,10 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
             else:
                 text = str(content or "")
                 if body:
-                    _fill_body_plain(body.text_frame, text, text_rgb, font_body, 17)
+                    _fill_body_plain(body.text_frame, text, text_rgb, font_body, 19)
                 else:
                     box = s.shapes.add_textbox(Inches(1.0), Inches(1.45), Inches(11.0), Inches(6.05))
-                    _fill_body_plain(box.text_frame, text, text_rgb, font_body, 17)
+                    _fill_body_plain(box.text_frame, text, text_rgb, font_body, 19)
 
         elif st == "numbered":
             items = content if isinstance(content, list) else [str(content or "")]
@@ -556,10 +593,10 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
             text = str(content or "")
             body = _default_title_and_body(s, title)
             if body:
-                _fill_body_plain(body.text_frame, text, text_rgb, font_body, 17)
+                _fill_body_plain(body.text_frame, text, text_rgb, font_body, 19)
             else:
                 box = s.shapes.add_textbox(Inches(1.0), Inches(1.45), Inches(11.0), Inches(6.05))
-                _fill_body_plain(box.text_frame, text, text_rgb, font_body, 17)
+                _fill_body_plain(box.text_frame, text, text_rgb, font_body, 19)
 
         add_watermark(s)
 
@@ -572,10 +609,10 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
         _style_title_shape(ss.shapes.title, summary_title, accent_rgb, font_title, 26)
     body_s = _first_body_placeholder(ss)
     if body_s:
-        _fill_body_plain(body_s.text_frame, str(summary_text or ""), text_rgb, font_body, 17)
+        _fill_body_plain(body_s.text_frame, str(summary_text or ""), text_rgb, font_body, 19)
     else:
         box = ss.shapes.add_textbox(Inches(1.0), Inches(1.45), Inches(11.0), Inches(6.05))
-        _fill_body_plain(box.text_frame, str(summary_text or ""), text_rgb, font_body, 17)
+        _fill_body_plain(box.text_frame, str(summary_text or ""), text_rgb, font_body, 19)
     add_watermark(ss)
 
     filename = f"{OUTPUT_DIR}/{uuid.uuid4()}.pptx"
@@ -825,7 +862,7 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
                 Inches(2.85),
                 Inches(9.3),
                 Inches(0.9),
-                Pt(18),
+                Pt(20),
                 subtitle_rgb,
                 bold=False,
                 font_name=font_body,
@@ -868,12 +905,12 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
                 p.font.color.rgb = accent_rgb
                 p.font.name = font_title
             qtxt = str(content or "").strip() or "—"
-            qbox = slide.shapes.add_textbox(Inches(1.0), Inches(1.65), Inches(11.3), Inches(5.75))
+            qbox = slide.shapes.add_textbox(Inches(1.0), Inches(1.65), Inches(11.3), Inches(4.6))
             qtf = qbox.text_frame
             qtf.clear()
             qp = qtf.paragraphs[0]
             qp.text = f"“{qtxt}”"
-            qp.font.size = Pt(18)
+            qp.font.size = Pt(21)
             qp.font.italic = True
             qp.font.color.rgb = text_rgb
             qp.alignment = PP_ALIGN.CENTER
@@ -908,18 +945,18 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
                     Inches(6.58),
                     Inches(1.35),
                     Inches(0.05),
-                    Inches(6.25),
+                    Inches(5.85),
                 )
                 vbar.fill.solid()
                 vbar.fill.fore_color.rgb = accent_rgb
                 vbar.line.width = Pt(0)
-                lb = slide.shapes.add_textbox(Inches(0.65), Inches(1.35), Inches(5.75), Inches(6.25))
-                _fill_body_plain(lb.text_frame, left, text_rgb, font_body, 16)
-                rb = slide.shapes.add_textbox(Inches(6.78), Inches(1.35), Inches(5.85), Inches(6.25))
-                _fill_body_plain(rb.text_frame, right, text_rgb, font_body, 16)
+                lb = slide.shapes.add_textbox(Inches(0.65), Inches(1.35), Inches(5.75), Inches(5.85))
+                _fill_body_plain(lb.text_frame, left, text_rgb, font_body, 17)
+                rb = slide.shapes.add_textbox(Inches(6.78), Inches(1.35), Inches(5.85), Inches(5.85))
+                _fill_body_plain(rb.text_frame, right, text_rgb, font_body, 17)
             else:
-                body_box = slide.shapes.add_textbox(Inches(1.15), Inches(1.45), Inches(11.9), Inches(6.05))
-                _fill_body_plain(body_box.text_frame, str(content or ""), text_rgb, font_body, 17)
+                body_box = slide.shapes.add_textbox(Inches(1.15), Inches(1.5), Inches(11.9), Inches(5.8))
+                _fill_body_plain(body_box.text_frame, str(content or ""), text_rgb, font_body, 19)
 
         elif slide_type == "numbered":
             bullets = content if isinstance(content, list) else [str(content)]
@@ -1040,14 +1077,14 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
                 Inches(0.95),
                 Inches(1.35),
                 Inches(0.06),
-                Inches(6.05),
+                Inches(5.8),
             )
             border.fill.solid()
             border.fill.fore_color.rgb = accent_rgb
             border.line.color.rgb = accent_rgb
             border.line.width = Pt(0.0)
 
-            body_box = slide.shapes.add_textbox(Inches(1.15), Inches(1.35), Inches(11.9), Inches(6.05))
+            body_box = slide.shapes.add_textbox(Inches(1.15), Inches(1.35), Inches(11.9), Inches(5.8))
             tf = body_box.text_frame
             tf.clear()
             tf.word_wrap = True
@@ -1056,7 +1093,7 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
             # Keep it readable (wrap by slide width)
             p = tf.paragraphs[0]
             p.text = str(content or "")
-            p.font.size = Pt(17)
+            p.font.size = Pt(20)
             p.font.color.rgb = text_rgb
             p.font.name = font_body
             p.alignment = PP_ALIGN.LEFT
@@ -1104,13 +1141,13 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
             p.font.name = font_title
             p.alignment = PP_ALIGN.LEFT
 
-            body_box = slide.shapes.add_textbox(Inches(1.15), Inches(1.45), Inches(11.9), Inches(6.05))
+            body_box = slide.shapes.add_textbox(Inches(1.15), Inches(1.5), Inches(11.9), Inches(5.8))
             tf = body_box.text_frame
             tf.clear()
             tf.word_wrap = True
             p = tf.paragraphs[0]
             p.text = str(content or "")
-            p.font.size = Pt(17)
+            p.font.size = Pt(20)
             p.font.color.rgb = text_rgb
             p.font.name = font_body
             p.alignment = PP_ALIGN.LEFT

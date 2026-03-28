@@ -154,7 +154,7 @@ export default function LandingPage({
           subtitle={t("hero_desc")}
           placeholder={i18n.language === "it" ? "Descrivi l'argomento..." : "Describe your topic..."}
           buttonText={t("hero_generate")}
-          onPromptSubmit={async (prompt) => {
+          onPromptSubmit={async (prompt, deckMode = "presentation") => {
             const text = (prompt || "").trim()
             if (!text) return
             if (!isAuthed) {
@@ -166,7 +166,11 @@ export default function LandingPage({
                 token && token !== "cookie"
                   ? { headers: { Authorization: `Bearer ${token}` }, responseType: "blob", withCredentials: true }
                   : { responseType: "blob", withCredentials: true }
-              const res = await axios.post(`${API}/generate`, { transcription: text, output_type: "ppt" }, config)
+              const res = await axios.post(
+                `${API}/generate`,
+                { transcription: text, output_type: "ppt", deck_mode: deckMode },
+                config
+              )
               const url = URL.createObjectURL(res.data)
               const a = document.createElement("a")
               a.href = url

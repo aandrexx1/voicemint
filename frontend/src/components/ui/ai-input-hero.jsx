@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
+import { DeckModeModal } from "../deck-mode-modal.jsx";
 
 const API = import.meta.env.VITE_API_URL || "https://voicemint-backend.onrender.com";
 
@@ -23,6 +24,7 @@ export function HeroWave({
   }, [t, i18n.language]);
 
   const [prompt, setPrompt] = useState("");
+  const [deckModeOpen, setDeckModeOpen] = useState(false);
   const [recording, setRecording] = useState(false);
   const recorderRef = useRef(null);
   const suggestionsRef = useRef(suggestions);
@@ -170,7 +172,9 @@ export function HeroWave({
             className="mt-6 flex items-center justify-center sm:mt-8"
             onSubmit={(e) => {
               e.preventDefault();
-              onPromptSubmit?.(prompt);
+              const text = (prompt || "").trim();
+              if (!text) return;
+              setDeckModeOpen(true);
             }}
           >
             <div className="relative w-full sm:w-[720px]">
@@ -216,6 +220,15 @@ export function HeroWave({
           </form>
         </div>
       </div>
+
+      <DeckModeModal
+        open={deckModeOpen}
+        onClose={() => setDeckModeOpen(false)}
+        onSelect={(deckMode) => {
+          setDeckModeOpen(false);
+          onPromptSubmit?.(prompt, deckMode);
+        }}
+      />
     </section>
   );
 }

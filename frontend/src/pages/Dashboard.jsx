@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { Mic, Download, LogOut, FileText, User, X, ChevronDown } from "lucide-react"
+import { DeckModeModal } from "../components/deck-mode-modal.jsx"
 import { motion, AnimatePresence } from "framer-motion"
 import axios from "axios"
 import { safeGetItem, safeSetItem } from "../lib/safe-storage"
@@ -78,13 +79,13 @@ export default function Dashboard({
     setRecording(false)
   }
 
-  const generate = async () => {
+  const generate = async (deckMode = "presentation") => {
     if (!transcription) return
     setLoading(true)
     try {
       const res = await axios.post(
         `${API}/generate`,
-        { transcription, output_type: outputType },
+        { transcription, output_type: outputType, deck_mode: deckMode },
         token && token !== "cookie"
           ? { headers: { Authorization: `Bearer ${token}` }, responseType: "blob", withCredentials: true }
           : { responseType: "blob", withCredentials: true }
@@ -270,7 +271,11 @@ export default function Dashboard({
             </div>
 
             <button
-              onClick={generate}
+              type="button"
+              onClick={() => {
+                if (!transcription?.trim()) return
+                setDeckModeOpen(true)
+              }}
               disabled={loading || !transcription}
               className="bg-white text-black font-semibold px-7 py-3 rounded-full text-sm hover:bg-white/90 disabled:opacity-30 transition-all"
             >
@@ -327,6 +332,15 @@ export default function Dashboard({
           )}
         </div>
       </div>
+
+      <DeckModeModal
+        open={deckModeOpen}
+        onClose={() => setDeckModeOpen(false)}
+        onSelect={(deckMode) => {
+          setDeckModeOpen(false)
+          generate(deckMode)
+        }}
+      />
 
       {/* Modal Impostazioni */}
       <AnimatePresence>
