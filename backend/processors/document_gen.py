@@ -92,33 +92,39 @@ def _discover_remote_templates():
             out.append(p)
     return out
 
-def _find_template_by_prefix(prefix: str) -> Path | None:
-    """File tipo Template_Study.pptx o Template_Presentation.pptx (prefisso case-insensitive)."""
-    pl = (prefix or "").strip().lower()
-    if not pl:
-        return None
-    matches = [
-        p
-        for p in _discover_templates()
-        if p.name.lower().startswith(pl) and p.name.lower().endswith(".pptx")
-    ]
+def _find_named_deck_template(study: bool) -> Path | None:
+    """
+    Trova un .pptx il cui nome contiene il marker della modalità, es.:
+    - Nome_Template_Study.pptx (sottostringa '_Template_Study')
+    - oppure Template_Study.pptx (inizia per 'Template_Study')
+    Stesso schema per Presentation con '_Template_Presentation' / 'Template_Presentation'.
+    """
+    matches = []
+    for p in _discover_templates():
+        n = p.name.lower()
+        if study:
+            ok = "_template_study" in n or n.startswith("template_study")
+        else:
+            ok = "_template_presentation" in n or n.startswith("template_presentation")
+        if ok:
+            matches.append(p)
     return min(matches, key=lambda x: len(x.name)) if matches else None
 
 
 def _pick_template(data: dict):
     """
     Seleziona il .pptx in base a deck_mode:
-    - study → Template_Study*.pptx
-    - presentation → Template_Presentation*.pptx
+    - study → file con '_Template_Study' nel nome (es. Affantie_Template_Study.pptx) o Template_Study.pptx
+    - presentation → '_Template_Presentation' o Template_Presentation.pptx
     Poi: manifest remoto, altrimenti qualsiasi template locale (hash deterministico).
     """
     mode = (data.get("deck_mode") or "presentation").strip().lower()
     if mode == "study":
-        named = _find_template_by_prefix("Template_Study")
+        named = _find_named_deck_template(study=True)
         if named is not None:
             return named
     else:
-        named = _find_template_by_prefix("Template_Presentation")
+        named = _find_named_deck_template(study=False)
         if named is not None:
             return named
 
