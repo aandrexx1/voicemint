@@ -2,7 +2,7 @@ import os
 import uuid
 from pptx import Presentation
 from pptx.util import Inches, Pt
-from pptx.enum.shapes import MSO_SHAPE, MSO_SHAPE_TYPE
+from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE, MSO_SHAPE, MSO_SHAPE_TYPE, PP_PLACEHOLDER
 from pptx.enum.text import PP_ALIGN, MSO_AUTO_SIZE
 from pptx.dml.color import RGBColor
 from playwright.sync_api import sync_playwright
@@ -143,26 +143,115 @@ def _apply_slide_background_solid(slide, rgb: RGBColor):
     fill.fore_color.rgb = rgb
 
 
-def _remove_large_background_pictures(slide, prs: Presentation, cover_ratio: float = 0.32):
+def _remove_shape_safely(shape):
+    try:
+        el = shape.element
+        parent = el.getparent()
+        if parent is not None:
+            parent.remove(el)
+    except Exception:
+        pass
+
+
+# Placeholder layout "inserisci immagine" (cerchio/icona): shape_type PLACEHOLDER, non PICTURE
+_PH_TYPES_TO_STRIP = frozenset(
+    {
+        int(PP_PLACEHOLDER.PICTURE),
+        int(PP_PLACEHOLDER.BITMAP),
+        int(PP_PLACEHOLDER.MEDIA_CLIP),
+        int(PP_PLACEHOLDER.SLIDE_IMAGE),
+        int(PP_PLACEHOLDER.ORG_CHART),
+        int(PP_PLACEHOLDER.CHART),
+    }
+)
+
+
+def _flatten_shapes(slide):
+    """Tutte le forme incluso dentro i GROUP (layout spesso annidati)."""
+    acc = []
+
+    def walk(coll):
+        for s in list(coll):
+            acc.append(s)
+            if s.shape_type == MSO_SHAPE_TYPE.GROUP:
+                walk(s.shapes)
+
+    walk(slide.shapes)
+    return acc
+
+
+def _remove_picture_and_media_placeholders(slide):
+    """Rimuove i riquadri "immagine" / media del template (es. cerchio con icona foto)."""
+    for shape in _flatten_shapes(slide):
+        try:
+            if not getattr(shape, "is_placeholder", False):
+                continue
+            ph_t = int(shape.placeholder_format.type)
+            if ph_t in _PH_TYPES_TO_STRIP:
+                _remove_shape_safely(shape)
+        except Exception:
+            continue
+
+
+def _remove_large_decorative_ovals(slide, prs: Presentation, area_ratio: float = 0.06):
     """
-    Rimuove immagini molto grandi sullo slide (tipiche placeholder stock a tutta pagina),
-    lasciando testo e forme piccole.
+    Ovale / rettangoli arrotondati molto grandi senza testo (spesso maschera per foto stock).
     """
     slide_area = float(prs.slide_width * prs.slide_height)
     if slide_area <= 0:
         return
-    for shape in list(slide.shapes):
+    ovalish = frozenset(
+        {
+            MSO_AUTO_SHAPE_TYPE.OVAL,
+            MSO_AUTO_SHAPE_TYPE.OVAL_CALLOUT,
+            MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE,
+            MSO_AUTO_SHAPE_TYPE.ROUND_1_RECTANGLE,
+            MSO_AUTO_SHAPE_TYPE.ROUND_2_DIAG_RECTANGLE,
+            MSO_AUTO_SHAPE_TYPE.ROUND_2_SAME_RECTANGLE,
+        }
+    )
+    for shape in _flatten_shapes(slide):
         try:
-            if shape.shape_type != MSO_SHAPE_TYPE.PICTURE:
+            if shape.shape_type != MSO_SHAPE_TYPE.AUTO_SHAPE:
+                continue
+            if shape.auto_shape_type not in ovalish:
+                continue
+            if shape.width * shape.height < slide_area * area_ratio:
+                continue
+            tf = getattr(shape, "text_frame", None)
+            if tf is not None:
+                t = (tf.text or "").strip()
+                if t:
+                    continue
+            _remove_shape_safely(shape)
+        except Exception:
+            continue
+
+
+def _remove_large_background_pictures(slide, prs: Presentation, cover_ratio: float = 0.08):
+    """
+    Rimuove immagini bitmap grandi sullo slide (stock / foto di sfondo).
+    Soglia più bassa per catturare anche icone-area grandi nel template.
+    """
+    slide_area = float(prs.slide_width * prs.slide_height)
+    if slide_area <= 0:
+        return
+    for shape in _flatten_shapes(slide):
+        try:
+            if shape.shape_type not in (MSO_SHAPE_TYPE.PICTURE, MSO_SHAPE_TYPE.LINKED_PICTURE):
                 continue
             if shape.width * shape.height < slide_area * cover_ratio:
                 continue
-            el = shape.element
-            parent = el.getparent()
-            if parent is not None:
-                parent.remove(el)
+            _remove_shape_safely(shape)
         except Exception:
             continue
+
+
+def _strip_template_visual_noise(slide, prs: Presentation):
+    """Ordine: placeholder immagine → ovali decorativi → bitmap grandi → poi sfondo solido (chiamato fuori)."""
+    _remove_picture_and_media_placeholders(slide)
+    _remove_large_decorative_ovals(slide, prs)
+    _remove_large_background_pictures(slide, prs)
 
 
 def _style_title_shape(shape, text: str, color_rgb: RGBColor, font_title: str | None, size_pt: int = 30):
@@ -192,6 +281,13 @@ def _fill_body_paragraphs(
     """Riempie il text frame con paragrafi, word wrap e (opz.) elenco puntato."""
     tf.clear()
     tf.word_wrap = True
+    try:
+        tf.margin_left = Pt(4)
+        tf.margin_right = Pt(8)
+        tf.margin_top = Pt(2)
+        tf.margin_bottom = Pt(4)
+    except Exception:
+        pass
     try:
         tf.auto_size = MSO_AUTO_SIZE.NONE
     except Exception:
@@ -260,7 +356,7 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
             p.font.name = font_body
 
     def polish_slide(slide, bg: RGBColor):
-        _remove_large_background_pictures(slide, prs)
+        _strip_template_visual_noise(slide, prs)
         _apply_slide_background_solid(slide, bg)
 
     # title
