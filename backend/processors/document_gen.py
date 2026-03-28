@@ -11,6 +11,7 @@ import hashlib
 from pathlib import Path
 import json
 import httpx
+from urllib.parse import urlparse
 
 OUTPUT_DIR = "outputs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -34,6 +35,21 @@ def _discover_templates():
         return []
     return sorted([p for p in TEMPLATES_DIR.rglob("*.pptx") if _valid_template_path(p)])
 
+
+def _discover_all_template_paths():
+    """Template locali + file scaricati dal manifest R2 (cache), senza duplicati."""
+    seen: set[str] = set()
+    out: list[Path] = []
+    for p in _discover_remote_templates() + _discover_templates():
+        try:
+            key = str(p.resolve())
+        except Exception:
+            key = str(p)
+        if key not in seen:
+            seen.add(key)
+            out.append(p)
+    return out
+
 def _safe_template_filename(name: str) -> str:
     cleaned = "".join(ch for ch in (name or "template") if ch.isalnum() or ch in ("-", "_", "."))
     if not cleaned.lower().endswith(".pptx"):
@@ -44,8 +60,14 @@ def _download_remote_template(url: str, template_id: str) -> Path | None:
     if not url:
         return None
     try:
-        ext = ".pptx" if not url.lower().endswith(".pptx") else ""
-        local_name = _safe_template_filename(f"{template_id}{ext}")
+        # Nome file univoco dalla URL (stesso "id" per Presentation/Study non deve sovrascrivere la cache).
+        path_part = (urlparse(url).path or "").strip("/")
+        base_from_url = Path(path_part).name if path_part else ""
+        if base_from_url.lower().endswith(".pptx") and base_from_url:
+            local_name = _safe_template_filename(base_from_url)
+        else:
+            ext = ".pptx" if not url.lower().endswith(".pptx") else ""
+            local_name = _safe_template_filename(f"{template_id}{ext}")
         local_path = TEMPLATES_CACHE_DIR / local_name
         if local_path.exists() and local_path.stat().st_size > 0:
             return local_path
@@ -63,6 +85,7 @@ def _discover_remote_templates():
     Legge un manifest JSON remoto (es. Cloudflare R2 public URL) con formato:
     { "templates": [ { "id": "boxvie", "url": "https://.../boxvie.pptx" }, ... ] }
     oppure lista diretta [{...}, {...}]
+    Più voci con lo stesso "id" sono ok se le URL hanno nomi file diversi (cache per nome file nell'URL).
     """
     manifest_url = os.getenv("TEMPLATE_MANIFEST_URL", "").strip()
     if not manifest_url:
@@ -99,7 +122,7 @@ def _find_named_deck_template(study: bool) -> Path | None:
     - oppure Template_Study.pptx (inizia per 'Template_Study')
     """
     matches = []
-    for p in _discover_templates():
+    for p in _discover_all_template_paths():
         n = p.name.lower()
         if study:
             ok = "_template_study" in n or n.startswith("template_study")
@@ -126,7 +149,7 @@ def _find_presentation_template(data: dict) -> Path | None:
     if audience not in ("work", "school"):
         audience = "school"
 
-    all_p = [p for p in _discover_templates() if _is_presentation_template_filename(p.name)]
+    all_p = [p for p in _discover_all_template_paths() if _is_presentation_template_filename(p.name)]
     if not all_p:
         return None
 
@@ -176,9 +199,7 @@ def _pick_template(data: dict):
         if named is not None:
             return named
 
-    templates = _discover_remote_templates()
-    if not templates:
-        templates = _discover_templates()
+    templates = _discover_all_template_paths()
     if not templates:
         return None
     seed = (
