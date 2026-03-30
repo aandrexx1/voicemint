@@ -21,12 +21,6 @@ const footerLinks = {
 export function Footer({ onLogin, onOpenTerms, onOpenPrivacy, lang, onChangeLang }) {
   const { t } = useTranslation();
 
-  const resolveAction = (action) => {
-    if (action === "terms" && onOpenTerms) return onOpenTerms;
-    if (action === "privacy" && onOpenPrivacy) return onOpenPrivacy;
-    return null;
-  };
-
   const scrollToId = (id) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -51,7 +45,7 @@ export function Footer({ onLogin, onOpenTerms, onOpenPrivacy, lang, onChangeLang
           </button>
         </AnimatedContainer>
 
-        <div className="mt-6 grid grid-cols-2 gap-8 md:grid-cols-3 xl:col-span-2 xl:mt-0">
+        <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-10 lg:grid-cols-4 xl:col-span-2 xl:mt-0">
           <AnimatedContainer delay={0.2}>
             <div>
               <h3 className="text-xs uppercase tracking-[0.18em] text-white/50">{t("footer_column_product")}</h3>
@@ -84,27 +78,36 @@ export function Footer({ onLogin, onOpenTerms, onOpenPrivacy, lang, onChangeLang
                   </li>
                 ))}
               </ul>
-
-              <div className="mt-6 space-y-2 text-sm text-white/65">
-                <button
-                  type="button"
-                  onClick={onOpenTerms}
-                  className="inline-flex items-center transition-colors hover:text-white"
-                >
-                  {t("footer_link_terms")}
-                </button>
-                <button
-                  type="button"
-                  onClick={onOpenPrivacy}
-                  className="inline-flex items-center transition-colors hover:text-white"
-                >
-                  {t("footer_link_privacy")}
-                </button>
-              </div>
             </div>
           </AnimatedContainer>
 
-          <AnimatedContainer delay={0.4} className="col-span-2 md:col-span-1 md:justify-self-end">
+          <AnimatedContainer delay={0.35}>
+            <div>
+              <h3 className="text-xs uppercase tracking-[0.18em] text-white/50">{t("footer_column_legal")}</h3>
+              <ul className="mt-4 space-y-2 text-sm text-white/65">
+                <li>
+                  <button
+                    type="button"
+                    onClick={onOpenTerms}
+                    className="inline-flex items-center transition-colors hover:text-white"
+                  >
+                    {t("footer_link_terms")}
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={onOpenPrivacy}
+                    className="inline-flex items-center transition-colors hover:text-white"
+                  >
+                    {t("footer_link_privacy")}
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </AnimatedContainer>
+
+          <AnimatedContainer delay={0.4} className="col-span-2 justify-self-start lg:col-span-1 lg:justify-self-end">
             <div>
               <h3 className="text-xs uppercase tracking-[0.18em] text-white/50">
                 {lang === "it" ? "Lingua" : "Language"}
