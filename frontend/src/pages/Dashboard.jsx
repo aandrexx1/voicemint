@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Mic, Download, LogOut, FileText, User, X, ChevronDown } from "lucide-react"
 import { DeckModeModal } from "../components/deck-mode-modal.jsx"
+import { GenerationProgressOverlay } from "../components/generation-progress-overlay.jsx"
 import { motion, AnimatePresence } from "framer-motion"
 import axios from "axios"
 import { safeGetItem, safeSetItem } from "../lib/safe-storage"
@@ -81,6 +82,8 @@ export default function Dashboard({
 
   const generate = async (deckMode = "presentation") => {
     if (!transcription) return
+    setGenError(null)
+    setProgressOpen(true)
     setLoading(true)
     try {
       const res = await axios.post(
@@ -96,8 +99,17 @@ export default function Dashboard({
       a.download = filenameFromContentDisposition(res.headers?.["content-disposition"]) || "voicemint.pptx"
       a.click()
       setConversions(prev => [{ title: transcription.slice(0, 50) + "...", type: outputType, url }, ...prev])
-    } catch {
-      alert("Errore nella generazione")
+    } catch (e) {
+      const d = e?.response?.data?.detail
+      const msg =
+        typeof d === "string"
+          ? d
+          : Array.isArray(d)
+            ? d.map((x) => (typeof x === "object" ? x.msg || JSON.stringify(x) : String(x))).join(" ")
+            : d
+              ? String(d)
+              : e?.message || (lang === "it" ? "Errore nella generazione" : "Generation failed")
+      setGenError(msg)
     } finally {
       setLoading(false)
     }
@@ -339,6 +351,18 @@ export default function Dashboard({
         onSelect={(deckMode) => {
           setDeckModeOpen(false)
           generate(deckMode)
+        }}
+      />
+
+      <GenerationProgressOverlay
+        open={progressOpen}
+        loading={loading}
+        lang={lang === "it" ? "it" : "en"}
+        promptPreview={(transcription || "").trim()}
+        error={genError}
+        onDismiss={() => {
+          setProgressOpen(false)
+          setGenError(null)
         }}
       />
 

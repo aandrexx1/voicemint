@@ -178,7 +178,7 @@ export default function LandingPage({
               a.click()
               URL.revokeObjectURL(url)
             } catch (e) {
-              alert(t("alert_generation_error"))
+              throw e
             }
           }}
         />

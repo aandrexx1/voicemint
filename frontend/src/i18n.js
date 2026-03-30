@@ -75,9 +75,11 @@ const resources = {
       deck_mode_title: "Che tipo di PowerPoint ti serve?",
       deck_mode_subtitle: "Il contenuto e il template cambiano in base alla scelta.",
       deck_mode_study_title: "Per studiare (appunti)",
-      deck_mode_study_desc: "Schemi, elenchi e concetti da ripassare. Template testo senza riquadri foto.",
+      deck_mode_study_desc:
+        "Schemi, elenchi e grafica leggera per il ripasso; opzionale foto in testata se il server è configurato.",
       deck_mode_presentation_title: "Per presentare",
-      deck_mode_presentation_desc: "Slide da esporre a scuola o al lavoro. Template con spazi per le tue foto.",
+      deck_mode_presentation_desc:
+        "Titolo con immagine a tema (se disponibile) e layout più visivo per scuola o lavoro.",
       deck_mode_cancel: "Annulla",
       alert_checkout_error:
         "Impossibile avviare il pagamento. Riprova o controlla la configurazione Stripe.",
@@ -284,9 +286,11 @@ const resources = {
       deck_mode_title: "What kind of deck do you need?",
       deck_mode_subtitle: "Content and template change based on your choice.",
       deck_mode_study_title: "For studying (notes)",
-      deck_mode_study_desc: "Outlines, lists, and concepts to review. Text template without photo placeholders.",
+      deck_mode_study_desc:
+        "Outlines, lists, and light graphics for review; optional header photo when the server is configured.",
       deck_mode_presentation_title: "For presenting",
-      deck_mode_presentation_desc: "Slides to present at school or work. Template with areas for your photos.",
+      deck_mode_presentation_desc:
+        "Title slide with a themed image when available, and a more visual layout for school or work.",
       deck_mode_cancel: "Cancel",
       alert_checkout_error:
         "Could not start checkout. Try again or verify Stripe configuration.",

@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
 import { DeckModeModal } from "../deck-mode-modal.jsx";
+import { GenerationProgressOverlay } from "../generation-progress-overlay.jsx";
 import { MorphingSquare } from "@/components/ui/morphing-square";
 
 const API = import.meta.env.VITE_API_URL || "https://voicemint-backend.onrender.com";
@@ -28,6 +29,8 @@ export function HeroWave({
   const [deckModeOpen, setDeckModeOpen] = useState(false);
   const [recording, setRecording] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [progressOpen, setProgressOpen] = useState(false);
+  const [genError, setGenError] = useState(null);
   const recorderRef = useRef(null);
   const suggestionsRef = useRef(suggestions);
 
@@ -236,12 +239,37 @@ export function HeroWave({
         onSelect={async (deckMode) => {
           setDeckModeOpen(false);
           if (!onPromptSubmit) return;
+          setGenError(null);
+          setProgressOpen(true);
           setGenerating(true);
           try {
             await onPromptSubmit(prompt, deckMode);
+          } catch (e) {
+            const d = e?.response?.data?.detail;
+            const msg =
+              typeof d === "string"
+                ? d
+                : Array.isArray(d)
+                  ? d.map((x) => (typeof x === "object" ? x.msg || JSON.stringify(x) : String(x))).join(" ")
+                  : d
+                    ? String(d)
+                    : e?.message || (i18n.language?.startsWith("it") ? "Errore nella generazione" : "Generation failed");
+            setGenError(msg);
           } finally {
             setGenerating(false);
           }
+        }}
+      />
+
+      <GenerationProgressOverlay
+        open={progressOpen}
+        loading={generating}
+        lang={i18n.language?.startsWith("it") ? "it" : "en"}
+        promptPreview={(prompt || "").trim()}
+        error={genError}
+        onDismiss={() => {
+          setProgressOpen(false);
+          setGenError(null);
         }}
       />
     </section>
