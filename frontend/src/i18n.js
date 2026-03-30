@@ -164,44 +164,7 @@ const resources = {
       legal_terms_title: "Termini di servizio",
       legal_terms_updated: "Ultimo aggiornamento: 30 marzo 2026",
       legal_privacy_title: "Privacy Policy",
-      legal_privacy_updated: "Ultimo aggiornamento: marzo 2026",
-      legal_privacy_sections: [
-        {
-          title: "1. Titolare",
-          body:
-            "Il titolare del trattamento dei dati personali raccolti tramite VoiceMint è il gestore del servizio indicato sul sito (di seguito “noi”). Per esercitare i tuoi diritti puoi contattarci tramite i canali indicati sul sito.",
-        },
-        {
-          title: "2. Dati trattati",
-          body:
-            "Possiamo trattare: dati di account (es. email, nome utente), contenuti audio inviati per la generazione, metadati tecnici (log, indirizzo IP, tipo di browser), dati di utilizzo del Servizio.",
-        },
-        {
-          title: "3. Finalità e base giuridica",
-          body:
-            "I dati sono trattati per: erogare il Servizio ed eseguire il contratto (art. 6(1)(b) GDPR); adempiere obblighi legali (art. 6(1)(c)); sicurezza e prevenzione abusi (legittimo interesse, art. 6(1)(f)); miglioramento del prodotto, previo consenso ove richiesto (art. 6(1)(a)).",
-        },
-        {
-          title: "4. Conservazione",
-          body:
-            "I dati sono conservati per il tempo necessario alle finalità indicate e secondo obblighi di legge. I contenuti elaborati possono essere conservati per periodi brevi per finalità operative e poi cancellati o anonimizzati, salvo diversa indicazione nel Servizio.",
-        },
-        {
-          title: "5. Cookie",
-          body:
-            "Utilizziamo cookie tecnici necessari al funzionamento. Altri strumenti (es. analitici) possono essere attivati solo in base alla tua scelta dal banner cookie. Puoi modificare le preferenze cancellando i cookie dal browser o contattandoci.",
-        },
-        {
-          title: "6. Trasferimenti extra-UE",
-          body:
-            "Se utilizziamo fornitori extra-UE, adottiamo garanzie adeguate (es. Clausole contrattuali tipo) ove richiesto dalla normativa.",
-        },
-        {
-          title: "7. Diritti",
-          body:
-            "Hai diritto di accesso, rettifica, cancellazione, limitazione, opposizione, portabilità e di proporre reclamo all’autorità di controllo (in Italia il Garante Privacy). Per esercitare i diritti, contattaci tramite i canali sul sito.",
-        },
-      ],
+      legal_privacy_updated: "Ultimo aggiornamento: 30 marzo 2026",
       auth_home: "Home",
       auth_title_login: "Accedi o registrati",
       auth_subtitle_login: "Entra con il tuo account VoiceMint.",
@@ -408,45 +371,8 @@ const resources = {
       contact_sales_error: "Could not send. Please try again.",
       legal_terms_title: "Terms of Service",
       legal_terms_updated: "Last updated: March 30, 2026",
-      legal_privacy_title: "Privacy Policy",
-      legal_privacy_updated: "Last updated: March 2026",
-      legal_privacy_sections: [
-        {
-          title: "1. Data controller",
-          body:
-            "The controller of personal data collected through VoiceMint is the service operator identified on the website (“we”). To exercise your rights, contact us via the channels listed on the site.",
-        },
-        {
-          title: "2. Data we process",
-          body:
-            "We may process: account data (e.g. email, username), audio content submitted for generation, technical metadata (logs, IP address, browser type), and usage data.",
-        },
-        {
-          title: "3. Purposes and legal bases",
-          body:
-            "Data are processed to: provide the Service and perform the contract (Art. 6(1)(b) GDPR); comply with legal obligations (Art. 6(1)(c)); ensure security and prevent abuse (legitimate interest, Art. 6(1)(f)); improve the product where consent is required (Art. 6(1)(a)).",
-        },
-        {
-          title: "4. Retention",
-          body:
-            "Data are kept as long as needed for the stated purposes and as required by law. Processed content may be stored briefly for operational purposes and then deleted or anonymised unless otherwise stated in the Service.",
-        },
-        {
-          title: "5. Cookies",
-          body:
-            "We use strictly necessary cookies. Other tools (e.g. analytics) may be activated only based on your choice in the cookie banner. You can change preferences by clearing browser cookies or contacting us.",
-        },
-        {
-          title: "6. Transfers outside the EU",
-          body:
-            "If we use providers outside the EU, we implement appropriate safeguards (e.g. Standard Contractual Clauses) where required.",
-        },
-        {
-          title: "7. Your rights",
-          body:
-            "You have the right of access, rectification, erasure, restriction, objection, portability, and to lodge a complaint with a supervisory authority. To exercise your rights, contact us via the channels on the site.",
-        },
-      ],
+      legal_privacy_title: "Privacy Notice",
+      legal_privacy_updated: "Last updated: March 30, 2026",
       auth_home: "Home",
       auth_title_login: "Sign in or join",
       auth_subtitle_login: "Sign in to your VoiceMint account.",

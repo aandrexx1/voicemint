@@ -1,0 +1,212 @@
+PRIVACY NOTICE
+Last updated: March 30, 2026
+
+================================================================================
+INTRODUCTION
+================================================================================
+
+This Privacy Notice for VoiceMint ("we," "us," or "our"), describes how and why we might access, collect, store, use, and/or share ("process") your personal information when you use our services ("Services"), including when you visit our website at https://www.voicemint.it or use our applications and related offerings.
+
+Questions or concerns? Reading this Privacy Notice will help you understand your privacy rights and choices. If you do not agree with our policies and practices, please do not use our Services. If you still have questions or concerns, please contact us at support@voicemint.it.
+
+================================================================================
+SUMMARY OF KEY POINTS
+================================================================================
+
+This summary provides key points from our Privacy Notice. You can learn more about any topic by following the links to each section.
+
+What personal information do we process? When you visit, use, or navigate our Services, we may process personal information depending on how you interact with VoiceMint and the Services, the choices you make, and the products and features you use. Learn more about [personal information you disclose to us](#privacy-1).
+
+Do we process any sensitive personal information? We do not process sensitive personal information.
+
+Do we collect any information from third parties? We may collect information from public databases, marketing partners, social media platforms, and other outside sources. Learn more about [information collected from other sources](#privacy-1).
+
+How do we process your information? We process your information to provide, improve, and administer our Services, communicate with you, for security and fraud prevention, and to comply with law. We may also process your information for other purposes with your consent. Learn more about [how we process your information](#privacy-2).
+
+In what situations and with which parties do we share personal information? We may share information in specific situations and with specific third parties. Learn more about [when and with whom we share your personal information](#privacy-3).
+
+What are your privacy rights? Depending on where you are located geographically, the applicable privacy law may mean you have certain rights regarding your personal information. Learn more about [your privacy rights](#privacy-9).
+
+How do you exercise your rights? The easiest way to exercise your rights is by contacting us at support@voicemint.it, or by submitting a [data subject access request](mailto:support@voicemint.it?subject=Data%20subject%20access%20request), or as otherwise described in section 13.
+
+Review the Privacy Notice in full below.
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+
+1. WHAT INFORMATION DO WE COLLECT?
+2. HOW DO WE PROCESS YOUR INFORMATION?
+3. WHEN AND WITH WHOM DO WE SHARE YOUR PERSONAL INFORMATION?
+4. DO WE USE COOKIES AND OTHER TRACKING TECHNOLOGIES?
+5. HOW DO WE HANDLE YOUR SOCIAL LOGINS?
+6. IS YOUR INFORMATION TRANSFERRED INTERNATIONALLY?
+7. HOW LONG DO WE KEEP YOUR INFORMATION?
+8. DO WE COLLECT INFORMATION FROM MINORS?
+9. WHAT ARE YOUR PRIVACY RIGHTS?
+10. CONTROLS FOR DO-NOT-TRACK FEATURES
+11. DO WE MAKE UPDATES TO THIS NOTICE?
+12. HOW CAN YOU CONTACT US ABOUT THIS NOTICE?
+13. HOW CAN YOU REVIEW, UPDATE, OR DELETE THE DATA WE COLLECT FROM YOU?
+
+================================================================================
+1. WHAT INFORMATION DO WE COLLECT?
+================================================================================
+
+Personal information you disclose to us
+
+In Short: We collect personal information that you provide to us.
+
+We collect personal information that you voluntarily provide to us when you register on the Services, express an interest in obtaining information about us or our products and Services, when you participate in activities on the Services, or otherwise when you contact us.
+
+Personal Information Provided by You. The personal information that we collect depends on the context of your interactions with us and the Services, the choices you make, and the products and features you use. The personal information we collect may include the following: names, email addresses, usernames, passwords, billing addresses, payment information, and similar contact or authentication data.
+
+Sensitive Information. We do not process sensitive personal information.
+
+Payment Data. We may collect data necessary to process your payment if you make purchases, such as your payment instrument number and the security code associated with your payment instrument. All payment data is processed by our payment processors; you should review their privacy policies and contact the payment processor directly to respond to your questions.
+
+Information automatically collected
+
+In Short: Some information — such as your Internet Protocol (IP) address and/or browser and device characteristics — is collected automatically when you visit our Services.
+
+We automatically collect certain information when you visit, use, or navigate the Services. This information does not reveal your specific identity (like your name or contact information) but may include device and usage information, such as your IP address, browser and device characteristics, operating system, language preferences, referring URLs, device name, country, location, information about how and when you use our Services, and other technical information. This information is primarily needed to maintain the security and operation of our Services, and for our internal analytics and reporting purposes.
+
+Like many businesses, we also collect information through cookies and similar technologies. You can find out more about this in our Cookie Notice (where available on the Services) and in section 4 below.
+
+Information collected from other sources
+
+In Short: We may collect limited data from public databases, marketing partners, social media platforms, and other outside sources.
+
+We may obtain information about you from other sources, such as public databases, joint marketing partners, social media platforms (when you choose to connect an account), and other third parties. Examples include mailing addresses, job titles, email addresses, phone numbers, intent data (or user behavior data), IP addresses, social media profiles, and social media handles.
+
+================================================================================
+2. HOW DO WE PROCESS YOUR INFORMATION?
+================================================================================
+
+In Short: We process your information to provide, improve, and administer our Services, communicate with you, for security and fraud prevention, and to comply with law. We may also process your information for other purposes with your consent.
+
+We process your personal information for a variety of reasons, depending on how you interact with our Services, including:
+
+To facilitate account creation and authentication and otherwise manage user accounts.
+To deliver and facilitate delivery of services to the user.
+To respond to user inquiries and offer support.
+To send administrative information to you.
+To request feedback and contact you about your use of our Services.
+To enable user-to-user communications when such features are offered.
+To protect our Services and maintain a trusted environment, including fraud monitoring and prevention.
+To evaluate and improve our Services, products, marketing, and your experience.
+To identify usage trends and analyze the effectiveness of our campaigns.
+To comply with our legal obligations, resolve disputes, and enforce our agreements.
+To save or protect an individual's vital interest, such as to prevent harm.
+
+================================================================================
+3. WHEN AND WITH WHOM DO WE SHARE YOUR PERSONAL INFORMATION?
+================================================================================
+
+In Short: We may share information in specific situations described in this section and/or with the following third parties.
+
+Business Transfers. We may share or transfer your information in connection with, or during negotiations of, any merger, sale of company assets, financing, or acquisition of all or a portion of our business to another company.
+
+Affiliates. We may share your information with our affiliates, in which case we will require those affiliates to honor this Privacy Notice. Affiliates include our parent company and any subsidiaries, joint venture partners, or other companies that we control or that are under common control with us.
+
+Business Partners. We may share your information with our business partners to offer you certain products, services, or promotions.
+
+Other third parties. We may share your information with service providers, contractors, and other third parties who perform services for us or on our behalf and require access to such information to do that work. Examples include payment processing, data analysis, email delivery, hosting services, customer service, and marketing efforts.
+
+We may also share your information when required to comply with applicable law, governmental requests, a judicial proceeding, court order, or legal process, or to protect the rights, property, or safety of our users, the public, or VoiceMint.
+
+================================================================================
+4. DO WE USE COOKIES AND OTHER TRACKING TECHNOLOGIES?
+================================================================================
+
+In Short: We may use cookies and other tracking technologies to collect and store your information.
+
+We may use cookies and similar tracking technologies (like web beacons and pixels) to access or store information. Specific information about how we use such technologies and how you can refuse certain cookies is set out in our Cookie Notice (where we provide one on the Services). Essential cookies are used for site security, authentication, and basic functionality. Where permitted, we may use analytics or marketing cookies based on your choices in any cookie banner or preference center we offer.
+
+================================================================================
+5. HOW DO WE HANDLE YOUR SOCIAL LOGINS?
+================================================================================
+
+In Short: If you choose to register or log in to our Services using a social media account, we may have access to certain information about you.
+
+Our Services may offer you the ability to register and log in using your third-party social media account details (like your Google or GitHub logins). Where you choose to do this, we will receive certain profile information about you from your social media provider. The profile information we receive may vary depending on the provider concerned but will often include your name, email address, and profile picture.
+
+We will use the information we receive only for the purposes that are described in this Privacy Notice or that are otherwise made clear to you on the relevant Services. Please note that we do not control, and are not responsible for, other uses of your personal information by your third-party social media provider. We recommend that you review their privacy notice to understand how they collect, use, and share your personal information, and how you can set your privacy preferences on their sites and apps.
+
+================================================================================
+6. IS YOUR INFORMATION TRANSFERRED INTERNATIONALLY?
+================================================================================
+
+In Short: We may transfer, store, and process your information in countries other than your own.
+
+Our servers may be located outside your country. If you are accessing our Services from the European Economic Area (EEA), United Kingdom (UK), or Switzerland, please note that your information may be transferred to, stored, and processed by us in Italy and other countries where our service providers operate.
+
+If we transfer personal information from the EEA, UK, or Switzerland to other countries, we will implement appropriate safeguards as required by applicable law, such as Standard Contractual Clauses approved by the European Commission or other lawful transfer mechanisms.
+
+================================================================================
+7. HOW LONG DO WE KEEP YOUR INFORMATION?
+================================================================================
+
+In Short: We keep your information for as long as necessary to fulfill the purposes outlined in this Privacy Notice unless otherwise required by law.
+
+We will only keep your personal information for as long as it is necessary for the purposes set out in this Privacy Notice, unless a longer retention period is required or permitted by law (such as tax, accounting, or other legal requirements). No purpose in this notice will require us keeping your personal information for longer than the period in which users have an account with us, except where we need to resolve disputes, enforce our agreements, or comply with legal obligations.
+
+When we have no ongoing legitimate business need to process your personal information, we will either delete or anonymize such information, or, if this is not possible (for example, because your personal information has been stored in backup archives), then we will securely store your personal information and isolate it from any further processing until deletion is possible.
+
+================================================================================
+8. DO WE COLLECT INFORMATION FROM MINORS?
+================================================================================
+
+In Short: We do not knowingly collect data from or market to children under 18 years of age.
+
+We do not knowingly solicit data from or market to children under 18 years of age. By using the Services, you represent that you are at least 18 or that you are the parent or guardian of such a minor and consent to such minor dependent's use of the Services. If we learn that personal information from users less than 18 years of age has been collected, we will deactivate the account and take reasonable measures to promptly delete such data from our records. If you become aware of any data we may have collected from children under age 18, please contact us at support@voicemint.it.
+
+================================================================================
+9. WHAT ARE YOUR PRIVACY RIGHTS?
+================================================================================
+
+In Short: Depending on your region, you may have rights that allow you greater access to and control over your personal information. You may review, change, or terminate your account at any time.
+
+In some regions (like the EEA, UK, and Switzerland), you have certain rights under applicable data protection laws. These may include the right (i) to request access and obtain a copy of your personal information, (ii) to request rectification or erasure; (iii) to restrict the processing of your personal information; (iv) if applicable, to data portability; and (v) not to be subject to automated decision-making. In certain circumstances, you may also have the right to object to the processing of your personal information. You can make such a request by contacting us using the contact details provided in [section 12](#privacy-12).
+
+Withdrawing your consent: If we are relying on your consent to process your personal information, you have the right to withdraw your consent at any time. You can withdraw your consent at any time by contacting us using the contact details provided in [HOW CAN YOU CONTACT US ABOUT THIS NOTICE?](#privacy-12) or by emailing support@voicemint.it.
+
+Account Information
+
+If you would at any time like to review or change the information in your account or terminate your account, you can log in to your account settings (where available) and update your user account, or contact us using the contact information provided in section 12.
+
+Upon your request to terminate your account, we will deactivate or delete your account and information from our active databases. However, we may retain some information in our files to prevent fraud, troubleshoot problems, assist with any investigations, enforce our legal terms, and/or comply with applicable legal requirements.
+
+================================================================================
+10. CONTROLS FOR DO-NOT-TRACK FEATURES
+================================================================================
+
+Most web browsers and some mobile operating systems and mobile applications include a Do-Not-Track ("DNT") feature or setting you can activate to signal your privacy preference not to have data about your online browsing activities monitored and collected. At this stage, no uniform technology standard for recognizing and implementing DNT signals has been finalized. As such, we do not currently respond to DNT browser signals or any other mechanism that automatically communicates your choice not to be tracked online. If a standard for online tracking is adopted that we must follow in the future, we will inform you about that practice in a revised version of this Privacy Notice.
+
+================================================================================
+11. DO WE MAKE UPDATES TO THIS NOTICE?
+================================================================================
+
+In Short: Yes, we will update this notice as necessary to stay compliant with relevant laws.
+
+We may update this Privacy Notice from time to time. The updated version will be indicated by an updated "Last updated" date and the updated version will be effective as soon as it is accessible. If we make material changes to this Privacy Notice, we may notify you by prominently posting a notice of such changes or by directly sending you a notification. We encourage you to review this Privacy Notice frequently to be informed of how we are protecting your information.
+
+================================================================================
+12. HOW CAN YOU CONTACT US ABOUT THIS NOTICE?
+================================================================================
+
+If you have questions or comments about this notice, you may email us at support@voicemint.it or contact us by post at:
+
+VoiceMint
+Italy
+(Full registered postal address available upon request from support@voicemint.it)
+
+================================================================================
+13. HOW CAN YOU REVIEW, UPDATE, OR DELETE THE DATA WE COLLECT FROM YOU?
+================================================================================
+
+Based on the applicable laws of your country, you may have the right to request access to the personal information we collect from you, change that information, or delete it. To request to review, update, or delete your personal information, please submit a request by emailing support@voicemint.it. You may also describe your request as a [data subject access request](mailto:support@voicemint.it?subject=Data%20subject%20access%20request) when contacting us.
+
+================================================================================
+END OF DOCUMENT
+================================================================================
