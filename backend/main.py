@@ -212,23 +212,20 @@ def _clear_auth_cookie(response: Response):
     if samesite not in ("lax", "strict", "none"):
         samesite = "lax"
 
-    response.set_cookie(
-        key="vm_token",
-        value="",
+    # Starlette: delete_cookie must use the same path/secure/samesite as set_cookie.
+    response.delete_cookie(
+        "vm_token",
+        path="/",
+        secure=secure,
         httponly=True,
-        secure=secure,
         samesite=samesite,
-        max_age=0,
-        path="/",
     )
-    response.set_cookie(
-        key="vm_csrf",
-        value="",
-        httponly=False,
-        secure=secure,
-        samesite=samesite,
-        max_age=0,
+    response.delete_cookie(
+        "vm_csrf",
         path="/",
+        secure=secure,
+        httponly=False,
+        samesite=samesite,
     )
 
 @app.middleware("http")

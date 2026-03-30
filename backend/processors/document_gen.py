@@ -9,6 +9,7 @@ from playwright.sync_api import sync_playwright
 import math
 import hashlib
 from pathlib import Path
+import ast
 import json
 import httpx
 from urllib.parse import urlparse
@@ -18,8 +19,6 @@ from .layout_profiles import (
     section_bar_is_vertical,
     slide_style_index,
     summary_is_labeled,
-    text_uses_top_bar,
-    use_bullet_cards,
 )
 
 OUTPUT_DIR = "outputs"
@@ -483,8 +482,91 @@ def _normalize_slide_type(raw: str | None) -> str:
     return "text"
 
 
+def _parse_stringified_list(s: str) -> list[str] | None:
+    """Se il modello restituisce una stringa tipo \"['a', 'b']\" invece di JSON array, estrae gli elementi."""
+    s = (s or "").strip()
+    if len(s) < 4 or not s.startswith("["):
+        return None
+    try:
+        v = ast.literal_eval(s)
+        if isinstance(v, (list, tuple)):
+            return [str(x).strip() for x in v if str(x).strip()]
+    except (ValueError, SyntaxError, MemoryError):
+        pass
+    try:
+        v = json.loads(s)
+        if isinstance(v, list):
+            return [str(x).strip() for x in v if str(x).strip()]
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return None
+
+
+def _coerce_list_content(content) -> list[str]:
+    """Normalizza content di bullets/numbered: lista vera o stringa serializzata."""
+    if isinstance(content, list):
+        return [str(x).strip() for x in content if str(x).strip()]
+    if isinstance(content, str):
+        parsed = _parse_stringified_list(content)
+        if parsed:
+            return parsed
+        return [content.strip()] if content.strip() else []
+    return [str(content).strip()] if content else []
+
+
+def _coerce_text_slide_content(content) -> str:
+    """Evita che slide 'text' mostri raw list come unica stringa."""
+    if isinstance(content, list):
+        return "\n\n".join(str(x).strip() for x in content if str(x).strip())
+    if not isinstance(content, str):
+        content = str(content or "")
+    s = content.strip()
+    parsed = _parse_stringified_list(s)
+    if parsed:
+        return "\n\n".join(parsed)
+    return content
+
+
+def _fill_body_numbered(
+    tf,
+    lines: list[str],
+    *,
+    start_at: int,
+    text_rgb: RGBColor,
+    font_body: str | None,
+    body_pt: int,
+):
+    """Elenco numerato con offset (es. colonna destra da 5 a 8)."""
+    tf.clear()
+    tf.word_wrap = True
+    try:
+        tf.auto_size = MSO_AUTO_SIZE.NONE
+    except Exception:
+        pass
+    clean = [x.strip() for x in lines if (x or "").strip()]
+    first = True
+    for i, line in enumerate(clean):
+        p = tf.paragraphs[0] if first else tf.add_paragraph()
+        first = False
+        p.text = f"{start_at + i}. {line}"
+        p.level = 0
+        p.font.size = Pt(body_pt)
+        p.font.color.rgb = text_rgb
+        if font_body:
+            p.font.name = font_body
+        try:
+            p.space_after = Pt(10)
+            p.line_spacing = 1.2
+        except Exception:
+            pass
+
+
 def _split_content_two_columns(content) -> tuple[str, str] | None:
     """Per type split: due stringhe affiancate."""
+    if isinstance(content, str):
+        parsed = _parse_stringified_list(content)
+        if parsed and len(parsed) >= 2:
+            return str(parsed[0]).strip(), str(parsed[1]).strip()
     if isinstance(content, list) and len(content) >= 2:
         return str(content[0]).strip(), str(content[1]).strip()
     if isinstance(content, dict):
@@ -667,7 +749,7 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
             if title:
                 hdr = s.shapes.add_textbox(Inches(0.75), Inches(0.45), Inches(11.5), Inches(0.55))
                 _style_title_shape(hdr, title, accent_rgb, font_title, 22)
-            qtxt = str(content or "").strip() or "—"
+            qtxt = _coerce_text_slide_content(content).strip() or "—"
             qbox = s.shapes.add_textbox(Inches(1.0), Inches(1.55), Inches(11.3), Inches(5.75))
             qtf = qbox.text_frame
             qtf.clear()
@@ -710,7 +792,7 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
                 rb = s.shapes.add_textbox(Inches(6.78), Inches(1.35), Inches(5.85), Inches(6.25))
                 _fill_body_plain(rb.text_frame, right, text_rgb, font_body, 16)
             else:
-                text = str(content or "")
+                text = _coerce_text_slide_content(content)
                 if body:
                     _fill_body_plain(body.text_frame, text, text_rgb, font_body, 19)
                 else:
@@ -718,8 +800,7 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
                     _fill_body_plain(box.text_frame, text, text_rgb, font_body, 19)
 
         elif st == "numbered":
-            items = content if isinstance(content, list) else [str(content or "")]
-            items = [str(x).strip() for x in items if str(x).strip()]
+            items = _coerce_list_content(content)
             body = _default_title_and_body(s, title)
             if body:
                 _fill_body_paragraphs(
@@ -742,8 +823,7 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
                 )
 
         elif st == "bullets":
-            items = content if isinstance(content, list) else [str(content or "")]
-            items = [str(x).strip() for x in items if str(x).strip()]
+            items = _coerce_list_content(content)
             body = _default_title_and_body(s, title)
             if body:
                 _fill_body_paragraphs(
@@ -766,7 +846,7 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
                 )
 
         else:
-            text = str(content or "")
+            text = _coerce_text_slide_content(content)
             body = _default_title_and_body(s, title)
             if body:
                 _fill_body_plain(body.text_frame, text, text_rgb, font_body, 19)
@@ -780,7 +860,7 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
     ss = prs.slides.add_slide(text_content_layout)
     polish_slide(ss, slide_bg_rgb)
     summary_title = data.get("summary_title", "Riepilogo")
-    summary_text = data.get("summary", "")
+    summary_text = _coerce_text_slide_content(data.get("summary", ""))
     if getattr(ss.shapes, "title", None):
         _style_title_shape(ss.shapes.title, summary_title, accent_rgb, font_title, 26)
     body_s = _first_body_placeholder(ss)
@@ -1223,7 +1303,7 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
                 p.font.size = Pt(22)
                 p.font.color.rgb = accent_rgb
                 p.font.name = font_title
-            qtxt = str(content or "").strip() or "—"
+            qtxt = _coerce_text_slide_content(content).strip() or "—"
             qbox = slide.shapes.add_textbox(Inches(1.0), Inches(1.65), Inches(11.3), Inches(4.6))
             qtf = qbox.text_frame
             qtf.clear()
@@ -1275,11 +1355,16 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
                 _fill_body_plain(rb.text_frame, right, text_rgb, font_body, 17)
             else:
                 body_box = slide.shapes.add_textbox(Inches(1.15), Inches(1.5), Inches(11.9), Inches(5.8))
-                _fill_body_plain(body_box.text_frame, str(content or ""), text_rgb, font_body, 19)
+                _fill_body_plain(
+                    body_box.text_frame,
+                    _coerce_text_slide_content(content),
+                    text_rgb,
+                    font_body,
+                    19,
+                )
 
         elif slide_type == "numbered":
-            bullets = content if isinstance(content, list) else [str(content)]
-            bullets = [str(b).strip() for b in bullets if str(b).strip()]
+            bullets = _coerce_list_content(content)[:12]
             title_box = slide.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(0.6))
             tf = title_box.text_frame
             tf.clear()
@@ -1291,40 +1376,45 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
             p.font.name = font_title
             p.alignment = PP_ALIGN.LEFT
             n = len(bullets)
-            columns = 2 if n >= 8 else 1
-            top_y = 1.35
-            left_margin = 0.95 if slide_style in (1, 3) else 0.85
-            col_gap = 0.55
-            col_w = (13.33 - left_margin - 0.75 - (col_gap if columns == 2 else 0)) / columns
-            row_h = 0.55 if n <= 8 else 0.48
-            for idx, bullet in enumerate(bullets[:12]):
-                col = 0 if columns == 1 else (idx // 6)
-                row = idx if columns == 1 else (idx % 6)
-                x = left_margin + col * (col_w + (col_gap if columns == 2 else 0))
-                y = top_y + row * row_h
-                num_box = slide.shapes.add_textbox(Inches(x), Inches(y + 0.02), Inches(0.35), Inches(0.35))
-                ntf = num_box.text_frame
-                ntf.clear()
-                np = ntf.paragraphs[0]
-                np.text = f"{idx + 1}."
-                np.font.size = Pt(14)
-                np.font.bold = True
-                np.font.color.rgb = accent_rgb
-                np.font.name = font_body
-                box = slide.shapes.add_textbox(Inches(x + 0.38), Inches(y), Inches(col_w - 0.4), Inches(row_h))
-                btf = box.text_frame
-                btf.clear()
-                btf.word_wrap = True
-                bp = btf.paragraphs[0]
-                bp.text = str(bullet)
-                bp.font.size = Pt(18 if n <= 6 else 16)
-                bp.font.color.rgb = text_rgb
-                bp.font.name = font_body
-                bp.alignment = PP_ALIGN.LEFT
+            if not n:
+                pass
+            else:
+                columns = 2 if n >= 8 else 1
+                body_pt = 17 if n > 6 else 18
+                if columns == 1:
+                    box = slide.shapes.add_textbox(Inches(0.85), Inches(1.32), Inches(11.5), Inches(5.85))
+                    _fill_body_numbered(
+                        box.text_frame,
+                        bullets,
+                        start_at=1,
+                        text_rgb=text_rgb,
+                        font_body=font_body,
+                        body_pt=body_pt,
+                    )
+                else:
+                    mid = (n + 1) // 2
+                    left, right = bullets[:mid], bullets[mid:]
+                    lb = slide.shapes.add_textbox(Inches(0.62), Inches(1.32), Inches(5.85), Inches(5.85))
+                    _fill_body_numbered(
+                        lb.text_frame,
+                        left,
+                        start_at=1,
+                        text_rgb=text_rgb,
+                        font_body=font_body,
+                        body_pt=body_pt,
+                    )
+                    rb = slide.shapes.add_textbox(Inches(6.72), Inches(1.32), Inches(5.95), Inches(5.85))
+                    _fill_body_numbered(
+                        rb.text_frame,
+                        right,
+                        start_at=len(left) + 1,
+                        text_rgb=text_rgb,
+                        font_body=font_body,
+                        body_pt=body_pt,
+                    )
 
         elif slide_type == "bullets":
-            bullets = content if isinstance(content, list) else [str(content)]
-            bullets = [str(b).strip() for b in bullets if str(b).strip()]
+            bullets = _coerce_list_content(content)[:12]
 
             title_x = (
                 1.1
@@ -1344,57 +1434,42 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
             p.alignment = PP_ALIGN.LEFT
 
             n = len(bullets)
-            columns = 2 if n >= 8 else 1
-            top_y = 1.35
-            left_margin = 0.95 if slide_style in (1, 3) else 0.85
-            col_gap = 0.55
-            col_w = (13.33 - left_margin - 0.75 - (col_gap if columns == 2 else 0)) / columns
-            row_h = 0.58 if n <= 8 else 0.5
-            use_cards = use_bullet_cards(layout, slide_style)
-            panel_rgb = _rgb_tune(slide_bg_rgb, 0.72)
-
-            for idx, bullet in enumerate(bullets[:12]):
-                col = 0 if columns == 1 else (idx // 6)
-                row = idx if columns == 1 else (idx % 6)
-                x = left_margin + col * (col_w + (col_gap if columns == 2 else 0))
-                y = top_y + row * row_h
-
-                if use_cards:
-                    card = slide.shapes.add_shape(
-                        MSO_SHAPE.ROUNDED_RECTANGLE,
-                        Inches(x - 0.06),
-                        Inches(y - 0.04),
-                        Inches(col_w + 0.02),
-                        Inches(row_h + 0.04),
+            if not n:
+                pass
+            else:
+                columns = 2 if n >= 8 else 1
+                body_pt = 17 if n > 6 else 18
+                if columns == 1:
+                    box = slide.shapes.add_textbox(Inches(0.85), Inches(1.32), Inches(11.5), Inches(5.85))
+                    _fill_body_paragraphs(
+                        box.text_frame,
+                        bullets,
+                        text_rgb=text_rgb,
+                        font_body=font_body,
+                        body_pt=body_pt,
+                        bullet=True,
                     )
-                    card.fill.solid()
-                    card.fill.fore_color.rgb = panel_rgb
-                    card.line.color.rgb = accent2_rgb
-                    card.line.width = Pt(0.75)
-                    cx = x + 0.12
                 else:
-                    dot = slide.shapes.add_shape(
-                        MSO_SHAPE.OVAL,
-                        Inches(x),
-                        Inches(y + 0.08),
-                        Inches(0.15),
-                        Inches(0.15),
+                    mid = (n + 1) // 2
+                    left, right = bullets[:mid], bullets[mid:]
+                    lb = slide.shapes.add_textbox(Inches(0.62), Inches(1.32), Inches(5.85), Inches(5.85))
+                    _fill_body_paragraphs(
+                        lb.text_frame,
+                        left,
+                        text_rgb=text_rgb,
+                        font_body=font_body,
+                        body_pt=body_pt,
+                        bullet=True,
                     )
-                    dot.fill.solid()
-                    dot.fill.fore_color.rgb = accent_rgb
-                    dot.line.color.rgb = accent_rgb
-                    cx = x + 0.28
-
-                box = slide.shapes.add_textbox(Inches(cx), Inches(y + 0.02), Inches(col_w - 0.32), Inches(row_h - 0.02))
-                tf = box.text_frame
-                tf.clear()
-                tf.word_wrap = True
-                p = tf.paragraphs[0]
-                p.text = str(bullet)
-                p.font.size = Pt(18 if n <= 6 else 16)
-                p.font.color.rgb = text_rgb
-                p.font.name = font_body
-                p.alignment = PP_ALIGN.LEFT
+                    rb = slide.shapes.add_textbox(Inches(6.72), Inches(1.32), Inches(5.95), Inches(5.85))
+                    _fill_body_paragraphs(
+                        rb.text_frame,
+                        right,
+                        text_rgb=text_rgb,
+                        font_body=font_body,
+                        body_pt=body_pt,
+                        bullet=True,
+                    )
 
         elif slide_type == "text":
             # Title at top
@@ -1409,33 +1484,20 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
             p.font.name = font_title
             p.alignment = PP_ALIGN.LEFT
 
-            if text_uses_top_bar(layout, slide_style):
-                border = slide.shapes.add_shape(
-                    MSO_SHAPE.RECTANGLE,
-                    Inches(0.65),
-                    Inches(1.22),
-                    Inches(12.0),
-                    Inches(0.07),
-                )
-                border.fill.solid()
-                border.fill.fore_color.rgb = accent2_rgb
-                border.line.width = Pt(0)
-                body_left = Inches(0.85)
-                body_top = Inches(1.45)
-            else:
-                border = slide.shapes.add_shape(
-                    MSO_SHAPE.RECTANGLE,
-                    Inches(0.95),
-                    Inches(1.35),
-                    Inches(0.06),
-                    Inches(5.8),
-                )
-                border.fill.solid()
-                border.fill.fore_color.rgb = accent_rgb
-                border.line.color.rgb = accent_rgb
-                border.line.width = Pt(0.0)
-                body_left = Inches(1.15)
-                body_top = Inches(1.35)
+            # Solo bordo verticale: la fascia orizzontale piena creava artefatti (linea nel testo)
+            border = slide.shapes.add_shape(
+                MSO_SHAPE.RECTANGLE,
+                Inches(0.95),
+                Inches(1.35),
+                Inches(0.06),
+                Inches(5.8),
+            )
+            border.fill.solid()
+            border.fill.fore_color.rgb = accent_rgb
+            border.line.color.rgb = accent_rgb
+            border.line.width = Pt(0.0)
+            body_left = Inches(1.15)
+            body_top = Inches(1.35)
 
             body_box = slide.shapes.add_textbox(body_left, body_top, Inches(11.9), Inches(5.75))
             tf = body_box.text_frame
@@ -1445,14 +1507,14 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
 
             # Keep it readable (wrap by slide width)
             p = tf.paragraphs[0]
-            p.text = str(content or "")
+            p.text = _coerce_text_slide_content(content)
             p.font.size = Pt(20)
             p.font.color.rgb = text_rgb
             p.font.name = font_body
             p.alignment = PP_ALIGN.LEFT
 
         elif slide_type == "summary":
-            summary_text = str(content or "")
+            summary_text = _coerce_text_slide_content(content)
             if summary_is_labeled(layout, slide_style):
                 lbl = slide.shapes.add_textbox(Inches(1.0), Inches(1.15), Inches(11.3), Inches(0.45))
                 ltf = lbl.text_frame
@@ -1511,7 +1573,7 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
             tf.clear()
             tf.word_wrap = True
             p = tf.paragraphs[0]
-            p.text = str(content or "")
+            p.text = _coerce_text_slide_content(content)
             p.font.size = Pt(20)
             p.font.color.rgb = text_rgb
             p.font.name = font_body

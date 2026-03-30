@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import LandingPage from "./pages/LandingPage"
 import FAQDemoPage from "./pages/FAQDemoPage"
 import MinimalAuthDemoPage from "./pages/MinimalAuthDemoPage"
@@ -49,6 +49,8 @@ function App() {
   const [cookieConsent, setCookieConsent] = useState(readCookieConsent)
   const [token, setToken] = useState(() => safeGetItem("token"))
   const [user, setUser] = useState(null)
+  /** Evita GET /me subito dopo logout (race: sessione ancora valida → utente ripristinato). */
+  const skipNextMeFetch = useRef(false)
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)
@@ -82,6 +84,10 @@ function App() {
 
   useEffect(() => {
     if (!user) {
+      if (skipNextMeFetch.current) {
+        skipNextMeFetch.current = false
+        return
+      }
       axios
         .get(`${API}/me`, {
           headers: token && token !== "cookie" ? { Authorization: `Bearer ${token}` } : {},
@@ -117,6 +123,7 @@ function App() {
     } catch {
       // Even if logout fails, we still clear the local frontend state.
     } finally {
+      skipNextMeFetch.current = true
       setToken(null)
       setUser(null)
       safeRemoveItem("token")

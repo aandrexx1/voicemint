@@ -22,7 +22,50 @@ def _clamp(n: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, int(n)))
 
 
-def _normalize_theme_layout(data: dict) -> None:
+def _maybe_apply_domain_palette(data: dict, text_in: str) -> None:
+    """Se l'argomento è medico/scientifico ma il tema resta il ciano generico, applica palette coerente."""
+    if not isinstance(data.get("theme"), dict):
+        data["theme"] = {}
+    t = data["theme"]
+    accent = (t.get("accent_color") or "").replace("#", "").strip().upper()
+    profile = normalize_layout_profile_key(t.get("layout_profile"))
+    blob = f"{text_in} {data.get('title', '')} {data.get('subtitle', '')}".lower()
+    medical_kw = (
+        "diagnostica",
+        "radiolog",
+        "immagin",
+        "clinic",
+        "pazient",
+        "medico",
+        "medicin",
+        "tumor",
+        "biolog",
+        "sanitar",
+        "ospedal",
+        "deep learning",
+        "cnn",
+        "rete neurale",
+        "rmn",
+        "tomografia",
+        "tc ",
+        "pet ",
+        "ecograf",
+        "patolog",
+    )
+    if not any(k in blob for k in medical_kw):
+        return
+    if profile in ("balanced_modern", "tech_futurist"):
+        t["layout_profile"] = "medical_warm"
+    if accent in ("00D4FF", "00B4D8", "01D4FF", "") or len(accent) < 4:
+        t.setdefault("bg_color", "0E1A14")
+        t.setdefault("slide_bg_color", "152018")
+        t["accent_color"] = "2ECC71"
+        t.setdefault("accent_secondary", "1E8449")
+        t.setdefault("subtitle_color", "B8D4C8")
+        t.setdefault("text_color", "FFFFFF")
+
+
+def _normalize_theme_layout(data: dict, text_in: str = "") -> None:
     """Allinea theme.layout_profile ai valori ammessi e normalizza gli HEX."""
     if not isinstance(data.get("theme"), dict):
         data["theme"] = {}
@@ -41,6 +84,7 @@ def _normalize_theme_layout(data: dict) -> None:
     di = t.get("design_intent")
     if isinstance(di, str) and len(di) > 220:
         t["design_intent"] = di[:217].rstrip() + "…"
+    _maybe_apply_domain_palette(data, text_in)
 
 
 def _infer_presentation_audience_heuristic(text: str) -> str:
@@ -357,6 +401,7 @@ REGOLE FONDAMENTALI:
 - Devi creare tra {min_content_slides} e {max_content_slides} slide di contenuto (oltre a titolo e riepilogo). Obiettivo: {target_content_slides}.
 - Non restituire mai meno di {min_content_slides} slide di contenuto.
 - Ogni slide deve introdurre un punto diverso (no ripetizioni).
+- Per slide "bullets" e "numbered": "content" deve essere SEMPRE un array JSON di stringhe, es. ["primo punto", "secondo punto"]. Vietato usare una singola stringa che imita codice Python (es. iniziare con [" o [').
 {density_block}
 {variety_block}
 - Non usare titoli generici (tipo "Introduzione", "Conclusione") a meno che il testo lo richieda: rendili specifici.
@@ -507,5 +552,5 @@ COMPITO:
     if isinstance(data, dict):
         data["deck_mode"] = deck_mode
         _normalize_presentation_audience(data, text_in, study)
-        _normalize_theme_layout(data)
+        _normalize_theme_layout(data, text_in)
     return data
