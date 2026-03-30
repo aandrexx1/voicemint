@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
 import { DeckModeModal } from "../deck-mode-modal.jsx";
+import { MorphingSquare } from "@/components/ui/morphing-square";
 
 const API = import.meta.env.VITE_API_URL || "https://voicemint-backend.onrender.com";
 
@@ -26,6 +27,7 @@ export function HeroWave({
   const [prompt, setPrompt] = useState("");
   const [deckModeOpen, setDeckModeOpen] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const recorderRef = useRef(null);
   const suggestionsRef = useRef(suggestions);
 
@@ -172,6 +174,7 @@ export function HeroWave({
             className="mt-6 flex items-center justify-center sm:mt-8"
             onSubmit={(e) => {
               e.preventDefault();
+              if (generating) return;
               const text = (prompt || "").trim();
               if (!text) return;
               setDeckModeOpen(true);
@@ -190,20 +193,26 @@ export function HeroWave({
               <button
                 type="submit"
                 aria-label={buttonText}
-                className="absolute bottom-3 right-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#f0f2ff] text-black transition-colors hover:bg-white"
+                disabled={generating}
+                aria-busy={generating}
+                className="absolute bottom-3 right-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#f0f2ff] text-black transition-colors hover:bg-white disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-5 w-5"
-                >
-                  <path d="M7 17L17 7" />
-                  <path d="M7 7h10v10" />
-                </svg>
+                {generating ? (
+                  <MorphingSquare className="w-6 h-6 bg-transparent border-2 border-black/70" />
+                ) : (
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-5 w-5"
+                  >
+                    <path d="M7 17L17 7" />
+                    <path d="M7 7h10v10" />
+                  </svg>
+                )}
               </button>
 
               <button
@@ -224,9 +233,15 @@ export function HeroWave({
       <DeckModeModal
         open={deckModeOpen}
         onClose={() => setDeckModeOpen(false)}
-        onSelect={(deckMode) => {
+        onSelect={async (deckMode) => {
           setDeckModeOpen(false);
-          onPromptSubmit?.(prompt, deckMode);
+          if (!onPromptSubmit) return;
+          setGenerating(true);
+          try {
+            await onPromptSubmit(prompt, deckMode);
+          } finally {
+            setGenerating(false);
+          }
         }}
       />
     </section>
