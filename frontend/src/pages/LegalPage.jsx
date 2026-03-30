@@ -1,12 +1,17 @@
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import { parseTermsSections } from "../legal/parseTermsOfService"
+import termsOfServiceEn from "../legal/terms-of-service-en.txt?raw"
 
 export default function LegalPage({ variant, onBack }) {
   const { t } = useTranslation()
   const title = variant === "terms" ? t("legal_terms_title") : t("legal_privacy_title")
   const updated = variant === "terms" ? t("legal_terms_updated") : t("legal_privacy_updated")
-  const sectionsKey = variant === "terms" ? "legal_terms_sections" : "legal_privacy_sections"
-  const sections = t(sectionsKey, { returnObjects: true })
-  const list = Array.isArray(sections) ? sections : []
+  const termsList = useMemo(() => parseTermsSections(termsOfServiceEn), [])
+  const sectionsKey = variant === "terms" ? null : "legal_privacy_sections"
+  const sections = sectionsKey ? t(sectionsKey, { returnObjects: true }) : null
+  const list =
+    variant === "terms" ? termsList : Array.isArray(sections) ? sections : []
 
   return (
     <div className="min-h-screen text-white">

@@ -162,46 +162,9 @@ const resources = {
       contact_sales_success: "Messaggio inviato. Ti risponderemo presto.",
       contact_sales_error: "Invio non riuscito. Riprova.",
       legal_terms_title: "Termini di servizio",
-      legal_terms_updated: "Ultimo aggiornamento: marzo 2026",
+      legal_terms_updated: "Ultimo aggiornamento: 30 marzo 2026",
       legal_privacy_title: "Privacy Policy",
       legal_privacy_updated: "Ultimo aggiornamento: marzo 2026",
-      legal_terms_sections: [
-        {
-          title: "1. Oggetto",
-          body:
-            "I presenti Termini di servizio (“Termini”) regolano l’accesso e l’utilizzo di VoiceMint (“Servizio”), un prodotto software che consente di generare presentazioni PowerPoint a partire da input audio. Utilizzando il Servizio accetti questi Termini.",
-        },
-        {
-          title: "2. Account",
-          body:
-            "Per alcune funzioni può essere richiesta la registrazione. Sei responsabile della riservatezza delle credenziali e di tutte le attività svolte tramite il tuo account. Devi fornire informazioni veritiere e aggiornate.",
-        },
-        {
-          title: "3. Uso consentito",
-          body:
-            "Ti impegni a non utilizzare il Servizio in modo illecito, a non tentare accessi non autorizzati, a non interferire con l’infrastruttura e a non caricare contenuti che violino diritti di terzi o norme applicabili.",
-        },
-        {
-          title: "4. Contenuti e licenza",
-          body:
-            "Mantieni la proprietà dei contenuti che fornisci. Ci concedi una licenza limitata per elaborare tali contenuti al fine di erogare il Servizio. L’output generato dall’AI è fornito “così com’è”; è tua responsabilità verificarne l’adeguatezza prima dell’uso professionale o pubblico.",
-        },
-        {
-          title: "5. Servizio e modifiche",
-          body:
-            "Il Servizio può essere aggiornato, sospeso o limitato per manutenzione o motivi tecnici. Possiamo modificare i Termini: in caso di cambiamenti rilevanti, cercheremo di informarti tramite il sito o l’app. L’uso continuato dopo la modifica costituisce accettazione.",
-        },
-        {
-          title: "6. Limitazione di responsabilità",
-          body:
-            "Nella misura massima consentita dalla legge, VoiceMint non è responsabile per danni indiretti, perdita di dati o profitti, né per l’esito di presentazioni generate in contesti critici. Restano i rimedi obbligatori per legge.",
-        },
-        {
-          title: "7. Legge applicabile",
-          body:
-            "Per quanto non derogabile, si applica la legge italiana. Foro competente: Italia, salvo diversa competenza inderogabile del consumatore.",
-        },
-      ],
       legal_privacy_sections: [
         {
           title: "1. Titolare",
@@ -444,46 +407,9 @@ const resources = {
       contact_sales_success: "Message sent. We'll be in touch soon.",
       contact_sales_error: "Could not send. Please try again.",
       legal_terms_title: "Terms of Service",
-      legal_terms_updated: "Last updated: March 2026",
+      legal_terms_updated: "Last updated: March 30, 2026",
       legal_privacy_title: "Privacy Policy",
       legal_privacy_updated: "Last updated: March 2026",
-      legal_terms_sections: [
-        {
-          title: "1. Scope",
-          body:
-            'These Terms of Service (“Terms”) govern access to and use of VoiceMint (the “Service”), a software product that generates PowerPoint presentations from audio input. By using the Service you agree to these Terms.',
-        },
-        {
-          title: "2. Account",
-          body:
-            "Registration may be required for some features. You are responsible for keeping your credentials confidential and for all activity under your account. You must provide accurate information.",
-        },
-        {
-          title: "3. Acceptable use",
-          body:
-            "You agree not to use the Service unlawfully, not to attempt unauthorized access, not to interfere with infrastructure, and not to upload content that infringes third-party rights or applicable laws.",
-        },
-        {
-          title: "4. Content and licences",
-          body:
-            "You retain ownership of content you submit. You grant us a limited licence to process it to provide the Service. AI output is provided “as is”; you are responsible for verifying suitability before professional or public use.",
-        },
-        {
-          title: "5. Service and changes",
-          body:
-            "The Service may be updated, suspended or limited for maintenance or technical reasons. We may change these Terms; for material changes we will try to notify you via the site or app. Continued use after changes constitutes acceptance.",
-        },
-        {
-          title: "6. Limitation of liability",
-          body:
-            "To the maximum extent permitted by law, VoiceMint is not liable for indirect damages, loss of data or profits, or outcomes of presentations generated in critical contexts. Mandatory statutory rights remain unaffected.",
-        },
-        {
-          title: "7. Governing law",
-          body:
-            "Unless mandatory law provides otherwise, Italian law applies. Competent courts: Italy, without prejudice to mandatory consumer jurisdiction rules.",
-        },
-      ],
       legal_privacy_sections: [
         {
           title: "1. Data controller",
