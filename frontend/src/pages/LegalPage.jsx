@@ -1,7 +1,37 @@
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { parseTermsSections } from "../legal/parseTermsOfService"
+import { parseTermsSections, TOC_SECTION_TITLE } from "../legal/parseTermsOfService"
 import termsOfServiceEn from "../legal/terms-of-service-en.txt?raw"
+
+function TermsTableOfContentsBody({ body }) {
+  return (
+    <div className="space-y-1.5">
+      {body.split("\n").map((line, i) => {
+        const trimmed = line.trim()
+        if (!trimmed) return null
+        const m = trimmed.match(/^(\d+)\.\s+(.+)$/)
+        if (m) {
+          const n = m[1]
+          return (
+            <p key={i}>
+              <a
+                href={`#tos-${n}`}
+                className="text-sky-400/90 underline decoration-sky-400/30 underline-offset-[3px] transition-colors hover:text-sky-300 hover:decoration-sky-300/50"
+              >
+                {trimmed}
+              </a>
+            </p>
+          )
+        }
+        return (
+          <p key={i} className="whitespace-pre-wrap">
+            {line}
+          </p>
+        )
+      })}
+    </div>
+  )
+}
 
 export default function LegalPage({ variant, onBack }) {
   const { t } = useTranslation()
@@ -27,9 +57,17 @@ export default function LegalPage({ variant, onBack }) {
         <p className="mt-2 text-sm text-white/40">{updated}</p>
         <div className="mt-12 space-y-10 text-sm leading-relaxed text-white/75">
           {list.map((s, i) => (
-            <section key={i}>
+            <section
+              key={i}
+              id={variant === "terms" && s.anchorId ? s.anchorId : undefined}
+              className={variant === "terms" ? "scroll-mt-24" : undefined}
+            >
               <h2 className="mb-3 text-base font-semibold text-white">{s.title}</h2>
-              <p className="whitespace-pre-wrap">{s.body}</p>
+              {variant === "terms" && s.title === TOC_SECTION_TITLE ? (
+                <TermsTableOfContentsBody body={s.body} />
+              ) : (
+                <p className="whitespace-pre-wrap">{s.body}</p>
+              )}
             </section>
           ))}
         </div>
