@@ -110,12 +110,18 @@ function App() {
     setPage("landing")
   }
 
-  const handleLogout = () => {
-    setToken(null)
-    setUser(null)
-    safeRemoveItem("token")
-    axios.post(`${API}/logout`).catch(() => {})
-    setPage("landing")
+  const handleLogout = async () => {
+    try {
+      // Ensure cookie is cleared server-side before reloading/navigating.
+      await axios.post(`${API}/logout`)
+    } catch {
+      // Even if logout fails, we still clear the local frontend state.
+    } finally {
+      setToken(null)
+      setUser(null)
+      safeRemoveItem("token")
+      setPage("landing")
+    }
   }
 
   const goTerms = () => {

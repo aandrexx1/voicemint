@@ -205,11 +205,39 @@ def _set_auth_cookie(response: Response, token: str):
     )
 
 def _clear_auth_cookie(response: Response):
-    response.delete_cookie(key="vm_token", path="/")
-    response.delete_cookie(key="vm_csrf", path="/")
+    # Must match the same cookie attributes used in `_set_auth_cookie`, otherwise
+    # browsers can keep the cookie after deletion (e.g. SameSite/secure mismatch).
+    secure = os.getenv("COOKIE_SECURE", "1") != "0"
+    samesite = os.getenv("COOKIE_SAMESITE", "none").lower()
+    if samesite not in ("lax", "strict", "none"):
+        samesite = "lax"
+
+    response.set_cookie(
+        key="vm_token",
+        value="",
+        httponly=True,
+        secure=secure,
+        samesite=samesite,
+        max_age=0,
+        path="/",
+    )
+    response.set_cookie(
+        key="vm_csrf",
+        value="",
+        httponly=False,
+        secure=secure,
+        samesite=samesite,
+        max_age=0,
+        path="/",
+    )
 
 @app.middleware("http")
 async def csrf_protect(request: Request, call_next):
+    # Logout should always work even if the origin does not match the CSRF allowlist.
+    # (If you want strict CSRF for logout too, remove this bypass.)
+    if request.url.path == "/logout":
+        return await call_next(request)
+
     # Protegge solo quando si usa cookie auth (nessun Bearer).
     # In setup cross-domain (frontend su voicemint.it, backend su onrender.com)
     # JS non può leggere cookie backend per inviare X-CSRF-Token: usiamo allowlist Origin/Referer.
