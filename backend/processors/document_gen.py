@@ -13,6 +13,15 @@ import json
 import httpx
 from urllib.parse import urlparse
 
+from .layout_profiles import (
+    resolve_topic_layout,
+    section_bar_is_vertical,
+    slide_style_index,
+    summary_is_labeled,
+    text_uses_top_bar,
+    use_bullet_cards,
+)
+
 OUTPUT_DIR = "outputs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -790,6 +799,21 @@ def hex_to_rgb(hex_str):
     hex_str = hex_str.lstrip("#")
     return RGBColor(int(hex_str[0:2], 16), int(hex_str[2:4], 16), int(hex_str[4:6], 16))
 
+
+def _rgb_tune(rgb: RGBColor, factor: float) -> RGBColor:
+    """Schiarisce (factor>1) o scurisce (factor<1) un colore per pannelli / card."""
+    try:
+        r, g, b = int(rgb[0]), int(rgb[1]), int(rgb[2])
+    except Exception:
+        return rgb
+    f = max(0.2, min(1.8, factor))
+    return RGBColor(
+        min(255, max(0, int(r * f))),
+        min(255, max(0, int(g * f))),
+        min(255, max(0, int(b * f))),
+    )
+
+
 def render_html_to_image(html: str, output_path: str, width: int = 1280, height: int = 720):
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -921,15 +945,18 @@ body {{ width:1280px; height:720px; overflow:hidden; background: linear-gradient
 
 
 def generate_ppt(data: dict, user_tier: str = "free") -> str:
-    template_path = _pick_template(data)
-    if template_path is not None:
-        src = "R2 cache" if _is_from_remote_cache(template_path) else "locale"
-        print(f"pptx template: {template_path.name} ({src})")
-        try:
-            return _generate_ppt_with_template(data, user_tier=user_tier, template_path=template_path)
-        except Exception as e:
-            # fallback robusto al renderer classico se un template specifico non è compatibile
-            print(f"template fallback ({template_path.name}): {e}")
+    # Template .pptx disabilitati di default: layout curati nel renderer nativo sotto.
+    use_templates = os.getenv("USE_PPTX_TEMPLATES", "0").strip().lower() in ("1", "true", "yes")
+    template_path = None
+    if use_templates:
+        template_path = _pick_template(data)
+        if template_path is not None:
+            src = "R2 cache" if _is_from_remote_cache(template_path) else "locale"
+            print(f"pptx template: {template_path.name} ({src})")
+            try:
+                return _generate_ppt_with_template(data, user_tier=user_tier, template_path=template_path)
+            except Exception as e:
+                print(f"template fallback ({template_path.name}): {e}")
 
     theme = data.get("theme", {}) or {}
 
@@ -947,6 +974,17 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
     accent_rgb = hex_to_rgb(accent_color)
     text_rgb = hex_to_rgb(text_color)
     subtitle_rgb = hex_to_rgb(subtitle_color)
+    accent2_raw = theme.get("accent_secondary")
+    if accent2_raw and str(accent2_raw).strip():
+        accent2_rgb = hex_to_rgb("#" + str(accent2_raw).lstrip("#"))
+    else:
+        accent2_rgb = _rgb_tune(accent_rgb, 0.62)
+
+    layout = resolve_topic_layout(data)
+    title_variant = int(layout.get("title_variant", 0)) % 4
+    t_title_pt = Pt(int(layout.get("title_font_pt", 44)))
+    t_sub_pt = Pt(int(layout.get("subtitle_font_pt", 20)))
+    sec_title_pt = Pt(int(layout.get("section_title_pt", 34)))
 
     def set_slide_background(slide, rgb):
         # Background solido: scuro e coerente con theme
@@ -985,9 +1023,7 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
     prs.slide_width = Inches(13.33)
     prs.slide_height = Inches(7.5)
     blank_layout = prs.slide_layouts[6]
-    # layout variant deterministica per avere deck diversi tra argomenti
-    variant_seed = (data.get("title") or "") + "|" + (data.get("subtitle") or "")
-    variant = int(hashlib.sha256(variant_seed.encode("utf-8")).hexdigest(), 16) % 3
+    # layout: geometria e gerarchia da theme.layout_profile (argomento), non da hash casuale
 
     slide_configs = [("title", data.get("title", ""), data.get("subtitle", ""))]
     for slide in data.get("slides", []):
@@ -996,70 +1032,184 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
         )
     slide_configs.append(("summary", data.get("summary_title", "Riepilogo"), data.get("summary", "")))
 
-    for slide_type, title, content in slide_configs:
+    for slide_idx, (slide_type, title, content) in enumerate(slide_configs):
+        slide_style = slide_style_index(layout, slide_idx)
         slide = prs.slides.add_slide(blank_layout)
         set_slide_background(slide, bg_rgb if slide_type == "title" else slide_bg_rgb)
 
         if slide_type == "title":
-            # Accent bar
-            accent_bar = slide.shapes.add_shape(
-                MSO_SHAPE.RECTANGLE,
-                Inches(2.0),
-                Inches(2.35),
-                Inches(1.6),
-                Inches(0.06),
-            )
-            accent_bar.fill.solid()
-            accent_bar.fill.fore_color.rgb = accent_rgb
-
-            add_centered_text(
-                slide,
-                title,
-                Inches(0.8),
-                Inches(1.45),
-                Inches(11.7),
-                Inches(1.5),
-                Pt(44),
-                text_rgb,
-                bold=True,
-                font_name=font_title,
-            )
-            add_centered_text(
-                slide,
-                content or "",
-                Inches(2.0),
-                Inches(2.85),
-                Inches(9.3),
-                Inches(0.9),
-                Pt(20),
-                subtitle_rgb,
-                bold=False,
-                font_name=font_body,
-            )
+            if title_variant == 0:
+                accent_bar = slide.shapes.add_shape(
+                    MSO_SHAPE.RECTANGLE,
+                    Inches(2.0),
+                    Inches(2.35),
+                    Inches(1.6),
+                    Inches(0.06),
+                )
+                accent_bar.fill.solid()
+                accent_bar.fill.fore_color.rgb = accent_rgb
+                accent_bar.line.width = Pt(0)
+                add_centered_text(
+                    slide,
+                    title,
+                    Inches(0.8),
+                    Inches(1.45),
+                    Inches(11.7),
+                    Inches(1.5),
+                    t_title_pt,
+                    text_rgb,
+                    bold=True,
+                    font_name=font_title,
+                )
+                add_centered_text(
+                    slide,
+                    content or "",
+                    Inches(2.0),
+                    Inches(2.85),
+                    Inches(9.3),
+                    Inches(0.9),
+                    t_sub_pt,
+                    subtitle_rgb,
+                    bold=False,
+                    font_name=font_body,
+                )
+            elif title_variant == 1:
+                rail = slide.shapes.add_shape(
+                    MSO_SHAPE.RECTANGLE,
+                    Inches(0.42),
+                    Inches(0.45),
+                    Inches(0.16),
+                    Inches(6.6),
+                )
+                rail.fill.solid()
+                rail.fill.fore_color.rgb = accent_rgb
+                rail.line.width = Pt(0)
+                tb = slide.shapes.add_textbox(Inches(0.85), Inches(1.25), Inches(11.5), Inches(1.65))
+                tf = tb.text_frame
+                tf.clear()
+                p = tf.paragraphs[0]
+                p.text = title or ""
+                p.font.size = t_title_pt
+                p.font.bold = True
+                p.font.color.rgb = text_rgb
+                p.font.name = font_title
+                p.alignment = PP_ALIGN.LEFT
+                if content:
+                    tb2 = slide.shapes.add_textbox(Inches(0.85), Inches(3.05), Inches(10.8), Inches(1.15))
+                    tf2 = tb2.text_frame
+                    tf2.clear()
+                    p2 = tf2.paragraphs[0]
+                    p2.text = str(content)
+                    p2.font.size = t_sub_pt
+                    p2.font.color.rgb = subtitle_rgb
+                    p2.font.name = font_body
+                    p2.alignment = PP_ALIGN.LEFT
+            elif title_variant == 2:
+                top_strip = slide.shapes.add_shape(
+                    MSO_SHAPE.RECTANGLE,
+                    Inches(0),
+                    Inches(0.38),
+                    Inches(13.33),
+                    Inches(0.09),
+                )
+                top_strip.fill.solid()
+                top_strip.fill.fore_color.rgb = accent_rgb
+                top_strip.line.width = Pt(0)
+                add_centered_text(
+                    slide,
+                    title,
+                    Inches(0.7),
+                    Inches(1.55),
+                    Inches(12.0),
+                    Inches(1.55),
+                    t_title_pt,
+                    text_rgb,
+                    bold=True,
+                    font_name=font_title,
+                )
+                add_centered_text(
+                    slide,
+                    content or "",
+                    Inches(1.2),
+                    Inches(3.25),
+                    Inches(10.9),
+                    Inches(1.0),
+                    t_sub_pt,
+                    subtitle_rgb,
+                    bold=False,
+                    font_name=font_body,
+                )
+            else:
+                bottom_bar = slide.shapes.add_shape(
+                    MSO_SHAPE.RECTANGLE,
+                    Inches(3.8),
+                    Inches(5.85),
+                    Inches(5.7),
+                    Inches(0.12),
+                )
+                bottom_bar.fill.solid()
+                bottom_bar.fill.fore_color.rgb = accent_rgb
+                bottom_bar.line.width = Pt(0)
+                add_centered_text(
+                    slide,
+                    title,
+                    Inches(0.8),
+                    Inches(1.35),
+                    Inches(11.7),
+                    Inches(1.55),
+                    t_title_pt,
+                    text_rgb,
+                    bold=True,
+                    font_name=font_title,
+                )
+                add_centered_text(
+                    slide,
+                    content or "",
+                    Inches(1.5),
+                    Inches(2.95),
+                    Inches(10.3),
+                    Inches(1.0),
+                    t_sub_pt,
+                    subtitle_rgb,
+                    bold=False,
+                    font_name=font_body,
+                )
 
         elif slide_type == "section":
-            bar = slide.shapes.add_shape(
-                MSO_SHAPE.RECTANGLE,
-                Inches(0.75),
-                Inches(2.05),
-                Inches(2.8),
-                Inches(0.09),
-            )
+            vert = section_bar_is_vertical(layout, slide_style)
+            if vert:
+                bar = slide.shapes.add_shape(
+                    MSO_SHAPE.RECTANGLE,
+                    Inches(0.75),
+                    Inches(1.85),
+                    Inches(0.12),
+                    Inches(3.4),
+                )
+            else:
+                bar = slide.shapes.add_shape(
+                    MSO_SHAPE.RECTANGLE,
+                    Inches(0.75),
+                    Inches(2.05),
+                    Inches(2.8),
+                    Inches(0.09),
+                )
             bar.fill.solid()
             bar.fill.fore_color.rgb = accent_rgb
             bar.line.width = Pt(0)
-            tbox = slide.shapes.add_textbox(Inches(0.75), Inches(2.25), Inches(11.8), Inches(1.35))
+            ty = 2.05 if vert else 2.25
+            tbox = slide.shapes.add_textbox(Inches(1.05), Inches(ty), Inches(11.5), Inches(1.45))
             tf = tbox.text_frame
             tf.clear()
             p = tf.paragraphs[0]
             p.text = title or "Sezione"
             p.font.bold = True
-            p.font.size = Pt(34)
+            p.font.size = Pt(int(layout.get("section_title_pt", 34)) + (2 if slide_style in (1, 3) else 0))
             p.font.color.rgb = text_rgb
             p.font.name = font_title
             sub = str(content or "").strip()
             if sub:
-                sbox = slide.shapes.add_textbox(Inches(0.75), Inches(3.75), Inches(11.5), Inches(1.1))
+                sy = 3.65 if vert else 3.85
+                sbox = slide.shapes.add_textbox(Inches(1.05), Inches(sy), Inches(11.2), Inches(1.15))
                 _fill_body_plain(sbox.text_frame, sub, subtitle_rgb, font_body, 18)
 
         elif slide_type == "quote":
@@ -1143,7 +1293,7 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
             n = len(bullets)
             columns = 2 if n >= 8 else 1
             top_y = 1.35
-            left_margin = 0.95 if variant == 1 else 0.85
+            left_margin = 0.95 if slide_style in (1, 3) else 0.85
             col_gap = 0.55
             col_w = (13.33 - left_margin - 0.75 - (col_gap if columns == 2 else 0)) / columns
             row_h = 0.55 if n <= 8 else 0.48
@@ -1176,8 +1326,12 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
             bullets = content if isinstance(content, list) else [str(content)]
             bullets = [str(b).strip() for b in bullets if str(b).strip()]
 
-            # Slide title (con piccola variazione stile)
-            title_x = 0.8 if variant != 2 else 1.1
+            title_x = (
+                1.1
+                if layout.get("profile_key")
+                in ("executive_premium", "startup_pitch", "history_editorial")
+                else 0.8
+            )
             title_box = slide.shapes.add_textbox(Inches(title_x), Inches(0.5), Inches(11.7), Inches(0.6))
             tf = title_box.text_frame
             tf.clear()
@@ -1189,14 +1343,15 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
             p.font.name = font_title
             p.alignment = PP_ALIGN.LEFT
 
-            # Layout bullets: lista pulita (niente card giganti)
             n = len(bullets)
             columns = 2 if n >= 8 else 1
             top_y = 1.35
-            left_margin = 0.95 if variant == 1 else 0.85
+            left_margin = 0.95 if slide_style in (1, 3) else 0.85
             col_gap = 0.55
             col_w = (13.33 - left_margin - 0.75 - (col_gap if columns == 2 else 0)) / columns
-            row_h = 0.55 if n <= 8 else 0.48
+            row_h = 0.58 if n <= 8 else 0.5
+            use_cards = use_bullet_cards(layout, slide_style)
+            panel_rgb = _rgb_tune(slide_bg_rgb, 0.72)
 
             for idx, bullet in enumerate(bullets[:12]):
                 col = 0 if columns == 1 else (idx // 6)
@@ -1204,19 +1359,33 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
                 x = left_margin + col * (col_w + (col_gap if columns == 2 else 0))
                 y = top_y + row * row_h
 
-                # accent dot / number
-                dot = slide.shapes.add_shape(
-                    MSO_SHAPE.OVAL,
-                    Inches(x),
-                    Inches(y + 0.07),
-                    Inches(0.16),
-                    Inches(0.16),
-                )
-                dot.fill.solid()
-                dot.fill.fore_color.rgb = accent_rgb
-                dot.line.color.rgb = accent_rgb
+                if use_cards:
+                    card = slide.shapes.add_shape(
+                        MSO_SHAPE.ROUNDED_RECTANGLE,
+                        Inches(x - 0.06),
+                        Inches(y - 0.04),
+                        Inches(col_w + 0.02),
+                        Inches(row_h + 0.04),
+                    )
+                    card.fill.solid()
+                    card.fill.fore_color.rgb = panel_rgb
+                    card.line.color.rgb = accent2_rgb
+                    card.line.width = Pt(0.75)
+                    cx = x + 0.12
+                else:
+                    dot = slide.shapes.add_shape(
+                        MSO_SHAPE.OVAL,
+                        Inches(x),
+                        Inches(y + 0.08),
+                        Inches(0.15),
+                        Inches(0.15),
+                    )
+                    dot.fill.solid()
+                    dot.fill.fore_color.rgb = accent_rgb
+                    dot.line.color.rgb = accent_rgb
+                    cx = x + 0.28
 
-                box = slide.shapes.add_textbox(Inches(x + 0.28), Inches(y), Inches(col_w - 0.25), Inches(row_h))
+                box = slide.shapes.add_textbox(Inches(cx), Inches(y + 0.02), Inches(col_w - 0.32), Inches(row_h - 0.02))
                 tf = box.text_frame
                 tf.clear()
                 tf.word_wrap = True
@@ -1240,20 +1409,35 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
             p.font.name = font_title
             p.alignment = PP_ALIGN.LEFT
 
-            # Left accent border effect
-            border = slide.shapes.add_shape(
-                MSO_SHAPE.RECTANGLE,
-                Inches(0.95),
-                Inches(1.35),
-                Inches(0.06),
-                Inches(5.8),
-            )
-            border.fill.solid()
-            border.fill.fore_color.rgb = accent_rgb
-            border.line.color.rgb = accent_rgb
-            border.line.width = Pt(0.0)
+            if text_uses_top_bar(layout, slide_style):
+                border = slide.shapes.add_shape(
+                    MSO_SHAPE.RECTANGLE,
+                    Inches(0.65),
+                    Inches(1.22),
+                    Inches(12.0),
+                    Inches(0.07),
+                )
+                border.fill.solid()
+                border.fill.fore_color.rgb = accent2_rgb
+                border.line.width = Pt(0)
+                body_left = Inches(0.85)
+                body_top = Inches(1.45)
+            else:
+                border = slide.shapes.add_shape(
+                    MSO_SHAPE.RECTANGLE,
+                    Inches(0.95),
+                    Inches(1.35),
+                    Inches(0.06),
+                    Inches(5.8),
+                )
+                border.fill.solid()
+                border.fill.fore_color.rgb = accent_rgb
+                border.line.color.rgb = accent_rgb
+                border.line.width = Pt(0.0)
+                body_left = Inches(1.15)
+                body_top = Inches(1.35)
 
-            body_box = slide.shapes.add_textbox(Inches(1.15), Inches(1.35), Inches(11.9), Inches(5.8))
+            body_box = slide.shapes.add_textbox(body_left, body_top, Inches(11.9), Inches(5.75))
             tf = body_box.text_frame
             tf.clear()
             tf.word_wrap = True
@@ -1268,18 +1452,30 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
             p.alignment = PP_ALIGN.LEFT
 
         elif slide_type == "summary":
-            # Accent line
-            # Quote text (centered)
             summary_text = str(content or "")
+            if summary_is_labeled(layout, slide_style):
+                lbl = slide.shapes.add_textbox(Inches(1.0), Inches(1.15), Inches(11.3), Inches(0.45))
+                ltf = lbl.text_frame
+                ltf.clear()
+                lp = ltf.paragraphs[0]
+                lp.text = (title or "Riepilogo").upper()
+                lp.font.size = Pt(11)
+                lp.font.bold = True
+                lp.font.color.rgb = accent_rgb
+                lp.font.name = font_title
+                lp.alignment = PP_ALIGN.CENTER
+                quote_top = Inches(2.05)
+            else:
+                quote_top = Inches(2.35)
 
             add_centered_text(
                 slide,
                 f"“{summary_text}”",
                 Inches(1.0),
-                Inches(2.4),
+                quote_top,
                 Inches(11.3),
                 Inches(3.0),
-                Pt(24),
+                Pt(24 if slide_style in (1, 3) else 23),
                 text_rgb,
                 bold=False,
                 font_name=font_body,
@@ -1287,9 +1483,9 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
 
             line = slide.shapes.add_shape(
                 MSO_SHAPE.RECTANGLE,
-                Inches(5.35),
-                Inches(5.25),
-                Inches(2.6),
+                Inches(5.15 if slide_style in (1, 3) else 5.35),
+                Inches(5.35 if slide_style in (1, 3) else 5.25),
+                Inches(3.0 if slide_style in (1, 3) else 2.6),
                 Inches(0.05),
             )
             line.fill.solid()

@@ -3,6 +3,8 @@ from groq import Groq
 import json
 import re
 
+from .layout_profiles import normalize_layout_profile_key
+
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def _extract_json(text: str) -> dict:
@@ -18,6 +20,27 @@ def _extract_json(text: str) -> dict:
 
 def _clamp(n: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, int(n)))
+
+
+def _normalize_theme_layout(data: dict) -> None:
+    """Allinea theme.layout_profile ai valori ammessi e normalizza gli HEX."""
+    if not isinstance(data.get("theme"), dict):
+        data["theme"] = {}
+    t = data["theme"]
+    t["layout_profile"] = normalize_layout_profile_key(t.get("layout_profile"))
+    for k in (
+        "bg_color",
+        "slide_bg_color",
+        "accent_color",
+        "text_color",
+        "subtitle_color",
+        "accent_secondary",
+    ):
+        if k in t and isinstance(t[k], str):
+            t[k] = t[k].replace("#", "").strip()
+    di = t.get("design_intent")
+    if isinstance(di, str) and len(di) > 220:
+        t["design_intent"] = di[:217].rstrip() + "…"
 
 
 def _infer_presentation_audience_heuristic(text: str) -> str:
@@ -340,12 +363,21 @@ REGOLE FONDAMENTALI:
 - Il titolo principale deve riflettere davvero l'argomento.
 {"- Se il testo è una richiesta breve (es. \"fammi un riassunto di...\") devi comunque produrre slide utili: definizioni chiave, struttura del programma, concetti fondamentali, errori comuni, esempi, mini-casi, e un piano di studio rapido." if short_prompt else ""}
 {audience_rules}
-Scegli il tema visivo più adatto:
-- Business/finance → dark blu navy, accenti oro
-- Tech/AI/startup → dark nero, accenti ciano
-- Creatività/arte → gradient viola-rosa, testo bianco
-- Salute/benessere → sfondo scuro, accenti verde
-- Se l'utente specifica uno stile, seguilo
+IDENTITÀ VISIVA E LAYOUT (obbligatorio — il backend costruisce slide diverse per argomento):
+- Analizza l'argomento, il pubblico e il tono; NON usare sempre lo stesso schema ciano su nero.
+- Imposta "theme.layout_profile" a ESATTAMENTE uno di questi valori (inglese, snake_case):
+  · scholarly_notebook — materie umanistiche, analisi testi, filosofia, tesina, studio approfondito
+  · executive_premium — board, strategia, KPI, corporate, report direzionali
+  · tech_futurist — software, AI, infrastruttura, startup tecnologica
+  · medical_warm — salute, medicina, biologia, benessere
+  · creative_studio — design, arte, branding, portfolio
+  · history_editorial — storia, civiltà, geopolitica narrativa
+  · startup_pitch — pitch investitori, traction, funding
+  · exam_focus — ripasso d'esame, mappe dense, memorizzazione
+  · balanced_modern — solo se nessun altro profilo calza davvero
+- "theme.design_intent": una frase (max ~200 caratteri) che spiega perché colori e layout scelti servono QUELL'argomento.
+- "theme.accent_secondary" (opzionale): secondo colore HEX 6 caratteri (senza #) per bordi e dettagli, armonico con accent_color.
+- Palette esemplificative (adatta i numeri al dominio): business oro #D4AF37 su navy #0B1426; tech ciano #00E5FF su #0A0A0A; salute verde #2ECC71 su #0E1A14; creativo magenta #E056FD / corallo #FF6B6B; storia carta calda #C4A574 su #1A1510.
 
 Rispondi SOLO con JSON valido, zero testo extra:
 {{
@@ -387,9 +419,12 @@ Rispondi SOLO con JSON valido, zero testo extra:
   "summary": "Riepilogo adatto alla modalità.",
   "theme": {{
     "style": "dark",
+    "layout_profile": "tech_futurist",
+    "design_intent": "Breve motivazione legata all'argomento.",
     "bg_color": "0a0a0a",
     "slide_bg_color": "111111",
     "accent_color": "00D4FF",
+    "accent_secondary": "0088AA",
     "text_color": "FFFFFF",
     "subtitle_color": "A0A0B0",
     "font_title": "Inter",
@@ -472,4 +507,5 @@ COMPITO:
     if isinstance(data, dict):
         data["deck_mode"] = deck_mode
         _normalize_presentation_audience(data, text_in, study)
+        _normalize_theme_layout(data)
     return data
