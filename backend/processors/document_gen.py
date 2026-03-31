@@ -29,11 +29,10 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 def _inline_image_for_slide(
     slide_idx: int,
     slide_configs_len: int,
-    study: bool,
     content_slide_images: dict[int, Path],
 ) -> Path | None:
     """Immagine Pexels per slide contenuto: slide_configs[1] → slides[0]."""
-    if study or slide_idx <= 0 or slide_idx >= slide_configs_len - 1:
+    if slide_idx <= 0 or slide_idx >= slide_configs_len - 1:
         return None
     p = content_slide_images.get(slide_idx - 1)
     if p and p.exists():
@@ -1113,15 +1112,14 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
         hero_path = None
 
     content_slide_images: dict[int, Path] = {}
-    if not study:
-        try:
-            from .stock_images import fetch_content_slide_images_map
+    try:
+        from .stock_images import fetch_content_slide_images_map
 
-            max_inline = max(0, int(os.getenv("MAX_INLINE_SLIDE_IMAGES", "5")))
-            if max_inline > 0:
-                content_slide_images = fetch_content_slide_images_map(data, max_slides=max_inline)
-        except Exception:
-            content_slide_images = {}
+        max_inline = max(0, int(os.getenv("MAX_INLINE_SLIDE_IMAGES", "5")))
+        if max_inline > 0:
+            content_slide_images = fetch_content_slide_images_map(data, max_slides=max_inline)
+    except Exception:
+        content_slide_images = {}
 
     title_variant = int(layout.get("title_variant", 0)) % 4
     t_title_pt = Pt(int(layout.get("title_font_pt", 44)))
@@ -1395,6 +1393,10 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
                     )
 
         elif slide_type == "section":
+            inl_sec = _inline_image_for_slide(slide_idx, _slide_configs_len, content_slide_images)
+            if inl_sec:
+                slide.shapes.add_picture(str(inl_sec), Inches(9.65), Inches(0.45), Inches(3.35), Inches(2.35))
+            sec_tw = Inches(8.0) if inl_sec else Inches(11.5)
             vert = section_bar_is_vertical(layout, slide_style)
             if vert:
                 bar = slide.shapes.add_shape(
@@ -1416,7 +1418,7 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
             bar.fill.fore_color.rgb = accent_rgb
             bar.line.width = Pt(0)
             ty = 2.05 if vert else 2.25
-            tbox = slide.shapes.add_textbox(Inches(1.05), Inches(ty), Inches(11.5), Inches(1.45))
+            tbox = slide.shapes.add_textbox(Inches(1.05), Inches(ty), sec_tw, Inches(1.45))
             tf = tbox.text_frame
             tf.clear()
             p = tf.paragraphs[0]
@@ -1428,7 +1430,8 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
             sub = str(content or "").strip()
             if sub:
                 sy = 3.65 if vert else 3.85
-                sbox = slide.shapes.add_textbox(Inches(1.05), Inches(sy), Inches(11.2), Inches(1.15))
+                sw = Inches(7.85) if inl_sec else Inches(11.2)
+                sbox = slide.shapes.add_textbox(Inches(1.05), Inches(sy), sw, Inches(1.15))
                 _fill_body_plain(sbox.text_frame, sub, subtitle_rgb, font_body, 18)
 
         elif slide_type == "quote":
@@ -1504,11 +1507,15 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
 
         elif slide_type == "numbered":
             bullets = _coerce_list_content(content)[:12]
-            inl_nb = _inline_image_for_slide(slide_idx, _slide_configs_len, study, content_slide_images)
+            inl_nb = _inline_image_for_slide(slide_idx, _slide_configs_len, content_slide_images)
             n = len(bullets)
             columns = 2 if n >= 8 else 1
-            if n and columns == 1 and inl_nb:
-                slide.shapes.add_picture(str(inl_nb), Inches(9.48), Inches(1.28), Inches(3.65), Inches(2.68))
+            if n and inl_nb:
+                if columns == 1:
+                    slide.shapes.add_picture(str(inl_nb), Inches(9.48), Inches(1.28), Inches(3.65), Inches(2.68))
+                else:
+                    # Due colonne: miniatura in alto a destra (prima non c’era foto)
+                    slide.shapes.add_picture(str(inl_nb), Inches(10.05), Inches(0.42), Inches(2.95), Inches(2.15))
             title_box = slide.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(11.7), Inches(0.6))
             tf = title_box.text_frame
             tf.clear()
@@ -1558,7 +1565,7 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
 
         elif slide_type == "bullets":
             bullets = _coerce_list_content(content)[:12]
-            inl_bu = _inline_image_for_slide(slide_idx, _slide_configs_len, study, content_slide_images)
+            inl_bu = _inline_image_for_slide(slide_idx, _slide_configs_len, content_slide_images)
 
             title_x = (
                 1.1
@@ -1568,8 +1575,11 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
             )
             n = len(bullets)
             columns = 2 if n >= 8 else 1
-            if n and columns == 1 and inl_bu:
-                slide.shapes.add_picture(str(inl_bu), Inches(9.48), Inches(1.28), Inches(3.65), Inches(2.68))
+            if n and inl_bu:
+                if columns == 1:
+                    slide.shapes.add_picture(str(inl_bu), Inches(9.48), Inches(1.28), Inches(3.65), Inches(2.68))
+                else:
+                    slide.shapes.add_picture(str(inl_bu), Inches(10.05), Inches(0.42), Inches(2.95), Inches(2.15))
             title_box = slide.shapes.add_textbox(Inches(title_x), Inches(0.5), Inches(11.7), Inches(0.6))
             tf = title_box.text_frame
             tf.clear()
@@ -1619,7 +1629,7 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
                     )
 
         elif slide_type == "text":
-            inl_tx = _inline_image_for_slide(slide_idx, _slide_configs_len, study, content_slide_images)
+            inl_tx = _inline_image_for_slide(slide_idx, _slide_configs_len, content_slide_images)
             if inl_tx:
                 slide.shapes.add_picture(str(inl_tx), Inches(9.55), Inches(1.25), Inches(3.62), Inches(2.72))
             # Title at top

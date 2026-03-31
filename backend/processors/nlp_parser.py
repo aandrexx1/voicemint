@@ -1,11 +1,9 @@
 import os
-from groq import Groq
 import json
 import re
 
 from .layout_profiles import normalize_layout_profile_key
-
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+from .llm_clients import chat_completion, expand_provider, resolve_slide_provider, resolve_structure_provider
 
 def _extract_json(text: str) -> dict:
     text = (text or "").strip().replace("```json", "").replace("```", "").strip()
@@ -235,7 +233,13 @@ def _slide_critically_thin(slide: dict, deck_mode: str = "presentation") -> bool
 
 def _needs_density_expand(slides: list, source_wc: int, summary: str, deck_mode: str = "presentation") -> bool:
     """True se la presentazione è troppo sottile rispetto al testo sorgente."""
-    if not slides or not os.getenv("GROQ_API_KEY"):
+    if not slides:
+        return False
+    if not (
+        os.getenv("GROQ_API_KEY")
+        or os.getenv("GEMINI_API_KEY")
+        or os.getenv("ANTHROPIC_API_KEY")
+    ):
         return False
     if os.getenv("DENSITY_EXPAND", "1").strip().lower() in ("0", "false", "no"):
         return False
@@ -263,6 +267,81 @@ def _needs_density_expand(slides: list, source_wc: int, summary: str, deck_mode:
     critical = any(_slide_critically_thin(s, deck_mode) for s in slides)
 
     return low_avg or many_thin or summary_thin or critical
+
+
+def _structure_brief_prompt(
+    text_in: str,
+    deck_mode: str,
+    study: bool,
+    min_content_slides: int,
+    max_content_slides: int,
+    target_content_slides: int,
+) -> str:
+    """Passo 1: gerarchia, sezioni, priorità — senza ancora il JSON finale delle slide."""
+    mode = "APPUNTI / STUDIO (schemi, ripasso)" if study else "PRESENTAZIONE ORALE (chiarezza, filo logico)"
+    return f"""Sei un senior instructional designer. NON scrivere ancora il JSON delle slide finali.
+Analizza il testo sotto e restituisci SOLO JSON valido (nessun markdown, nessun testo fuori dal JSON).
+
+Schema obbligatorio:
+{{
+  "deck_title": "titolo della presentazione",
+  "deck_subtitle": "sottotitolo incisivo",
+  "presentation_audience": "school" oppure "work",
+  "narrative_arc": "2-5 frasi: come si articola il discorso (es. problema → esempi → conclusioni)",
+  "sections": [
+    {{
+      "title": "nome blocco tematico",
+      "objective": "cosa deve capire chi ascolta in questo blocco",
+      "key_points": ["punto 1", "punto 2", "punto 3"],
+      "suggested_slide_focus": "una frase: cosa mettere in evidenza nelle slide di questo blocco"
+    }}
+  ],
+  "ordering_constraints": [
+    "vincoli espliciti se richiesti dal testo, es. prima problema poi esempio poi conclusione"
+  ],
+  "layout_profile_hint": "scegli ESATTAMENTE uno tra: scholarly_notebook, executive_premium, tech_futurist, medical_warm, creative_studio, history_editorial, startup_pitch, exam_focus, balanced_modern",
+  "tone": "es. tecnico, divulgativo, formale"
+}}
+
+Regole:
+- Tra {min_content_slides} e {max_content_slides} sezioni (obiettivo contenuti: ~{target_content_slides} slide equivalenti).
+- Modalità: {mode}
+- deck_mode pipeline: {deck_mode}
+
+Testo sorgente:
+\"\"\"{text_in}\"\"\"
+"""
+
+
+def _run_structure_phase(
+    text_in: str,
+    deck_mode: str,
+    study: bool,
+    min_content_slides: int,
+    max_content_slides: int,
+    target_content_slides: int,
+) -> dict | None:
+    """Chiamata LLM dedicata alla struttura (Gemini/Claude/Groq da env)."""
+    prov, model = resolve_structure_provider()
+    try:
+        raw = chat_completion(
+            [{"role": "user", "content": _structure_brief_prompt(
+                text_in,
+                deck_mode,
+                study,
+                min_content_slides,
+                max_content_slides,
+                target_content_slides,
+            )}],
+            provider=prov,
+            model=model,
+            temperature=0.22,
+            max_tokens=4096,
+        )
+        out = _extract_json(raw)
+        return out if isinstance(out, dict) else None
+    except Exception:
+        return None
 
 
 def _density_expand_prompt(text_in: str, data: dict, deck_mode: str = "presentation") -> str:
@@ -336,6 +415,27 @@ def parse_transcription(transcription: str, deck_mode: str = "presentation") -> 
             min_content_slides = 4
     short_prompt = wc < 30
 
+    pipeline_mode = (os.getenv("VOICEMINT_PIPELINE_MODE") or "split").strip().lower()
+    structure_brief: dict | None = None
+    if pipeline_mode != "legacy":
+        structure_brief = _run_structure_phase(
+            text_in,
+            deck_mode,
+            study,
+            min_content_slides,
+            max_content_slides,
+            target_content_slides,
+        )
+
+    brief_block = ""
+    if structure_brief:
+        brief_block = f"""
+## BRIEF STRUTTURALE (vincolante)
+Segui gerarchia, ordine delle idee e priorità del brief sotto. Poi scrivi il contenuto COMPLETO delle slide nel formato JSON richiesto.
+{json.dumps(structure_brief, ensure_ascii=False)}
+
+"""
+
     mode_intro = (
         """
 MODALITÀ: APPUNTI PER STUDIO (ripasso, schemi, memorizzazione — NON un discorso da leggere in pubblico).
@@ -394,6 +494,7 @@ MODALITÀ: PRESENTAZIONE ORALE (scuola/lavoro): contenuti da esporre a voce — 
 
     prompt = f"""
 Analizza questo testo e crea una presentazione professionale VARIA, specifica per l'argomento e NON generica.
+{brief_block}
 {mode_intro}
 Testo: "{text_in}"
 
@@ -477,14 +578,26 @@ Rispondi SOLO con JSON valido, zero testo extra:
   }}
 }}
 """
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.35,
-        max_tokens=16384,
-    )
-    
-    data = _extract_json(response.choices[0].message.content)
+    sp, sm = resolve_slide_provider()
+    try:
+        raw_main = chat_completion(
+            [{"role": "user", "content": prompt}],
+            provider=sp,
+            model=sm,
+            temperature=0.35,
+            max_tokens=16384,
+        )
+        data = _extract_json(raw_main)
+    except Exception:
+        # Fallback Groq se provider alternativo fallisce
+        raw_main = chat_completion(
+            [{"role": "user", "content": prompt}],
+            provider="groq",
+            model="llama-3.3-70b-versatile",
+            temperature=0.35,
+            max_tokens=16384,
+        )
+        data = _extract_json(raw_main)
     if not isinstance(data, dict):
         data = {"title": "", "subtitle": "", "slides": [], "summary_title": "Riepilogo", "summary": "", "theme": {}}
     slides = data.get("slides")
@@ -522,13 +635,15 @@ COMPITO:
 - Aggiungi nuove slide con titoli specifici e contenuti concreti.
 - Rispondi SOLO con JSON valido (stesso schema).
 """
-        r2 = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": fix_prompt}],
+        ep, em = expand_provider()
+        raw2 = chat_completion(
+            [{"role": "user", "content": fix_prompt}],
+            provider=ep,
+            model=em,
             temperature=0.35,
             max_tokens=16384,
         )
-        data2 = _extract_json(r2.choices[0].message.content)
+        data2 = _extract_json(raw2)
         if isinstance(data2, dict) and isinstance(data2.get("slides"), list):
             data = data2
 
@@ -536,14 +651,16 @@ COMPITO:
     if isinstance(slides, list) and _needs_density_expand(
         slides, wc, str(data.get("summary") or ""), deck_mode
     ):
-        r3 = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": _density_expand_prompt(text_in, data, deck_mode)}],
+        ep, em = expand_provider()
+        raw3 = chat_completion(
+            [{"role": "user", "content": _density_expand_prompt(text_in, data, deck_mode)}],
+            provider=ep,
+            model=em,
             temperature=0.25,
             max_tokens=16384,
         )
         try:
-            data3 = _extract_json(r3.choices[0].message.content)
+            data3 = _extract_json(raw3)
             if isinstance(data3, dict) and isinstance(data3.get("slides"), list) and len(data3["slides"]) > 0:
                 data = data3
         except Exception:

@@ -102,7 +102,7 @@ def fetch_topic_image_path(data: dict) -> Path | None:
 def fetch_content_slide_images_map(data: dict, max_slides: int = 5) -> dict[int, Path]:
     """
     Per ogni slide in data['slides'] (indice i), una foto da Pexels basata sul titolo slide.
-    Usato per miniature a destra su slide testo/elenco (modalità presentazione).
+    Usato per miniature a destra su slide testo/elenco (presentazione e studio).
     """
     out: dict[int, Path] = {}
     if not _enabled():
