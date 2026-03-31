@@ -191,44 +191,14 @@ def _is_presentation_template_filename(name: str) -> bool:
     return "_template_presentation" in n or n.startswith("template_presentation")
 
 
-def _find_presentation_template(data: dict) -> Path | None:
+def _find_presentation_template(_data: dict) -> Path | None:
     """
-    Presentazione: distingue template lavoro vs scolastico dal nome file.
-    - …_Template_Presentation_Work… — contesto lavoro/aziendale
-    - …_Template_Presentation_School… — scuola/università
-    - …_Template_Presentation… senza Work/School — neutro (fallback per entrambi)
+    Presentazione: primo template il cui nome segue la convenzione _Template_Presentation…
+    (nessuna distinzione work/school).
     """
-    audience = (data.get("presentation_audience") or "school").strip().lower()
-    if audience not in ("work", "school"):
-        audience = "school"
-
     all_p = [p for p in _discover_all_template_paths() if _is_presentation_template_filename(p.name)]
     if not all_p:
         return None
-
-    def has_work(nm: str) -> bool:
-        stem = Path(nm).stem.lower()
-        return "_template_presentation" in stem and stem.endswith("_work")
-
-    def has_school(nm: str) -> bool:
-        stem = Path(nm).stem.lower()
-        return "_template_presentation" in stem and stem.endswith("_school")
-
-    neutral = [p for p in all_p if not has_work(p.name) and not has_school(p.name)]
-
-    if audience == "work":
-        w = [p for p in all_p if has_work(p.name)]
-        if w:
-            return _prefer_named_template_match(w)
-        if neutral:
-            return _prefer_named_template_match(neutral)
-        return _prefer_named_template_match(all_p)
-
-    s = [p for p in all_p if has_school(p.name)]
-    if s:
-        return _prefer_named_template_match(s)
-    if neutral:
-        return _prefer_named_template_match(neutral)
     return _prefer_named_template_match(all_p)
 
 
@@ -236,7 +206,7 @@ def _pick_template(data: dict):
     """
     Seleziona il .pptx in base a deck_mode:
     - study → '_Template_Study' / Template_Study
-    - presentation → audience work/school → Template_Presentation_Work / _School, altrimenti neutro
+    - presentation → convenzione Template_Presentation nel nome file
     Poi: manifest remoto, altrimenti qualsiasi template locale (hash deterministico).
     """
     mode = (data.get("deck_mode") or "presentation").strip().lower()
@@ -264,8 +234,6 @@ def _pick_template(data: dict):
         + (data.get("subtitle") or "")
         + "|"
         + mode
-        + "|"
-        + str(data.get("presentation_audience") or "")
     )
     idx = int(hashlib.sha256(seed.encode("utf-8")).hexdigest(), 16) % len(templates)
     return templates[idx]
