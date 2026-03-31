@@ -432,9 +432,8 @@ REGOLE FONDAMENTALI:
 - Non usare titoli generici (tipo "Introduzione", "Conclusione") a meno che il testo lo richieda: rendili specifici.
 - Il titolo principale deve riflettere davvero l'argomento.
 {"- Se il testo è una richiesta breve (es. \"fammi un riassunto di...\") devi comunque produrre slide utili: definizioni chiave, struttura del programma, concetti fondamentali, errori comuni, esempi, mini-casi, e un piano di studio rapido." if short_prompt else ""}
-{audience_rules}
 IDENTITÀ VISIVA E LAYOUT (obbligatorio — il backend costruisce slide diverse per argomento):
-- Analizza l'argomento, il pubblico e il tono; NON usare sempre lo stesso schema ciano su nero.
+- Analizza l'argomento e il tono; NON usare sempre lo stesso schema ciano su nero.
 - Imposta "theme.layout_profile" a ESATTAMENTE uno di questi valori (inglese, snake_case):
   · scholarly_notebook — materie umanistiche, analisi testi, filosofia, tesina, studio approfondito
   · executive_premium — board, strategia, KPI, corporate, report direzionali
