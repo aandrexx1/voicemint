@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react"
 import { Mic, Download, LogOut, FileText, User, X, ChevronDown } from "lucide-react"
-import { DeckModeModal } from "../components/deck-mode-modal.jsx"
 import { GenerationProgressOverlay } from "../components/generation-progress-overlay.jsx"
 import { motion, AnimatePresence } from "framer-motion"
 import axios from "axios"
@@ -41,6 +40,8 @@ export default function Dashboard({
   const [profileOpen, setProfileOpen] = useState(false)
   const [modal, setModal] = useState(null) // "settings" | "plans"
   const [lang, setLang] = useState(() => safeGetItem("lang", "it") || "it")
+  const [progressOpen, setProgressOpen] = useState(false)
+  const [genError, setGenError] = useState(null)
   const profileRef = useRef(null)
 
   // Chiudi menu profilo cliccando fuori
@@ -80,8 +81,9 @@ export default function Dashboard({
     setRecording(false)
   }
 
-  const generate = async (deckMode = "presentation") => {
+  const generate = async () => {
     if (!transcription) return
+    const deckMode = "presentation"
     setGenError(null)
     setProgressOpen(true)
     setLoading(true)
@@ -344,15 +346,6 @@ export default function Dashboard({
           )}
         </div>
       </div>
-
-      <DeckModeModal
-        open={deckModeOpen}
-        onClose={() => setDeckModeOpen(false)}
-        onSelect={(deckMode) => {
-          setDeckModeOpen(false)
-          generate(deckMode)
-        }}
-      />
 
       <GenerationProgressOverlay
         open={progressOpen}

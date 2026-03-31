@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
-import { DeckModeModal } from "../deck-mode-modal.jsx";
 import { GenerationProgressOverlay } from "../generation-progress-overlay.jsx";
 import { MorphingSquare } from "@/components/ui/morphing-square";
 
@@ -26,7 +25,6 @@ export function HeroWave({
   }, [t, i18n.language]);
 
   const [prompt, setPrompt] = useState("");
-  const [deckModeOpen, setDeckModeOpen] = useState(false);
   const [recording, setRecording] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [progressOpen, setProgressOpen] = useState(false);
@@ -180,7 +178,30 @@ export function HeroWave({
               if (generating) return;
               const text = (prompt || "").trim();
               if (!text) return;
-              setDeckModeOpen(true);
+              if (!onPromptSubmit) return;
+              setGenError(null);
+              setProgressOpen(true);
+              setGenerating(true);
+              (async () => {
+                try {
+                  await onPromptSubmit(prompt);
+                  setProgressOpen(false);
+                } catch (err) {
+                  const d = err?.response?.data?.detail;
+                  const msg =
+                    typeof d === "string"
+                      ? d
+                      : Array.isArray(d)
+                        ? d.map((x) => (typeof x === "object" ? x.msg || JSON.stringify(x) : String(x))).join(" ")
+                        : d
+                          ? String(d)
+                          : err?.message ||
+                            (i18n.language?.startsWith("it") ? "Errore nella generazione" : "Generation failed");
+                  setGenError(msg);
+                } finally {
+                  setGenerating(false);
+                }
+              })();
             }}
           >
             <div className="relative w-full sm:w-[720px]">
@@ -232,34 +253,6 @@ export function HeroWave({
           </form>
         </div>
       </div>
-
-      <DeckModeModal
-        open={deckModeOpen}
-        onClose={() => setDeckModeOpen(false)}
-        onSelect={async (deckMode) => {
-          setDeckModeOpen(false);
-          if (!onPromptSubmit) return;
-          setGenError(null);
-          setProgressOpen(true);
-          setGenerating(true);
-          try {
-            await onPromptSubmit(prompt, deckMode);
-          } catch (e) {
-            const d = e?.response?.data?.detail;
-            const msg =
-              typeof d === "string"
-                ? d
-                : Array.isArray(d)
-                  ? d.map((x) => (typeof x === "object" ? x.msg || JSON.stringify(x) : String(x))).join(" ")
-                  : d
-                    ? String(d)
-                    : e?.message || (i18n.language?.startsWith("it") ? "Errore nella generazione" : "Generation failed");
-            setGenError(msg);
-          } finally {
-            setGenerating(false);
-          }
-        }}
-      />
 
       <GenerationProgressOverlay
         open={progressOpen}
