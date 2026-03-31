@@ -21,6 +21,7 @@ from groq import Groq
 from jose import jwt, JWTError
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from auth import SECRET_KEY, ALGORITHM
 from starlette.middleware.sessions import SessionMiddleware
@@ -490,6 +491,72 @@ def get_me(current_user: User = Depends(get_current_user)):
         "pro_until": current_user.pro_until,
         "monthly_usage": current_user.monthly_usage,
     }
+
+
+def _resolve_conversion_file_path(file_path: str | None) -> Path | None:
+    if not file_path or not str(file_path).strip():
+        return None
+    p = Path(file_path)
+    if p.is_file():
+        return p
+    backend_root = Path(__file__).resolve().parent
+    cand = backend_root / file_path
+    if cand.is_file():
+        return cand
+    return None
+
+
+@app.get("/me/conversions")
+def list_my_conversions(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    rows = (
+        db.query(Conversion)
+        .filter(Conversion.user_id == current_user.id)
+        .order_by(Conversion.created_at.desc())
+        .limit(100)
+        .all()
+    )
+    out = []
+    for c in rows:
+        fp = _resolve_conversion_file_path(c.file_path)
+        out.append(
+            {
+                "id": c.id,
+                "title": c.title or "",
+                "output_type": c.output_type or "ppt",
+                "created_at": c.created_at.isoformat() if c.created_at else None,
+                "preview": (c.transcription or "")[:200],
+                "file_available": fp is not None,
+            }
+        )
+    return out
+
+
+@app.get("/me/conversions/{conversion_id}/download")
+def download_my_conversion(
+    conversion_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    c = (
+        db.query(Conversion)
+        .filter(Conversion.id == conversion_id, Conversion.user_id == current_user.id)
+        .first()
+    )
+    if not c:
+        raise HTTPException(status_code=404, detail="Conversione non trovata")
+    resolved = _resolve_conversion_file_path(c.file_path)
+    if not resolved:
+        raise HTTPException(status_code=404, detail="File non disponibile o scaduto")
+    safe = "".join(ch for ch in (c.title or "presentazione")[:40] if ch.isalnum() or ch in (" ", "-", "_")).strip() or "presentazione"
+    return FileResponse(
+        str(resolved),
+        filename=f"voicemint_{safe}.pptx",
+        media_type="application/octet-stream",
+    )
+
 
 # --- Genera documento da testo ---
 @app.post("/generate")
