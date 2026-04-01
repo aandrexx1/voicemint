@@ -4,8 +4,7 @@ import FAQDemoPage from "./pages/FAQDemoPage"
 import MinimalAuthDemoPage from "./pages/MinimalAuthDemoPage"
 import FooterDemoPage from "./pages/FooterDemoPage"
 import AuthPage from "./pages/AuthPage"
-import WorkspacePage from "./pages/WorkspacePage"
-import HelpCenterPage from "./pages/HelpCenterPage"
+import Dashboard from "./pages/Dashboard"
 import AdminPage from "./pages/AdminPage"
 import LegalPage from "./pages/LegalPage"
 import ResetPasswordPage from "./pages/ResetPasswordPage"
@@ -32,9 +31,6 @@ function getInitialPage() {
   if (path === "/reset-password") return "reset-password"
   if (path === "/profile") return "profile"
   if (path === "/contact-sales") return "contact-sales"
-  if (path === "/home") return "landing-public"
-  if (path === "/help") return "help"
-  if (path === "/app") return "workspace"
   return "landing"
 }
 
@@ -53,8 +49,6 @@ function App() {
   const [cookieConsent, setCookieConsent] = useState(readCookieConsent)
   const [token, setToken] = useState(() => safeGetItem("token"))
   const [user, setUser] = useState(null)
-  /** True dopo il primo tentativo di sessione (/me o skip), per /app senza login. */
-  const [sessionResolved, setSessionResolved] = useState(false)
   /** Evita GET /me subito dopo logout (race: sessione ancora valida → utente ripristinato). */
   const skipNextMeFetch = useRef(false)
 
@@ -89,39 +83,25 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (user) {
-      setSessionResolved(true)
-      return
+    if (!user) {
+      if (skipNextMeFetch.current) {
+        skipNextMeFetch.current = false
+        return
+      }
+      axios
+        .get(`${API}/me`, {
+          headers: token && token !== "cookie" ? { Authorization: `Bearer ${token}` } : {},
+        })
+        .then((res) => {
+          setUser(res.data)
+          if (!token) setToken("cookie")
+        })
+        .catch(() => {
+          setToken(null)
+          safeRemoveItem("token")
+        })
     }
-    if (skipNextMeFetch.current) {
-      skipNextMeFetch.current = false
-      setSessionResolved(true)
-      return
-    }
-    axios
-      .get(`${API}/me`, {
-        headers: token && token !== "cookie" ? { Authorization: `Bearer ${token}` } : {},
-      })
-      .then((res) => {
-        setUser(res.data)
-        if (!token) setToken("cookie")
-      })
-      .catch(() => {
-        setToken(null)
-        safeRemoveItem("token")
-      })
-      .finally(() => setSessionResolved(true))
-  }, [token, user])
-
-  /** Loggato sulla root `/` → workspace (marketing solo per ospiti su `/`). */
-  useEffect(() => {
-    if (!user) return
-    const path = window.location.pathname.replace(/\/$/, "") || "/"
-    if (path === "/" || path === "") {
-      window.history.replaceState({}, "", "/app")
-      setPage("workspace")
-    }
-  }, [user])
+  }, [token])
 
   useEffect(() => {
     const onPop = () => setPage(getInitialPage())
@@ -131,8 +111,9 @@ function App() {
 
   const handleSetToken = (t) => {
     setToken(t)
-    window.history.pushState({}, "", "/app")
-    setPage("workspace")
+    // prefer cookie HttpOnly: teniamo il token solo in memoria
+    window.history.pushState({}, "", "/")
+    setPage("landing")
   }
 
   const handleLogout = async () => {
@@ -146,7 +127,6 @@ function App() {
       setToken(null)
       setUser(null)
       safeRemoveItem("token")
-      window.history.replaceState({}, "", "/")
       setPage("landing")
     }
   }
@@ -163,32 +143,6 @@ function App() {
 
   const handleLegalBack = () => {
     setPage(legalReturn)
-  }
-
-  const openHomeInNewTab = () => {
-    window.open(`${window.location.origin}/home`, "_blank", "noopener,noreferrer")
-  }
-
-  const openHelpInNewTab = () => {
-    window.open(`${window.location.origin}/help`, "_blank", "noopener,noreferrer")
-  }
-
-  const landingProps = {
-    token,
-    user,
-    onGetStarted: () => setPage("auth"),
-    onLogin: () => setPage("auth-login"),
-    onOpenTerms: goTerms,
-    onOpenPrivacy: goPrivacy,
-    onOpenProfile: () => {
-      if (user || token) {
-        window.history.pushState({}, "", "/app")
-        setPage("workspace")
-      } else {
-        setPage("auth")
-      }
-    },
-    onContactSales: () => setPage("contact-sales"),
   }
 
   const acceptCookies = () => {
@@ -208,60 +162,26 @@ function App() {
     if (page === "footer-demo") return <FooterDemoPage />
     if (page === "terms") return <LegalPage variant="terms" onBack={handleLegalBack} />
     if (page === "privacy") return <LegalPage variant="privacy" onBack={handleLegalBack} />
-    if (page === "help")
+    if (page === "landing")
       return (
-        <HelpCenterPage
-          onBack={() => {
-            if (user) {
-              window.history.pushState({}, "", "/app")
-              setPage("workspace")
-            } else {
-              window.history.replaceState({}, "", "/")
-              setPage("landing")
-            }
-          }}
-        />
-      )
-    if (page === "workspace") {
-      if (!user) {
-        if (!sessionResolved) {
-          return (
-            <div className="flex min-h-screen items-center justify-center text-sm text-white/50">
-              Caricamento…
-            </div>
-          )
-        }
-        return (
-          <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center text-white">
-            <p className="text-sm text-white/60">Accedi per usare la workspace.</p>
-            <button
-              type="button"
-              className="rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-black hover:bg-white/90"
-              onClick={() => {
-                window.history.replaceState({}, "", "/")
-                setPage("auth-login")
-              }}
-            >
-              Accedi
-            </button>
-          </div>
-        )
-      }
-      return (
-        <WorkspacePage
+        <LandingPage
           token={token}
           user={user}
-          setUser={setUser}
-          onLogout={handleLogout}
+          onGetStarted={() => setPage("auth")}
+          onLogin={() => setPage("auth-login")}
           onOpenTerms={goTerms}
           onOpenPrivacy={goPrivacy}
-          openHomeInNewTab={openHomeInNewTab}
-          openHelpInNewTab={openHelpInNewTab}
+          onOpenProfile={() => {
+            if (token) {
+              window.history.pushState({}, "", "/profile")
+              setPage("profile")
+            } else {
+              setPage("auth") // registration
+            }
+          }}
+          onContactSales={() => setPage("contact-sales")}
         />
       )
-    }
-    if (page === "landing-public") return <LandingPage {...landingProps} />
-    if (page === "landing") return <LandingPage {...landingProps} />
     if (page === "auth" || page === "auth-login")
       return (
         <AuthPage
@@ -290,8 +210,8 @@ function App() {
           setUser={setUser}
           onLogout={handleLogout}
           onGoHome={() => {
-            window.history.pushState({}, "", "/app")
-            setPage("workspace")
+            window.history.pushState({}, "", "/")
+            setPage("landing")
           }}
         />
       )
@@ -304,7 +224,26 @@ function App() {
           }}
         />
       )
-    return <LandingPage {...landingProps} />
+    // Fallback: se arriviamo qui, torniamo alla landing
+    return (
+      <LandingPage
+        token={token}
+        user={user}
+        onGetStarted={() => setPage("auth")}
+        onLogin={() => setPage("auth-login")}
+        onOpenTerms={goTerms}
+        onOpenPrivacy={goPrivacy}
+        onOpenProfile={() => {
+          if (token) {
+            window.history.pushState({}, "", "/profile")
+            setPage("profile")
+          } else {
+            setPage("auth")
+          }
+        }}
+        onContactSales={() => setPage("contact-sales")}
+      />
+    )
   }
 
   return (
