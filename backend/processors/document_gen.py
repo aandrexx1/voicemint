@@ -1240,9 +1240,24 @@ body {{ width:1280px; height:720px; overflow:hidden; background: linear-gradient
     return ""
 
 
+def _env_use_pptx_templates() -> bool:
+    """
+    Template master .pptx: se TEMPLATE_MANIFEST_URL è impostato, si assume che si vogliano usare
+    i file su Cloudflare/R2 anche senza USE_PPTX_TEMPLATES=1 (evita dimenticanze in produzione).
+    Disattiva esplicitamente con USE_PPTX_TEMPLATES=0.
+    """
+    explicit = os.getenv("USE_PPTX_TEMPLATES", "").strip().lower()
+    manifest_url = os.getenv("TEMPLATE_MANIFEST_URL", "").strip()
+    if explicit in ("0", "false", "no", "off"):
+        return False
+    if explicit in ("1", "true", "yes", "on"):
+        return True
+    return bool(manifest_url)
+
+
 def generate_ppt(data: dict, user_tier: str = "free") -> str:
-    # Template .pptx disabilitati di default: layout curati nel renderer nativo sotto.
-    use_templates = os.getenv("USE_PPTX_TEMPLATES", "0").strip().lower() in ("1", "true", "yes")
+    # Template .pptx: vedi _env_use_pptx_templates; senza manifest e senza flag → renderer nativo.
+    use_templates = _env_use_pptx_templates()
     template_path = None
     if use_templates:
         template_path = _pick_template(data)
@@ -1383,7 +1398,18 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
         if slide_type == "title":
             if hero_path and hero_path.exists() and not study:
                 slide.shapes.add_picture(str(hero_path), Inches(7.05), Inches(0), Inches(6.28), Inches(7.5))
-                tb = slide.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(6.35), Inches(1.9))
+                tit = title or ""
+                nch = len(tit)
+                # Evita sovrapposizione titolo / sottotitolo su titoli lunghi
+                tit_sz = int(t_title_pt)
+                if nch > 90:
+                    tit_sz = max(26, tit_sz - 8)
+                elif nch > 65:
+                    tit_sz = max(28, tit_sz - 6)
+                elif nch > 48:
+                    tit_sz = max(30, tit_sz - 4)
+                title_h = Inches(2.65) if nch > 42 else Inches(2.15)
+                tb = slide.shapes.add_textbox(Inches(0.5), Inches(1.35), Inches(6.35), title_h)
                 ttf = tb.text_frame
                 ttf.clear()
                 ttf.word_wrap = True
@@ -1391,15 +1417,20 @@ def generate_ppt(data: dict, user_tier: str = "free") -> str:
                     ttf.auto_size = MSO_AUTO_SIZE.NONE
                 except Exception:
                     pass
+                try:
+                    ttf.margin_bottom = Pt(4)
+                except Exception:
+                    pass
                 tp = ttf.paragraphs[0]
-                tp.text = title or ""
-                tp.font.size = t_title_pt
+                tp.text = tit
+                tp.font.size = Pt(tit_sz)
                 tp.font.bold = True
                 tp.font.color.rgb = text_rgb
                 tp.font.name = font_title
                 tp.alignment = PP_ALIGN.LEFT
                 if content:
-                    tb2 = slide.shapes.add_textbox(Inches(0.5), Inches(3.65), Inches(6.35), Inches(1.5))
+                    sub_y = Inches(1.35) + title_h + Inches(0.15)
+                    tb2 = slide.shapes.add_textbox(Inches(0.5), sub_y, Inches(6.35), Inches(1.45))
                     ttf2 = tb2.text_frame
                     ttf2.clear()
                     ttf2.word_wrap = True
