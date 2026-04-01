@@ -314,6 +314,19 @@ def _theme_rgb(theme: dict, key: str, default_hex: str) -> RGBColor:
         return hex_to_rgb("#" + default_hex)
 
 
+def _template_reading_text_colors(theme: dict) -> tuple[RGBColor, RGBColor]:
+    """
+    Template .pptx esterni spesso hanno sfondo chiaro mentre il JSON tema resta “dark UI”.
+    Default: inchiostro scuro leggibile. Per master scuri: VOICEMINT_TEMPLATE_USE_THEME_TEXT=1.
+    """
+    if os.getenv("VOICEMINT_TEMPLATE_USE_THEME_TEXT", "0").strip().lower() in ("1", "true", "yes", "on"):
+        return (
+            _theme_rgb(theme, "text_color", "FFFFFF"),
+            _theme_rgb(theme, "subtitle_color", "A0A0B0"),
+        )
+    return RGBColor(0x15, 0x19, 0x22), RGBColor(0x4A, 0x4F, 0x5C)
+
+
 def _apply_slide_background_solid(slide, rgb: RGBColor):
     """Copre lo sfondo master/template con un colore pieno (niente immagini stock di sfondo)."""
     fill = slide.background.fill
@@ -562,8 +575,78 @@ def _pick_rotated_layout(candidates: list, seed: str, fallback):
     return candidates[idx]
 
 
+def _picture_placeholder_safe_for_inline_stock(shape, prs: Presentation) -> bool:
+    """
+    True se il riquadro foto è a destra o in angolo alto piccolo — evita placeholder centrali/grandi
+    che si sovrappongono al corpo testo (testo grigio su foto, titolo “vuoto”).
+    """
+    try:
+        sw = float(prs.slide_width)
+        sh = float(prs.slide_height)
+        l, t, w, h = float(shape.left), float(shape.top), float(shape.width), float(shape.height)
+        if sw <= 0 or sh <= 0:
+            return True
+        cx = l + w / 2.0
+        area = w * h
+        slide_area = sw * sh
+        if cx >= sw * 0.56:
+            return True
+        if t <= sh * 0.28 and l >= sw * 0.48 and w <= sw * 0.42:
+            return True
+        if l >= sw * 0.50 and w <= sw * 0.48:
+            return True
+        if area >= slide_area * 0.18 and cx < sw * 0.62:
+            return False
+        return False
+    except Exception:
+        return False
+
+
+def _insert_picture_placeholder_smart(
+    slide,
+    path: Path | None,
+    prs: Presentation,
+    *,
+    allow_full_bleed: bool,
+) -> bool:
+    """
+    allow_full_bleed: copertina — qualsiasi placeholder foto.
+    Slide contenuto: solo riquadri sicuri (destra / angolo), altrimenti fallback top-right.
+    """
+    if not path or not path.exists():
+        return False
+    candidates: list = []
+    for shape in slide.placeholders:
+        try:
+            ph_t = int(shape.placeholder_format.type)
+            if ph_t not in (
+                int(PP_PLACEHOLDER.PICTURE),
+                int(PP_PLACEHOLDER.BITMAP),
+                int(PP_PLACEHOLDER.SLIDE_IMAGE),
+            ):
+                continue
+            if not hasattr(shape, "insert_picture"):
+                continue
+            if allow_full_bleed or _picture_placeholder_safe_for_inline_stock(shape, prs):
+                candidates.append(shape)
+        except Exception:
+            continue
+    if not candidates:
+        return False
+    if not allow_full_bleed:
+        candidates.sort(key=lambda sh: float(sh.left) + float(sh.width))
+        shape = candidates[-1]
+    else:
+        shape = candidates[0]
+    try:
+        shape.insert_picture(str(path))
+        return True
+    except Exception:
+        return False
+
+
 def _insert_first_picture_placeholder(slide, path: Path | None) -> bool:
-    """Riempie il primo placeholder immagine dello slide (se presente)."""
+    """Riempie il primo placeholder immagine (senza filtro geometria — usare smart se possibile)."""
     if not path or not path.exists():
         return False
     for shape in slide.placeholders:
@@ -794,8 +877,7 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
     bg_rgb = _theme_rgb(theme, "bg_color", "0a0a0a")
     slide_bg_rgb = _theme_rgb(theme, "slide_bg_color", "111111")
     accent_rgb = _theme_rgb(theme, "accent_color", "00D4FF")
-    text_rgb = _theme_rgb(theme, "text_color", "FFFFFF")
-    subtitle_rgb = _theme_rgb(theme, "subtitle_color", "A0A0B0")
+    text_rgb, subtitle_rgb = _template_reading_text_colors(theme)
     font_title = (theme.get("font_title") or "").strip() or None
     font_body = (theme.get("font_body") or "").strip() or None
 
@@ -845,10 +927,13 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
         else:
             pass
 
-    # title
+    # title — foto prima, testo dopo così titolo/sottotitolo restano sopra la bitmap
     s0 = prs.slides.add_slide(title_layout)
     _strip_footer_date_slide_number_placeholders(s0)
     polish_slide(s0, bg_rgb)
+    if hero_path and hero_path.exists():
+        if not _insert_picture_placeholder_smart(s0, hero_path, prs, allow_full_bleed=True):
+            _template_fallback_title_hero(s0, hero_path)
     if getattr(s0.shapes, "title", None):
         _style_title_shape(s0.shapes.title, data.get("title") or "Presentazione", text_rgb, font_title, 32)
     else:
@@ -861,9 +946,6 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
         b = s0.shapes.add_textbox(Inches(1.1), Inches(2.7), Inches(11.0), Inches(1.5))
         _fill_body_plain(b.text_frame, data.get("subtitle") or "", subtitle_rgb, font_body, 17)
     add_watermark(s0)
-    if hero_path and hero_path.exists():
-        if not _insert_first_picture_placeholder(s0, hero_path):
-            _template_fallback_title_hero(s0, hero_path)
 
     def _default_title_and_body(s, title: str):
         if getattr(s.shapes, "title", None):
@@ -1041,7 +1123,7 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
         inl_path = content_slide_images.get(slide_idx)
         if inl_path and inl_path.exists():
             if st == "section":
-                if not _insert_first_picture_placeholder(s, inl_path):
+                if not _insert_picture_placeholder_smart(s, inl_path, prs, allow_full_bleed=False):
                     try:
                         s.shapes.add_picture(str(inl_path), Inches(9.65), Inches(0.45), Inches(3.35), Inches(2.35))
                     except Exception:
@@ -1050,16 +1132,16 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
                 items_n = _coerce_list_content(content)
                 n_n = len(items_n)
                 cols_n = 2 if n_n >= 8 else 1
-                if n_n and not _insert_first_picture_placeholder(s, inl_path):
+                if n_n and not _insert_picture_placeholder_smart(s, inl_path, prs, allow_full_bleed=False):
                     _template_fallback_inline_image(s, inl_path, two_columns=(cols_n == 2))
             elif st == "bullets":
                 items_b = _coerce_list_content(content)
                 n_b = len(items_b)
                 cols_b = 2 if n_b >= 8 else 1
-                if n_b and not _insert_first_picture_placeholder(s, inl_path):
+                if n_b and not _insert_picture_placeholder_smart(s, inl_path, prs, allow_full_bleed=False):
                     _template_fallback_inline_image(s, inl_path, two_columns=(cols_b == 2))
             elif st == "text":
-                if not _insert_first_picture_placeholder(s, inl_path):
+                if not _insert_picture_placeholder_smart(s, inl_path, prs, allow_full_bleed=False):
                     try:
                         s.shapes.add_picture(str(inl_path), Inches(9.55), Inches(1.25), Inches(3.62), Inches(2.72))
                     except Exception:
