@@ -201,11 +201,6 @@ function App() {
     setCookieConsent("rejected")
   }
 
-  const openCookiePreferences = () => {
-    // Forza la riapertura del banner.
-    setCookieConsent(null)
-  }
-
   const renderPage = () => {
     if (page === "admin") return <AdminPage />
     if (page === "faq-demo") return <FAQDemoPage />
@@ -262,7 +257,6 @@ function App() {
           onOpenPrivacy={goPrivacy}
           openHomeInNewTab={openHomeInNewTab}
           openHelpInNewTab={openHelpInNewTab}
-          onOpenCookiePreferences={openCookiePreferences}
         />
       )
     }

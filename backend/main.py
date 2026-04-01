@@ -481,10 +481,6 @@ def get_me(current_user: User = Depends(get_current_user)):
         db.close()
         current_user.tier = "free"
 
-    free_limit = int(os.getenv("FREE_CREDITS_MONTHLY", "180"))
-    used = float(current_user.monthly_usage or 0.0)
-    remaining = max(0, int(free_limit - used)) if current_user.tier == "free" else None
-
     return {
         "email": current_user.email,
         "username": current_user.username,
@@ -494,8 +490,6 @@ def get_me(current_user: User = Depends(get_current_user)):
         "lifetime_pro": current_user.lifetime_pro,
         "pro_until": current_user.pro_until,
         "monthly_usage": current_user.monthly_usage,
-        "credits_limit": free_limit if current_user.tier == "free" else None,
-        "credits_remaining": remaining,
     }
 
 
@@ -588,14 +582,9 @@ def generate(
 
     if len(text) > int(os.getenv("MAX_TRANSCRIPTION_CHARS", "20000")):
         raise HTTPException(status_code=413, detail="Testo troppo lungo")
-    # --- Crediti (semplice): 1 credito ≈ 3 parole ---
-    # Nota: monthly_usage è usato come contatore crediti storicamente.
-    free_limit = int(os.getenv("FREE_CREDITS_MONTHLY", "180"))
-    used = float(current_user.monthly_usage or 0.0)
-    cost = max(1, int(len(text.split()) / 3))
-
-    if current_user.tier == "free" and (used + cost) > free_limit:
-        raise HTTPException(status_code=403, detail="Crediti insufficienti. Passa a Pro!")
+    # Controlla limite utenti free
+    if current_user.tier == "free" and current_user.monthly_usage >= 180:
+        raise HTTPException(status_code=403, detail="Limite mensile raggiunto. Passa a Pro!")
     
     parsed = parse_transcription(text, deck_mode=deck_mode)
 
@@ -614,7 +603,7 @@ def generate(
         file_path=file_path,
     )
     db.add(conversion)
-    current_user.monthly_usage = used + cost
+    current_user.monthly_usage += int(len(text.split()) / 3)
     db.commit()
     
     return FileResponse(

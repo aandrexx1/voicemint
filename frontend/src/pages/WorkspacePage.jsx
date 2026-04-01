@@ -1,5 +1,5 @@
-import { useMemo, useState, useRef, useEffect, useCallback } from "react"
-import { Mic, Download, LogOut, FileText, X, ChevronRight, ExternalLink, LifeBuoy, Sun, Moon, Settings2 } from "lucide-react"
+import { useState, useRef, useEffect, useCallback } from "react"
+import { Mic, Download, LogOut, FileText, X, ChevronRight, ExternalLink, LifeBuoy } from "lucide-react"
 import { GenerationProgressOverlay } from "../components/generation-progress-overlay.jsx"
 import { motion, AnimatePresence } from "framer-motion"
 import axios from "axios"
@@ -37,7 +37,6 @@ export default function WorkspacePage({
   onOpenPrivacy,
   openHomeInNewTab,
   openHelpInNewTab,
-  onOpenCookiePreferences,
 }) {
   const authConfig =
     token && token !== "cookie"
@@ -55,7 +54,6 @@ export default function WorkspacePage({
   const [creazioniOpen, setCreazioniOpen] = useState(false)
   const [modal, setModal] = useState(null)
   const [lang, setLang] = useState(() => safeGetItem("lang", "it") || "it")
-  const [uiTheme, setUiTheme] = useState(() => safeGetItem("ui_theme", "dark") || "dark")
   const [progressOpen, setProgressOpen] = useState(false)
   const [genError, setGenError] = useState(null)
   const profileRef = useRef(null)
@@ -181,29 +179,51 @@ export default function WorkspacePage({
     return t("Free", "Free")
   }
 
-  const creditsRemaining = useMemo(() => {
-    if (!user) return null
-    if (user?.tier === "free") {
-      if (typeof user?.credits_remaining === "number") return user.credits_remaining
-      const used = Number(user?.monthly_usage || 0)
-      const limit = 180
-      return Math.max(0, Math.floor(limit - used))
-    }
-    return null
-  }, [user])
-
-  const pill = (label, onClick) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10"
-    >
-      {label}
-    </button>
-  )
-
   return (
-    <div className="min-h-screen bg-transparent text-white">
+    <div className="flex min-h-screen bg-transparent text-white">
+      {/* Cronologia sx */}
+      <aside className="flex w-72 shrink-0 flex-col border-r border-white/10 bg-black/20">
+        <div className="border-b border-white/10 px-4 py-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-white/40">
+            {t("Cronologia", "History")}
+          </p>
+        </div>
+        <div className="flex-1 overflow-y-auto px-2 py-3">
+          {historyLoading ? (
+            <p className="px-2 text-sm text-white/35">{t("Caricamento…", "Loading…")}</p>
+          ) : history.length === 0 ? (
+            <p className="px-2 text-sm text-white/35">
+              {t("Nessuna creazione ancora.", "No creations yet.")}
+            </p>
+          ) : (
+            <ul className="space-y-1">
+              {history.map((h) => (
+                <li
+                  key={h.id}
+                  className="rounded-xl border border-white/5 bg-white/[0.03] p-3 text-left transition-colors hover:bg-white/[0.06]"
+                >
+                  <p className="line-clamp-2 text-sm font-medium text-white/90">{h.title || t("Senza titolo", "Untitled")}</p>
+                  <p className="mt-1 text-xs text-white/35">{formatWhen(h.created_at)}</p>
+                  {h.file_available ? (
+                    <button
+                      type="button"
+                      onClick={() => downloadConversion(h.id)}
+                      className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-[#a8b4ff] hover:text-white"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      {t("Scarica PPT", "Download PPT")}
+                    </button>
+                  ) : (
+                    <p className="mt-2 text-xs text-white/30">{t("File non più sul server", "File no longer on server")}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </aside>
+
+      {/* Area principale */}
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
           <div className="flex items-center gap-2">
@@ -212,12 +232,29 @@ export default function WorkspacePage({
           </div>
 
           <div className="flex items-center gap-3">
-            {typeof creditsRemaining === "number" && (
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/70">
-                <span className="font-semibold text-white">{creditsRemaining}</span>
-                <span className="text-white/40">{t("crediti", "credits")}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2 text-sm">
+              <button
+                type="button"
+                onClick={() => {
+                  setLang("it")
+                  safeSetItem("lang", "it")
+                }}
+                className={lang === "it" ? "text-white" : "text-white/30 hover:text-white"}
+              >
+                IT
+              </button>
+              <span className="text-white/20">|</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setLang("en")
+                  safeSetItem("lang", "en")
+                }}
+                className={lang === "en" ? "text-white" : "text-white/30 hover:text-white"}
+              >
+                EN
+              </button>
+            </div>
 
             <div className="relative" ref={profileRef}>
               <button
@@ -240,19 +277,12 @@ export default function WorkspacePage({
                     className="absolute right-0 top-12 z-50 w-72 overflow-hidden rounded-2xl border border-white/10 bg-[#111] py-2 shadow-xl"
                   >
                     <div className="border-b border-white/5 px-4 py-3">
-                      {user?.tier === "free" ? (
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-semibold text-white/90">{t("Piano gratuito", "Free plan")}</p>
-                          {pill(t("Aggiorna", "Upgrade"), () => {
-                            setProfileOpen(false)
-                            setModal("plans")
-                          })}
-                        </div>
-                      ) : (
-                        <>
-                          <p className="text-xs uppercase tracking-wider text-white/40">{t("Piano attivo", "Active plan")}</p>
-                          <p className="mt-1 text-sm font-semibold text-white">{planLabel()}</p>
-                        </>
+                      <p className="text-xs uppercase tracking-wider text-white/40">{t("Piano attivo", "Active plan")}</p>
+                      <p className="mt-1 text-sm font-semibold text-white">{planLabel()}</p>
+                      {!isProUser && !isLifetimePro && (
+                        <p className="mt-1 text-xs text-white/40">
+                          {t(`${user?.monthly_usage || 0} crediti questo mese`, `${user?.monthly_usage || 0} credits this month`)}
+                        </p>
                       )}
                     </div>
 
@@ -261,36 +291,60 @@ export default function WorkspacePage({
                       className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-white/80 hover:bg-white/5"
                       onClick={() => {
                         setProfileOpen(false)
-                        setModal("account")
-                      }}
-                    >
-                      <FileText className="h-4 w-4 shrink-0 opacity-60" />
-                      {t("Account", "Account")}
-                    </button>
-
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-white/80 hover:bg-white/5"
-                      onClick={() => {
-                        setProfileOpen(false)
-                        setModal("settings")
-                      }}
-                    >
-                      <Settings2 className="h-4 w-4 shrink-0 opacity-60" />
-                      {t("Impostazioni", "Settings")}
-                    </button>
-
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-2 border-t border-white/5 px-4 py-3 text-left text-sm text-white/80 hover:bg-white/5"
-                      onClick={() => {
-                        setProfileOpen(false)
                         openHomeInNewTab?.()
                       }}
                     >
                       <ExternalLink className="h-4 w-4 shrink-0 opacity-60" />
                       {t("Pagina principale", "Homepage")}
                     </button>
+
+                    <div className="border-t border-white/5">
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between px-4 py-3 text-left text-sm text-white/80 hover:bg-white/5"
+                        onClick={() => setCreazioniOpen((c) => !c)}
+                      >
+                        <span className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 shrink-0 opacity-60" />
+                          {t("Creazioni", "Creations")}
+                        </span>
+                        <ChevronRight className={`h-4 w-4 transition-transform ${creazioniOpen ? "rotate-90" : ""}`} />
+                      </button>
+                      <AnimatePresence>
+                        {creazioniOpen && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden border-t border-white/5 bg-black/30"
+                          >
+                            <div className="max-h-56 overflow-y-auto px-2 py-2">
+                              {history.length === 0 ? (
+                                <p className="px-2 py-2 text-xs text-white/40">{t("Nessun file", "No files")}</p>
+                              ) : (
+                                history.map((h) => (
+                                  <div
+                                    key={`dd-${h.id}`}
+                                    className="flex items-center justify-between gap-2 rounded-lg px-2 py-2 hover:bg-white/5"
+                                  >
+                                    <span className="min-w-0 flex-1 truncate text-xs text-white/70">{h.title || "—"}</span>
+                                    {h.file_available ? (
+                                      <button
+                                        type="button"
+                                        className="shrink-0 text-xs text-[#a8b4ff] hover:text-white"
+                                        onClick={() => downloadConversion(h.id)}
+                                      >
+                                        {t("Scarica", "Get")}
+                                      </button>
+                                    ) : null}
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
 
                     <button
                       type="button"
@@ -306,7 +360,18 @@ export default function WorkspacePage({
 
                     <button
                       type="button"
-                      className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-white/50 hover:bg-white/5 hover:text-white"
+                      className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-white/80 hover:bg-white/5"
+                      onClick={() => {
+                        setProfileOpen(false)
+                        setModal("settings")
+                      }}
+                    >
+                      {t("Impostazioni account", "Account settings")}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 border-t border-white/5 px-4 py-3 text-left text-sm text-white/50 hover:bg-white/5 hover:text-white"
                       onClick={() => {
                         setProfileOpen(false)
                         setModal("plans")
@@ -333,8 +398,8 @@ export default function WorkspacePage({
           </div>
         </header>
 
-        <main className="flex flex-1 flex-col px-6 py-10">
-          <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col">
+        <main className="flex flex-1 flex-col px-8 py-10">
+          <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col">
             <h1 className="text-2xl font-bold">{t("Nuova presentazione", "New presentation")}</h1>
             <p className="mt-1 text-sm text-white/45">
               {t("Registra o incolla il testo, poi genera il PowerPoint.", "Record or paste text, then generate PowerPoint.")}
@@ -361,12 +426,7 @@ export default function WorkspacePage({
                 "Trascrizione o testo dell'argomento…",
                 "Transcription or topic text…"
               )}
-              className={[
-                "mt-6 h-[320px] w-full resize-none rounded-2xl border p-5 text-sm leading-relaxed outline-none focus:border-white/20",
-                uiTheme === "light"
-                  ? "border-white/15 bg-white text-black placeholder:text-black/40"
-                  : "border-white/10 bg-white/[0.04] text-white placeholder:text-white/25",
-              ].join(" ")}
+              className="mt-6 min-h-[200px] w-full flex-1 resize-none rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-sm leading-relaxed text-white outline-none placeholder:text-white/25 focus:border-white/20"
             />
 
             <button
@@ -409,53 +469,8 @@ export default function WorkspacePage({
       />
 
       <AnimatePresence>
-        {modal === "account" && (
-          <AccountModal
-            user={user}
-            token={token}
-            setUser={setUser}
-            lang={lang}
-            setLang={(next) => {
-              setLang(next)
-              safeSetItem("lang", next)
-            }}
-            uiTheme={uiTheme}
-            setUiTheme={(next) => {
-              setUiTheme(next)
-              safeSetItem("ui_theme", next)
-            }}
-            history={history}
-            historyLoading={historyLoading}
-            onReloadHistory={loadHistory}
-            onDownload={downloadConversion}
-            onOpenCookiePreferences={onOpenCookiePreferences}
-            onClose={() => setModal(null)}
-            initialTab="account"
-          />
-        )}
         {modal === "settings" && (
-          <AccountModal
-            user={user}
-            token={token}
-            setUser={setUser}
-            lang={lang}
-            setLang={(next) => {
-              setLang(next)
-              safeSetItem("lang", next)
-            }}
-            uiTheme={uiTheme}
-            setUiTheme={(next) => {
-              setUiTheme(next)
-              safeSetItem("ui_theme", next)
-            }}
-            history={history}
-            historyLoading={historyLoading}
-            onReloadHistory={loadHistory}
-            onDownload={downloadConversion}
-            onOpenCookiePreferences={onOpenCookiePreferences}
-            onClose={() => setModal(null)}
-            initialTab="settings"
-          />
+          <SettingsModal user={user} token={token} setUser={setUser} onClose={() => setModal(null)} lang={lang} />
         )}
         {modal === "plans" && (
           <PlansModal user={user} token={token} setUser={setUser} onClose={() => setModal(null)} lang={lang} />
@@ -585,312 +600,6 @@ function SettingsModal({ user, token, setUser, onClose, lang }) {
             </button>
           </div>
         )}
-      </motion.div>
-    </motion.div>
-  )
-}
-
-function AccountModal({
-  user,
-  token,
-  setUser,
-  lang,
-  setLang,
-  uiTheme,
-  setUiTheme,
-  history,
-  historyLoading,
-  onReloadHistory,
-  onDownload,
-  onOpenCookiePreferences,
-  onClose,
-  initialTab = "account",
-}) {
-  const [tab, setTab] = useState(initialTab)
-  const t = (it, en) => (lang === "it" ? it : en)
-  const authConfig =
-    token && token !== "cookie"
-      ? { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
-      : { withCredentials: true }
-
-  const [form, setForm] = useState({ first_name: user?.first_name || "", last_name: user?.last_name || "" })
-  const [pwForm, setPwForm] = useState({ old_password: "", new_password: "" })
-  const [msg, setMsg] = useState("")
-  const [pwMsg, setPwMsg] = useState("")
-
-  const saveProfile = async () => {
-    try {
-      await axios.put(`${API}/me/profile`, form, authConfig)
-      setUser({ ...user, ...form })
-      setMsg(t("Profilo aggiornato!", "Profile updated!"))
-    } catch {
-      setMsg(t("Errore nel salvataggio", "Save error"))
-    }
-  }
-
-  const changePassword = async () => {
-    try {
-      await axios.put(`${API}/me/password`, pwForm, authConfig)
-      setPwMsg(t("Password aggiornata!", "Password updated!"))
-      setPwForm({ old_password: "", new_password: "" })
-    } catch (err) {
-      setPwMsg(err.response?.data?.detail || t("Errore", "Error"))
-    }
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 12 }}
-        className="flex h-[82vh] w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b0d]"
-      >
-        {/* Sidebar */}
-        <div className="w-72 shrink-0 border-r border-white/10 bg-black/25 p-3">
-          <div className="flex items-center gap-3 rounded-2xl px-3 py-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-sm font-semibold">
-              {(user?.username || user?.email || "U")[0].toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{user?.username || user?.email}</p>
-              <p className="truncate text-xs text-white/35">{user?.email}</p>
-            </div>
-          </div>
-
-          <nav className="mt-2 space-y-1">
-            <button
-              type="button"
-              onClick={() => setTab("account")}
-              className={`w-full rounded-xl px-3 py-2 text-left text-sm ${tab === "account" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/5"}`}
-            >
-              {t("Account", "Account")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("settings")}
-              className={`w-full rounded-xl px-3 py-2 text-left text-sm ${tab === "settings" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/5"}`}
-            >
-              {t("Impostazioni", "Settings")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setTab("usage")
-                onReloadHistory?.()
-              }}
-              className={`w-full rounded-xl px-3 py-2 text-left text-sm ${tab === "usage" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/5"}`}
-            >
-              {t("Utilizzo", "Usage")}
-            </button>
-          </nav>
-
-          <div className="mt-auto" />
-        </div>
-
-        {/* Content */}
-        <div className="min-w-0 flex-1 p-7">
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-bold">
-              {tab === "account" ? t("Account", "Account") : tab === "settings" ? t("Impostazioni", "Settings") : t("Utilizzo", "Usage")}
-            </h2>
-            <button type="button" onClick={onClose} aria-label="Close">
-              <X className="h-5 w-5 text-white/40 hover:text-white" />
-            </button>
-          </div>
-
-          {tab === "account" && (
-            <div className="space-y-6">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                <p className="text-xs text-white/40">Email</p>
-                <p className="mt-1 text-sm text-white">{user?.email}</p>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                <p className="mb-4 text-xs uppercase tracking-widest text-white/35">{t("Profilo", "Profile")}</p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    value={form.first_name}
-                    onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                    placeholder={t("Nome", "First name")}
-                    className="w-full rounded-full border border-white/10 bg-transparent px-5 py-3 text-sm text-white outline-none placeholder:text-white/25 focus:border-white/25"
-                  />
-                  <input
-                    value={form.last_name}
-                    onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                    placeholder={t("Cognome", "Last name")}
-                    className="w-full rounded-full border border-white/10 bg-transparent px-5 py-3 text-sm text-white outline-none placeholder:text-white/25 focus:border-white/25"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={saveProfile}
-                  className="mt-4 rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-black hover:bg-white/90"
-                >
-                  {t("Salva", "Save")}
-                </button>
-                {msg && <p className="mt-2 text-xs text-green-400">{msg}</p>}
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                <p className="mb-4 text-xs uppercase tracking-widest text-white/35">{t("Password", "Password")}</p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    type="password"
-                    value={pwForm.old_password}
-                    onChange={(e) => setPwForm({ ...pwForm, old_password: e.target.value })}
-                    placeholder={t("Password attuale", "Current password")}
-                    className="w-full rounded-full border border-white/10 bg-transparent px-5 py-3 text-sm text-white outline-none placeholder:text-white/25 focus:border-white/25"
-                  />
-                  <input
-                    type="password"
-                    value={pwForm.new_password}
-                    onChange={(e) => setPwForm({ ...pwForm, new_password: e.target.value })}
-                    placeholder={t("Nuova password", "New password")}
-                    className="w-full rounded-full border border-white/10 bg-transparent px-5 py-3 text-sm text-white outline-none placeholder:text-white/25 focus:border-white/25"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={changePassword}
-                  className="mt-4 rounded-full bg-white/10 px-6 py-2.5 text-sm font-semibold text-white hover:bg-white/20"
-                >
-                  {t("Aggiorna password", "Update password")}
-                </button>
-                {pwMsg && <p className="mt-2 text-xs text-green-400">{pwMsg}</p>}
-              </div>
-            </div>
-          )}
-
-          {tab === "settings" && (
-            <div className="space-y-6">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                <p className="mb-4 text-xs uppercase tracking-widest text-white/35">{t("Tema", "Theme")}</p>
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setUiTheme("dark")}
-                    className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm ${uiTheme === "dark" ? "border-white/25 bg-white/10 text-white" : "border-white/10 bg-transparent text-white/70 hover:bg-white/5"}`}
-                  >
-                    <Moon className="h-4 w-4 opacity-70" />
-                    {t("Scuro", "Dark")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setUiTheme("light")}
-                    className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm ${uiTheme === "light" ? "border-white/25 bg-white/10 text-white" : "border-white/10 bg-transparent text-white/70 hover:bg-white/5"}`}
-                  >
-                    <Sun className="h-4 w-4 opacity-70" />
-                    {t("Chiaro", "Light")}
-                  </button>
-                </div>
-                <p className="mt-3 text-xs text-white/45">
-                  {t("Lo sfondo resta scuro: cambia solo lo stile delle caselle di input.", "Background stays dark: only input styling changes.")}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                <p className="mb-4 text-xs uppercase tracking-widest text-white/35">{t("Lingua", "Language")}</p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setLang("it")}
-                    className={`rounded-full px-4 py-2 text-sm ${lang === "it" ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"}`}
-                  >
-                    Italiano
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLang("en")}
-                    className={`rounded-full px-4 py-2 text-sm ${lang === "en" ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"}`}
-                  >
-                    English
-                  </button>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                <p className="mb-4 text-xs uppercase tracking-widest text-white/35">{t("Cookie", "Cookies")}</p>
-                <button
-                  type="button"
-                  onClick={() => onOpenCookiePreferences?.()}
-                  className="rounded-full bg-white/10 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/20"
-                >
-                  {t("Gestisci cookie", "Manage cookies")}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {tab === "usage" && (
-            <div className="space-y-6">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                <p className="text-xs uppercase tracking-widest text-white/35">{t("Regole crediti (provvisorio)", "Credit rules (temporary)")}</p>
-                <ul className="mt-3 space-y-2 text-sm text-white/65">
-                  <li>- {t("Piano Free: 180 crediti/mese.", "Free plan: 180 credits/month.")}</li>
-                  <li>- {t("Costo: ~1 credito ogni 3 parole di input (minimo 1).", "Cost: ~1 credit per 3 input words (min 1).")}</li>
-                  <li>- {t("Pro: crediti illimitati.", "Pro: unlimited credits.")}</li>
-                </ul>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs uppercase tracking-widest text-white/35">{t("Creazioni", "Creations")}</p>
-                  <button type="button" onClick={() => onReloadHistory?.()} className="text-xs text-white/50 hover:text-white">
-                    {t("Aggiorna", "Refresh")}
-                  </button>
-                </div>
-                <div className="mt-4">
-                  {historyLoading ? (
-                    <p className="text-sm text-white/35">{t("Caricamento…", "Loading…")}</p>
-                  ) : history.length === 0 ? (
-                    <p className="text-sm text-white/35">{t("Nessuna creazione ancora.", "No creations yet.")}</p>
-                  ) : (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {history.map((h) => (
-                        <div key={h.id} className="rounded-xl border border-white/10 bg-black/20 p-4">
-                          <p className="line-clamp-2 text-sm font-semibold text-white/85">{h.title || "—"}</p>
-                          <p className="mt-1 text-xs text-white/35">{formatWhen(h.created_at)}</p>
-                          {h.file_available ? (
-                            <button
-                              type="button"
-                              onClick={() => onDownload?.(h.id)}
-                              className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#a8b4ff] hover:text-white"
-                            >
-                              <Download className="h-3.5 w-3.5" />
-                              {t("Scarica PPT", "Download PPT")}
-                            </button>
-                          ) : (
-                            <p className="mt-3 text-xs text-white/35">{t("File non più sul server", "File no longer on server")}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="text-xs text-white/35">
-                {onOpenTerms && (
-                  <button type="button" onClick={onOpenTerms} className="hover:text-white/70">
-                    {lang === "it" ? "Termini di servizio" : "Terms of Service"}
-                  </button>
-                )}
-                {onOpenPrivacy && (
-                  <button type="button" onClick={onOpenPrivacy} className="ml-4 hover:text-white/70">
-                    {lang === "it" ? "Privacy Policy" : "Privacy Policy"}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
       </motion.div>
     </motion.div>
   )
