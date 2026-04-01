@@ -505,6 +505,106 @@ def _pick_text_friendly_layout(prs: Presentation):
     return best
 
 
+def _layout_title_and_body_counts(layout) -> tuple[int, int]:
+    """Conta placeholder titolo (TITLE/CENTERED) e corpi testo (BODY/OBJECT/CONTENT)."""
+    n_title = 0
+    n_body = 0
+    for shape in layout.shapes:
+        try:
+            if not shape.is_placeholder:
+                continue
+            ph_t = int(shape.placeholder_format.type)
+            if ph_t in (int(PP_PLACEHOLDER.TITLE), int(PP_PLACEHOLDER.CENTERED_TITLE)):
+                n_title += 1
+            if ph_t in (2, 7, 14, 19):
+                n_body += 1
+        except Exception:
+            continue
+    return n_title, n_body
+
+
+def _enumerate_content_layout_candidates(prs: Presentation) -> list:
+    """
+    Tutti i layout master utilizzabili per slide testo/elenco: corpo testo e al massimo un riquadro foto.
+    Così un template .pptx “lungo” (molti layout) viene effettivamente ruotato tra le slide.
+    """
+    out: list[object] = []
+    for lo in prs.slide_layouts:
+        if not _layout_has_text_body_placeholder(lo):
+            continue
+        pics = _count_picture_placeholders_on_layout(lo)
+        if pics >= 2:
+            continue
+        out.append((pics, lo))
+    out.sort(key=lambda x: (x[0], 0))
+    return [lo for _, lo in out]
+
+
+def _enumerate_section_layout_candidates(prs: Presentation) -> list:
+    """Slide tipo sezione: titolo in evidenza, poco corpo, evita griglie con ≥2 foto."""
+    out: list[object] = []
+    for lo in prs.slide_layouts:
+        n_title, n_body = _layout_title_and_body_counts(lo)
+        if n_title < 1 or n_body < 1:
+            continue
+        pics = _count_picture_placeholders_on_layout(lo)
+        if pics >= 2:
+            continue
+        out.append((pics, n_body, lo))
+    out.sort(key=lambda x: (x[0], x[1]))
+    return [t[2] for t in out]
+
+
+def _pick_rotated_layout(candidates: list, seed: str, fallback):
+    if not candidates:
+        return fallback
+    idx = int(hashlib.sha256((seed or "").encode("utf-8")).hexdigest(), 16) % len(candidates)
+    return candidates[idx]
+
+
+def _insert_first_picture_placeholder(slide, path: Path | None) -> bool:
+    """Riempie il primo placeholder immagine dello slide (se presente)."""
+    if not path or not path.exists():
+        return False
+    for shape in slide.placeholders:
+        try:
+            ph_t = int(shape.placeholder_format.type)
+            if ph_t in (
+                int(PP_PLACEHOLDER.PICTURE),
+                int(PP_PLACEHOLDER.BITMAP),
+                int(PP_PLACEHOLDER.SLIDE_IMAGE),
+            ):
+                if hasattr(shape, "insert_picture"):
+                    shape.insert_picture(str(path))
+                    return True
+        except Exception:
+            continue
+    return False
+
+
+def _template_fallback_inline_image(slide, path: Path, *, two_columns: bool):
+    """Se il master non ha placeholder foto, posiziona una miniatura come nel renderer nativo."""
+    if not path or not path.exists():
+        return
+    try:
+        if two_columns:
+            slide.shapes.add_picture(str(path), Inches(10.05), Inches(0.42), Inches(2.95), Inches(2.15))
+        else:
+            slide.shapes.add_picture(str(path), Inches(9.48), Inches(1.28), Inches(3.65), Inches(2.68))
+    except Exception:
+        pass
+
+
+def _template_fallback_title_hero(slide, path: Path):
+    """Copertina template: fascia foto a destra come il renderer nativo (senza template placeholder)."""
+    if not path or not path.exists():
+        return
+    try:
+        slide.shapes.add_picture(str(path), Inches(7.05), Inches(0), Inches(6.28), Inches(7.5))
+    except Exception:
+        pass
+
+
 def _style_title_shape(shape, text: str, color_rgb: RGBColor, font_title: str | None, size_pt: int = 30):
     if not getattr(shape, "text_frame", None):
         return
@@ -703,6 +803,23 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
     title_layout = prs.slide_layouts[0] if len(prs.slide_layouts) > 0 else prs.slide_layouts[6]
     blank_layout = prs.slide_layouts[6] if len(prs.slide_layouts) > 6 else prs.slide_layouts[0]
     text_content_layout = _pick_text_friendly_layout(prs) or blank_layout
+    content_layout_candidates = _enumerate_content_layout_candidates(prs)
+    if not content_layout_candidates:
+        content_layout_candidates = [text_content_layout]
+    section_layout_candidates = _enumerate_section_layout_candidates(prs)
+
+    hero_path = None
+    content_slide_images: dict[int, Path] = {}
+    try:
+        from .stock_images import fetch_content_slide_images_map, fetch_topic_image_path
+
+        hero_path = fetch_topic_image_path(data)
+        max_inline = max(0, int(os.getenv("MAX_INLINE_SLIDE_IMAGES", "5")))
+        if max_inline > 0:
+            content_slide_images = fetch_content_slide_images_map(data, max_slides=max_inline)
+    except Exception:
+        hero_path = None
+        content_slide_images = {}
 
     def add_watermark(slide):
         if user_tier not in ("free", "starter"):
@@ -744,6 +861,9 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
         b = s0.shapes.add_textbox(Inches(1.1), Inches(2.7), Inches(11.0), Inches(1.5))
         _fill_body_plain(b.text_frame, data.get("subtitle") or "", subtitle_rgb, font_body, 17)
     add_watermark(s0)
+    if hero_path and hero_path.exists():
+        if not _insert_first_picture_placeholder(s0, hero_path):
+            _template_fallback_title_hero(s0, hero_path)
 
     def _default_title_and_body(s, title: str):
         if getattr(s.shapes, "title", None):
@@ -753,15 +873,27 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
             _style_title_shape(tb, title, accent_rgb, font_title, 26)
         return _first_body_placeholder(s)
 
-    for slide in data.get("slides", []):
+    slides_list = data.get("slides") or []
+    deck_seed = str(data.get("title") or "")
+    for slide_idx, slide in enumerate(slides_list):
         st = _normalize_slide_type(slide.get("type"))
         title = slide.get("title") or ""
         content = slide.get("content")
 
-        if st in ("section", "quote", "split"):
+        if st == "section" and section_layout_candidates:
+            layout = _pick_rotated_layout(
+                section_layout_candidates,
+                f"{deck_seed}|section|{slide_idx}|{title}",
+                blank_layout,
+            )
+        elif st in ("quote", "split"):
             layout = blank_layout
         elif st in ("text", "bullets", "numbered"):
-            layout = text_content_layout
+            layout = _pick_rotated_layout(
+                content_layout_candidates,
+                f"{deck_seed}|{slide_idx}|{st}|{title}",
+                text_content_layout,
+            )
         else:
             layout = blank_layout
 
@@ -906,8 +1038,41 @@ def _generate_ppt_with_template(data: dict, user_tier: str, template_path: Path)
 
         add_watermark(s)
 
+        inl_path = content_slide_images.get(slide_idx)
+        if inl_path and inl_path.exists():
+            if st == "section":
+                if not _insert_first_picture_placeholder(s, inl_path):
+                    try:
+                        s.shapes.add_picture(str(inl_path), Inches(9.65), Inches(0.45), Inches(3.35), Inches(2.35))
+                    except Exception:
+                        pass
+            elif st == "numbered":
+                items_n = _coerce_list_content(content)
+                n_n = len(items_n)
+                cols_n = 2 if n_n >= 8 else 1
+                if n_n and not _insert_first_picture_placeholder(s, inl_path):
+                    _template_fallback_inline_image(s, inl_path, two_columns=(cols_n == 2))
+            elif st == "bullets":
+                items_b = _coerce_list_content(content)
+                n_b = len(items_b)
+                cols_b = 2 if n_b >= 8 else 1
+                if n_b and not _insert_first_picture_placeholder(s, inl_path):
+                    _template_fallback_inline_image(s, inl_path, two_columns=(cols_b == 2))
+            elif st == "text":
+                if not _insert_first_picture_placeholder(s, inl_path):
+                    try:
+                        s.shapes.add_picture(str(inl_path), Inches(9.55), Inches(1.25), Inches(3.62), Inches(2.72))
+                    except Exception:
+                        pass
+
     # summary
-    ss = prs.slides.add_slide(text_content_layout)
+    ss = prs.slides.add_slide(
+        _pick_rotated_layout(
+            content_layout_candidates,
+            f"{deck_seed}|summary|{data.get('summary_title', '')}",
+            text_content_layout,
+        )
+    )
     _strip_footer_date_slide_number_placeholders(ss)
     polish_slide(ss, slide_bg_rgb)
     summary_title = data.get("summary_title", "Riepilogo")

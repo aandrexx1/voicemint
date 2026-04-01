@@ -36,6 +36,21 @@ def keywords_for_stock_image(data: dict) -> str:
     return q if q else "education learning"
 
 
+def deck_topic_prefix(data: dict, max_words: int = 5) -> str:
+    """
+    Breve ancoraggio tematico per Pexels (stesso argomento su tutte le slide).
+    Evita foto generiche scollegate tra loro quando le query sono solo titoli slide.
+    """
+    raw = re.sub(
+        r"[^\w\s]",
+        " ",
+        f"{data.get('title') or ''} {data.get('subtitle') or ''}",
+        flags=re.UNICODE,
+    )
+    words = [w for w in raw.split() if len(w) > 2][:max_words]
+    return " ".join(words).strip()
+
+
 def _query_from_slide_title(title: str) -> str:
     raw = re.sub(r"[^\w\s]", " ", str(title or ""), flags=re.UNICODE)
     words = [w for w in raw.split() if len(w) > 2][:8]
@@ -125,9 +140,12 @@ def fetch_content_slide_images_map(data: dict, max_slides: int = 5) -> dict[int,
                 q = _query_from_slide_title(str(s.get("title") or ""))
                 if not q:
                     continue
+                topic = deck_topic_prefix(data)
+                if topic:
+                    q = f"{topic} {q}".strip()
                 qk = q.lower()[:80]
                 if qk in seen_q:
-                    q = f"{q} theme"
+                    q = f"{q} context"
                 seen_q.add(qk[:80])
 
                 h = hashlib.sha256(f"pexels_inline|{i}|{q}".encode("utf-8")).hexdigest()[:22]
