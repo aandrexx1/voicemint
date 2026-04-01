@@ -125,6 +125,21 @@ def _prefer_named_template_match(paths: list[Path]) -> Path | None:
     pool = remote if remote else paths
     return min(pool, key=lambda x: len(x.name))
 
+def _hash_pick(paths: list[Path], seed: str) -> Path | None:
+    if not paths:
+        return None
+    idx = int(hashlib.sha256((seed or "").encode("utf-8")).hexdigest(), 16) % len(paths)
+    return paths[idx]
+
+def _template_hint_from_env_or_theme(data: dict) -> str:
+    """Permette di forzare/indirizzare un template senza cambiare codice: match su nome file."""
+    env_hint = os.getenv("TEMPLATE_HINT", "").strip()
+    if env_hint:
+        return env_hint
+    theme = data.get("theme") if isinstance(data.get("theme"), dict) else {}
+    hint = (theme.get("template_hint") or theme.get("template") or "").strip() if isinstance(theme, dict) else ""
+    return str(hint or "").strip()
+
 
 def _discover_remote_templates():
     """
@@ -199,7 +214,20 @@ def _find_presentation_template(_data: dict) -> Path | None:
     all_p = [p for p in _discover_all_template_paths() if _is_presentation_template_filename(p.name)]
     if not all_p:
         return None
-    return _prefer_named_template_match(all_p)
+    # NB: prima prendevamo sempre il nome più corto → quasi sempre stesso template.
+    # Ora: selezione deterministica (hash) per varietà mantenendo stabilità sullo stesso deck.
+    hint = _template_hint_from_env_or_theme(_data)
+    if hint:
+        h = hint.lower()
+        hinted = [p for p in all_p if h in p.name.lower()]
+        if hinted:
+            # preferisci remoti se presenti, poi hash per stabilità
+            remote = [p for p in hinted if _is_from_remote_cache(p)]
+            pool = remote if remote else hinted
+            seed = (str(_data.get("title") or "") + "|" + str(_data.get("subtitle") or "") + "|presentation|" + h)
+            return _hash_pick(pool, seed) or _prefer_named_template_match(pool)
+    seed = (str(_data.get("title") or "") + "|" + str(_data.get("subtitle") or "") + "|presentation")
+    return _hash_pick(all_p, seed) or _prefer_named_template_match(all_p)
 
 
 def _pick_template(data: dict):
@@ -211,9 +239,24 @@ def _pick_template(data: dict):
     """
     mode = (data.get("deck_mode") or "presentation").strip().lower()
     if mode == "study":
-        named = _find_named_deck_template(study=True)
-        if named is not None:
-            return named
+        # Se ci sono più template study, scegli deterministico per deck.
+        matches = []
+        for p in _discover_all_template_paths():
+            n = p.name.lower()
+            if "_template_study" in n or n.startswith("template_study"):
+                matches.append(p)
+        if matches:
+            hint = _template_hint_from_env_or_theme(data)
+            if hint:
+                h = hint.lower()
+                hinted = [p for p in matches if h in p.name.lower()]
+                if hinted:
+                    remote = [p for p in hinted if _is_from_remote_cache(p)]
+                    pool = remote if remote else hinted
+                    seed = (str(data.get("title") or "") + "|" + str(data.get("subtitle") or "") + "|study|" + h)
+                    return _hash_pick(pool, seed) or _prefer_named_template_match(pool)
+            seed = (str(data.get("title") or "") + "|" + str(data.get("subtitle") or "") + "|study")
+            return _hash_pick(matches, seed) or _prefer_named_template_match(matches)
     else:
         named = _find_presentation_template(data)
         if named is not None:
